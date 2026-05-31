@@ -1,0 +1,23 @@
+{
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f0f0f;
+  color: #ffffff;
+}
+.dashboard-page h1,
+.dashboard-page h2,
+.dashboard-page h3,
+.dashboard-page p,
+.dashboard-page span,
+.hotel-name,
+.dash-page-title {
+  color: #ffffff !important;
+}
+
+.gold-text {
+  color: #c9a84c !important;
+}

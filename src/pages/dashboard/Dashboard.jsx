@@ -5,6 +5,7 @@ import StatCards from '../../components/cards/StatCards'
 import RoomsTable from '../../components/table/RoomsTable'
 import QuickActions from '../../components/buttons/QuickActions'
 import PlaceholderCards from '../../components/cards/PlaceholderCards'
+import AddRoomModal from '../../components/modals/AddRoomModal'
 import './Dashboard.css'
 
 export default function Dashboard() {
@@ -13,6 +14,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastFetch, setLastFetch] = useState(null)
+  const [showAddRoomModal, setShowAddRoomModal] = useState(false)
 
   const fetchRooms = useCallback(async () => {
     setLoading(true)
@@ -31,14 +33,25 @@ export default function Dashboard() {
       const total = data?.length ?? 0
       const available = data?.filter(r => r.status === 'available').length ?? 0
       const occupied = data?.filter(r => r.status === 'occupied').length ?? 0
-      const sessions = data?.filter(r => r.qr_active).length ?? 0
 
-      setStats({ total, available, occupied, sessions })
+      const { count: guestsCount, error: guestsErr } = await supabase
+        .from('guests')
+        .select('*', { count: 'exact', head: true })
+
+      if (guestsErr) throw guestsErr
+
+      setStats({
+        total,
+        available,
+        occupied,
+        guests: guestsCount || 0,
+      })
+
       setLastFetch(new Date())
     } catch (err) {
       console.error('[Dashboard] Supabase fetch error:', err)
-      setError(err?.message || 'Failed to fetch rooms. Check your Supabase connection.')
-      setStats({ total: 12, available: 4, occupied: 7, sessions: 5 })
+      setError(err?.message || 'Failed to fetch data. Check your Supabase connection.')
+      setStats({ total: 12, available: 4, occupied: 7, guests: 0 })
     } finally {
       setLoading(false)
     }
@@ -49,21 +62,39 @@ export default function Dashboard() {
   }, [fetchRooms])
 
   const handleAction = (actionId) => {
-    const messages = {
-      checkin: 'Check-In modal coming soon',
-      addroom: 'Add Room modal coming soon',
-      generateqr: 'QR Generator coming soon',
+    if (actionId === 'addroom') {
+      setShowAddRoomModal(true)
+      return
     }
-    alert(messages[actionId] || `Action: ${actionId}`)
+
+    if (actionId === 'checkin') {
+      alert('Go to Check-In / Out from sidebar')
+      return
+    }
+
+    if (actionId === 'generateqr') {
+      alert('QR Generator coming soon')
+      return
+    }
+
+    alert(`Action: ${actionId}`)
   }
 
   return (
     <div className="dashboard-page">
+      {showAddRoomModal && (
+        <AddRoomModal
+          onClose={() => setShowAddRoomModal(false)}
+          onSuccess={fetchRooms}
+        />
+      )}
+
       <div className="dash-page-header">
         <div>
           <h1 className="dash-page-title">
             Good {getTimeOfDay()}, <span className="gold-text">Admin</span> 👋
           </h1>
+
           <p className="dash-page-sub">
             Here's what's happening at VD Stay Inn today
             {lastFetch && (
@@ -90,6 +121,7 @@ export default function Dashboard() {
         <div className="dash-stats-col">
           <StatCards stats={stats} loading={loading} />
         </div>
+
         <div className="dash-actions-col">
           <QuickActions onAction={handleAction} />
         </div>
@@ -119,7 +151,10 @@ function getTimeOfDay() {
 }
 
 function formatTime(date) {
-  return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function RefreshIcon({ spinning }) {

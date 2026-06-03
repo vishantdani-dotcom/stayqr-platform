@@ -113,3 +113,73 @@
     grid-template-columns:1fr;
   }
 }
+/* ==========================
+   ADD ROOM MODAL
+========================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+.modal-card {
+  width: 450px;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+
+.modal-card h2 {
+  color: #fff;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.modal-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-card input,
+.modal-card select {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  background: #181818;
+  color: white;
+  font-size: 14px;
+}
+
+.modal-card input:focus,
+.modal-card select:focus {
+  outline: none;
+  border-color: #d4af37;
+}
+
+.modal-card button {
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.modal-card button[type='submit'] {
+  background: #d4af37;
+  color: #000;
+}
+
+.modal-card button[type='button'] {
+  background: #222;
+  color: white;
+}

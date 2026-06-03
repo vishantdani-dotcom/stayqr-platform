@@ -1,0 +1,31 @@
+.rooms-page {
+  padding: 28px;
+}
+
+.rooms-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.rooms-header h1 {
+  color: #fff;
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+
+.rooms-header p {
+  color: #999;
+  font-size: 14px;
+}
+
+.rooms-add-btn {
+  background: #d4af37;
+  color: #000;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}

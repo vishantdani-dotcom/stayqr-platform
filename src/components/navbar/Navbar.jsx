@@ -1,25 +1,40 @@
 // src/components/navbar/Navbar.jsx
+
 import { useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import './Navbar.css'
 
 export default function Navbar({ sidebarCollapsed, onMobileMenuToggle, activeSection }) {
   const [notifOpen, setNotifOpen] = useState(false)
 
+  const handleLogout = async () => {
+    const confirmLogout = window.confirm('Logout from StayQR?')
+
+    if (!confirmLogout) return
+
+    await supabase.auth.signOut()
+    window.location.reload()
+  }
+
   const sectionLabels = {
     dashboard: 'Dashboard',
-    rooms:     'Rooms',
-    guests:    'Guests',
-    checkin:   'Check-In / Out',
-    qr:        'QR Guides',
-    payments:  'Payments',
-    services:  'Service Requests',
+    rooms: 'Rooms',
+    guests: 'Guests',
+    checkin: 'Check-In / Out',
+    qr: 'QR Guides',
+    payments: 'Payments',
+    services: 'Service Requests',
     amenities: 'Amenities',
-    hotel:     'Hotel Profile',
-    settings:  'Settings',
+    hotel: 'Hotel Profile',
+    settings: 'Settings',
   }
 
   const now = new Date()
-  const dateStr = now.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })
+  const dateStr = now.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
 
   return (
     <header
@@ -27,14 +42,16 @@ export default function Navbar({ sidebarCollapsed, onMobileMenuToggle, activeSec
       style={{ left: sidebarCollapsed ? 64 : 'var(--sidebar-w)' }}
     >
       <div className="navbar-left">
-        {/* Mobile menu button */}
         <button className="navbar-menu-btn" onClick={onMobileMenuToggle}>
           <MenuIcon />
         </button>
+
         <div className="navbar-breadcrumb">
           <span className="breadcrumb-home">StayQR</span>
           <span className="breadcrumb-sep">/</span>
-          <span className="breadcrumb-current">{sectionLabels[activeSection] || 'Dashboard'}</span>
+          <span className="breadcrumb-current">
+            {sectionLabels[activeSection] || 'Dashboard'}
+          </span>
         </div>
       </div>
 
@@ -43,12 +60,10 @@ export default function Navbar({ sidebarCollapsed, onMobileMenuToggle, activeSec
       </div>
 
       <div className="navbar-right">
-        {/* Search */}
         <button className="navbar-icon-btn" title="Search">
           <SearchIcon />
         </button>
 
-        {/* Notifications */}
         <div className="notif-wrapper">
           <button
             className="navbar-icon-btn notif-btn"
@@ -58,15 +73,18 @@ export default function Navbar({ sidebarCollapsed, onMobileMenuToggle, activeSec
             <BellIcon />
             <span className="notif-dot" />
           </button>
+
           {notifOpen && (
             <div className="notif-dropdown">
               <div className="notif-header">
                 <span>Notifications</span>
                 <span className="notif-count">3 new</span>
               </div>
-              {NOTIFS.map(n => (
+
+              {NOTIFS.map((n) => (
                 <div key={n.id} className="notif-item">
                   <div className={`notif-item-icon ${n.type}`}>{n.icon}</div>
+
                   <div className="notif-item-body">
                     <p className="notif-item-title">{n.title}</p>
                     <p className="notif-item-time">{n.time}</p>
@@ -77,15 +95,30 @@ export default function Navbar({ sidebarCollapsed, onMobileMenuToggle, activeSec
           )}
         </div>
 
-        {/* Divider */}
         <div className="navbar-divider" />
 
-        {/* User */}
         <div className="navbar-user">
           <div className="navbar-user-info">
             <span className="navbar-user-name">Admin</span>
             <span className="navbar-user-hotel">VD Stay Inn</span>
           </div>
+
+          <button
+            onClick={handleLogout}
+            style={{
+              background: '#D4AF37',
+              color: '#000',
+              border: 'none',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '700',
+              marginLeft: '10px',
+            }}
+          >
+            Logout
+          </button>
+
           <div className="navbar-avatar">A</div>
         </div>
       </div>
@@ -94,30 +127,77 @@ export default function Navbar({ sidebarCollapsed, onMobileMenuToggle, activeSec
 }
 
 const NOTIFS = [
-  { id: 1, type: 'green',  icon: '🛎️', title: 'Room 101 checked in',       time: '2 min ago' },
-  { id: 2, type: 'gold',   icon: '⭐', title: 'New 5-star Google review',   time: '18 min ago' },
-  { id: 3, type: 'orange', icon: '🔧', title: 'Service request — Room 204', time: '1 hr ago' },
+  {
+    id: 1,
+    type: 'green',
+    icon: '🛎️',
+    title: 'Room 101 checked in',
+    time: '2 min ago',
+  },
+  {
+    id: 2,
+    type: 'gold',
+    icon: '⭐',
+    title: 'New 5-star Google review',
+    time: '18 min ago',
+  },
+  {
+    id: 3,
+    type: 'orange',
+    icon: '🔧',
+    title: 'Service request — Room 204',
+    time: '1 hr ago',
+  },
 ]
 
 function MenuIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
     </svg>
   )
 }
+
 function SearchIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   )
 }
+
 function BellIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
   )
 }

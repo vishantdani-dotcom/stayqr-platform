@@ -82,6 +82,12 @@ export default function HotelProfile() {
       about:
         info.about ||
         `${currentHotel.hotel_name || "This hotel"} offers a smart and comfortable hospitality experience powered by StayQR.`,
+      google_review_url: info.google_review_url || "",
+      reward_title: info.reward_title || "Thank You Reward",
+      reward_description:
+        info.reward_description ||
+        "Show this screen at reception to know if any offer is available.",
+      reward_enabled: info.reward_enabled ?? true,
     };
 
     let error;
@@ -143,8 +149,31 @@ export default function HotelProfile() {
         <Input label="WiFi Name" name="wifi_name" value={info?.wifi_name} onChange={handleChange} />
         <Input label="WiFi Password" name="wifi_password" value={info?.wifi_password} onChange={handleChange} />
 
+        <Input label="Google Review URL" name="google_review_url" value={info?.google_review_url} onChange={handleChange} />
+        <Input label="Reward Title" name="reward_title" value={info?.reward_title} onChange={handleChange} />
+
         <Textarea label="About Hotel" name="about" value={info?.about} onChange={handleChange} />
         <Textarea label="Hotel Rules" name="hotel_rules" value={info?.hotel_rules} onChange={handleChange} />
+        <Textarea label="Reward Description" name="reward_description" value={info?.reward_description} onChange={handleChange} />
+
+        <div style={field}>
+          <label style={labelStyle}>Rewards Enabled</label>
+
+          <select
+            style={input}
+            name="reward_enabled"
+            value={String(info?.reward_enabled ?? true)}
+            onChange={(e) =>
+              setInfo({
+                ...info,
+                reward_enabled: e.target.value === "true",
+              })
+            }
+          >
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
 
         <button style={saveBtn} onClick={saveHotelInfo} disabled={saving}>
           {saving ? "Saving..." : "Save Hotel Profile"}
@@ -168,6 +197,11 @@ const defaultHotelInfo = {
     "Please maintain silence, avoid smoking inside rooms, and contact reception for assistance.",
   about:
     "This hotel offers a smart and comfortable hospitality experience powered by StayQR.",
+  google_review_url: "",
+  reward_title: "Thank You Reward",
+  reward_description:
+    "Show this screen at reception to know if any offer is available.",
+  reward_enabled: true,
 };
 
 function Input({ label, name, value, onChange }) {

@@ -16,11 +16,11 @@ export default function GuestGuide() {
   useEffect(() => {
     if (!session?.guest_id) return;
 
-    fetchMyRequests(session.guest_id);
+    fetchMyRequests(session.guest_id, session.hotel_id);
     fetchHotelInfo(session.hotel_id);
 
     const requestInterval = setInterval(() => {
-      fetchMyRequests(session.guest_id);
+      fetchMyRequests(session.guest_id, session.hotel_id);
     }, 3000);
 
     const sessionInterval = setInterval(() => {
@@ -40,7 +40,7 @@ export default function GuestGuide() {
       .from("rooms")
       .select("*")
       .eq("room_number", roomNumber)
-      .single();
+      .maybeSingle();
 
     if (roomError || !roomData) {
       setSession(null);
@@ -64,6 +64,7 @@ export default function GuestGuide() {
         )
       `)
       .eq("room_id", roomData.id)
+      .eq("hotel_id", roomData.hotel_id)
       .eq("status", "active")
       .maybeSingle();
 
@@ -82,7 +83,8 @@ export default function GuestGuide() {
           status: "expired",
           expired_at: new Date().toISOString(),
         })
-        .eq("id", data.id);
+        .eq("id", data.id)
+        .eq("hotel_id", data.hotel_id);
 
       setSession(null);
       setLoading(false);
@@ -108,10 +110,11 @@ export default function GuestGuide() {
     setHotelInfo(data);
   };
 
-  const fetchMyRequests = async (guestId) => {
+  const fetchMyRequests = async (guestId, hotelId) => {
     const { data, error } = await supabase
       .from("service_requests")
       .select("*")
+      .eq("hotel_id", hotelId)
       .eq("guest_id", guestId)
       .order("created_at", { ascending: false });
 
@@ -140,7 +143,7 @@ export default function GuestGuide() {
       if (error) throw error;
 
       alert(`${requestType} request sent to hotel staff`);
-      fetchMyRequests(session.guest_id);
+      fetchMyRequests(session.guest_id, session.hotel_id);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -152,6 +155,21 @@ export default function GuestGuide() {
     const roomNumber = session?.rooms?.room_number;
     if (!roomNumber) return alert("Room number not found");
     window.location.href = `/food/${roomNumber}`;
+  };
+
+  const openGoogleReview = () => {
+    const reviewUrl = hotelInfo?.google_review_url;
+
+    if (!reviewUrl) {
+      alert("Google review link is not configured yet.");
+      return;
+    }
+
+    window.open(reviewUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const callReception = () => {
+    window.location.href = `tel:${hotelInfo?.reception_phone || "+919503893141"}`;
   };
 
   const getRequestLabel = (status) => {
@@ -183,9 +201,7 @@ export default function GuestGuide() {
             available for this room. The stay may be expired or checked out.
             Please contact reception.
           </p>
-          <button onClick={() => (window.location.href = "tel:+919503893141")}>
-            Call Reception
-          </button>
+          <button onClick={callReception}>Call Reception</button>
         </section>
       </div>
     );
@@ -195,26 +211,27 @@ export default function GuestGuide() {
   const roomNumber = session.rooms?.room_number || "-";
   const roomType = session.rooms?.room_type || "Luxury Room";
   const expiryTime = session.extended_until || session.checkout_time;
+  const hotelName = hotelInfo?.hotel_name || "StayQR Hotel";
 
   return (
     <div className="guest-lux-page">
       <div className="guest-topbar">
         <div>
-          <h3>{hotelInfo?.hotel_name || "VD Stay Inn"}</h3>
-          <span>{hotelInfo?.address || "Nagpur, Maharashtra"}</span>
+          <h3>{hotelName}</h3>
+          <span>{hotelInfo?.address || "Smart Hospitality Experience"}</span>
         </div>
         <button>Digital Guide</button>
       </div>
 
       <section className="guest-hero">
         <div className="guest-hero-overlay">
-          <p className="section-kicker">WELCOME TO A WORLD OF REFINEMENT</p>
+          <p className="section-kicker">WELCOME TO A SMART STAY EXPERIENCE</p>
 
           <h1>
-            VD <span>Stay</span>
+            {hotelName.split(" ")[0]} <span>Stay</span>
           </h1>
 
-          <p className="hero-sub">Digital Guest Guide · Your Luxury Companion</p>
+          <p className="hero-sub">Digital Guest Guide · Powered by StayQR</p>
 
           <div className="guest-room-pill">
             Room {roomNumber} · {roomType}
@@ -227,8 +244,7 @@ export default function GuestGuide() {
 
             {expiryTime && (
               <small style={{ display: "block", marginTop: "10px", color: "#d4af37" }}>
-                Access valid until{" "}
-                {new Date(expiryTime).toLocaleString("en-IN")}
+                Access valid until {new Date(expiryTime).toLocaleString("en-IN")}
               </small>
             )}
           </div>
@@ -281,7 +297,7 @@ export default function GuestGuide() {
             </div>
           </button>
 
-          <button onClick={() => (window.location.href = `tel:${hotelInfo?.reception_phone || "+919503893141"}`)}>
+          <button onClick={callReception}>
             <span>📞</span>
             <div>
               <h4>Reception</h4>
@@ -348,12 +364,12 @@ export default function GuestGuide() {
         <div className="info-card">
           <div>
             <span className="info-label">Network</span>
-            <h3>{hotelInfo?.wifi_name || "VDStay_Guest"}</h3>
+            <h3>{hotelInfo?.wifi_name || "Hotel_Guest_WiFi"}</h3>
           </div>
 
           <div>
             <span className="info-label">Password</span>
-            <h3>{hotelInfo?.wifi_password || "welcome123"}</h3>
+            <h3>{hotelInfo?.wifi_password || "Ask Reception"}</h3>
           </div>
         </div>
       </section>
@@ -363,7 +379,7 @@ export default function GuestGuide() {
         <h2>Emergency Assistance</h2>
 
         <div className="concierge-grid">
-          <button onClick={() => (window.location.href = `tel:${hotelInfo?.reception_phone || "+919503893141"}`)}>
+          <button onClick={callReception}>
             <span>☎️</span>
             <div>
               <h4>Call Reception</h4>
@@ -371,7 +387,15 @@ export default function GuestGuide() {
             </div>
           </button>
 
-          <button onClick={() => (window.location.href = `tel:${hotelInfo?.emergency_phone || "+919503893141"}`)}>
+          <button
+            onClick={() =>
+              (window.location.href = `tel:${
+                hotelInfo?.emergency_phone ||
+                hotelInfo?.reception_phone ||
+                "+919503893141"
+              }`)
+            }
+          >
             <span>🚨</span>
             <div>
               <h4>Emergency Contact</h4>
@@ -388,12 +412,18 @@ export default function GuestGuide() {
         <div className="info-card">
           <div>
             <span className="info-label">About</span>
-            <h3>{hotelInfo?.about || "VD Stay Inn offers a smart hospitality experience powered by StayQR."}</h3>
+            <h3>
+              {hotelInfo?.about ||
+                `${hotelName} offers a smart hospitality experience powered by StayQR.`}
+            </h3>
           </div>
 
           <div>
             <span className="info-label">Rules</span>
-            <h3>{hotelInfo?.hotel_rules || "Please maintain silence and contact reception for help."}</h3>
+            <h3>
+              {hotelInfo?.hotel_rules ||
+                "Please maintain silence and contact reception for help."}
+            </h3>
           </div>
         </div>
       </section>
@@ -452,6 +482,67 @@ export default function GuestGuide() {
           </button>
         </div>
       </section>
+
+      <section className="guest-section review-reward-section">
+        <p className="section-kicker">08 — REVIEW YOUR STAY</p>
+        <h2>Share Your Experience</h2>
+        <p className="section-sub">
+          Your feedback helps the hotel improve and helps future guests make better decisions.
+        </p>
+
+        <div className="review-card">
+          <div className="review-icon">⭐</div>
+
+          <div>
+            <h3>Enjoyed your stay?</h3>
+            <p>
+              You can leave an honest Google review for {hotelName}. This is completely optional.
+            </p>
+
+            <button
+              className="review-btn"
+              onClick={openGoogleReview}
+              disabled={!hotelInfo?.google_review_url}
+            >
+              {hotelInfo?.google_review_url
+                ? "Leave a Google Review"
+                : "Google Review Link Not Configured"}
+            </button>
+
+            {!hotelInfo?.google_review_url && (
+              <small className="review-help">
+                Please contact reception if you wish to share feedback.
+              </small>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {hotelInfo?.reward_enabled !== false && (
+        <section className="guest-section review-reward-section">
+          <p className="section-kicker">09 — THANK YOU REWARD</p>
+          <h2>{hotelInfo?.reward_title || "Thank You Reward"}</h2>
+          <p className="section-sub">
+            {hotelInfo?.reward_description ||
+              "Show this screen at reception to know if any offer is available."}
+          </p>
+
+          <div className="reward-card">
+            <div className="reward-icon">🎁</div>
+
+            <div>
+              <h3>A small thank-you from the hotel</h3>
+              <p>
+                This reward is offered as a guest appreciation benefit. It is separate from Google reviews.
+              </p>
+
+              <button className="reward-btn" onClick={callReception}>
+                Contact Reception
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="guest-footer">
         <p>Powered by StayQR</p>

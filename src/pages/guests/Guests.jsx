@@ -115,12 +115,21 @@ export default function Guests() {
       return;
     }
 
+    const stayStart = session.checkin_time;
+    const stayEnd = new Date().toISOString();
+
     try {
-      const { data: payments, error: paymentError } = await supabase
+      let paymentsQuery = supabase
         .from("payments")
         .select("*")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id);
+
+      if (stayStart) {
+        paymentsQuery = paymentsQuery.gte("created_at", stayStart);
+      }
+
+      const { data: payments, error: paymentError } = await paymentsQuery;
 
       if (paymentError) throw paymentError;
 
@@ -129,11 +138,17 @@ export default function Guests() {
           ?.filter((p) => p.payment_type === "room_charge")
           .reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
 
-      const { data: foodOrders, error: foodError } = await supabase
+      let foodQuery = supabase
         .from("food_orders")
         .select("*")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id);
+
+      if (stayStart) {
+        foodQuery = foodQuery.gte("created_at", stayStart);
+      }
+
+      const { data: foodOrders, error: foodError } = await foodQuery;
 
       if (foodError) throw foodError;
 
@@ -143,11 +158,17 @@ export default function Guests() {
           0
         ) || 0;
 
-      const { data: manualCharges, error: chargeError } = await supabase
+      let chargesQuery = supabase
         .from("manual_charges")
         .select("*")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id);
+
+      if (stayStart) {
+        chargesQuery = chargesQuery.gte("created_at", stayStart);
+      }
+
+      const { data: manualCharges, error: chargeError } = await chargesQuery;
 
       if (chargeError) throw chargeError;
 
@@ -166,7 +187,7 @@ export default function Guests() {
 
       if (!confirmCheckout) return;
 
-      const invoiceNumber = `INV-${Date.now()}`;
+      const invoiceNumber = generateInvoiceNumber();
 
       const { error: invoiceError } = await supabase.from("invoices").insert([
         {
@@ -185,27 +206,45 @@ export default function Guests() {
 
       if (invoiceError) throw invoiceError;
 
-      const { error: paymentUpdateError } = await supabase
+      let paymentUpdateQuery = supabase
         .from("payments")
         .update({ payment_status: "paid" })
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id);
 
+      if (stayStart) {
+        paymentUpdateQuery = paymentUpdateQuery.gte("created_at", stayStart);
+      }
+
+      const { error: paymentUpdateError } = await paymentUpdateQuery;
+
       if (paymentUpdateError) throw paymentUpdateError;
 
-      const { error: foodUpdateError } = await supabase
+      let foodUpdateQuery = supabase
         .from("food_orders")
         .update({ payment_status: "paid" })
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id);
 
+      if (stayStart) {
+        foodUpdateQuery = foodUpdateQuery.gte("created_at", stayStart);
+      }
+
+      const { error: foodUpdateError } = await foodUpdateQuery;
+
       if (foodUpdateError) throw foodUpdateError;
 
-      const { error: chargesUpdateError } = await supabase
+      let chargesUpdateQuery = supabase
         .from("manual_charges")
         .update({ payment_status: "paid" })
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id);
+
+      if (stayStart) {
+        chargesUpdateQuery = chargesUpdateQuery.gte("created_at", stayStart);
+      }
+
+      const { error: chargesUpdateError } = await chargesUpdateQuery;
 
       if (chargesUpdateError) throw chargesUpdateError;
 
@@ -213,7 +252,7 @@ export default function Guests() {
         .from("guest_sessions")
         .update({
           status: "completed",
-          expired_at: new Date().toISOString(),
+          expired_at: stayEnd,
         })
         .eq("id", session.id)
         .eq("hotel_id", session.hotel_id);
@@ -242,7 +281,9 @@ export default function Guests() {
 
       if (housekeepingError) throw housekeepingError;
 
-      alert(`Checkout completed successfully.\nInvoice: ${invoiceNumber}`);
+      alert(
+        `Checkout completed successfully.\nInvoice created: ${invoiceNumber}`
+      );
 
       fetchGuests(currentHotel?.id);
     } catch (err) {
@@ -257,8 +298,8 @@ export default function Guests() {
         <div>
           <h1>Guests</h1>
           <p>
-            {currentHotel?.hotel_name || "Hotel"} · Manage active guests, final billing,
-            stay extension and checkout.
+            {currentHotel?.hotel_name || "Hotel"} · Manage active guests, final
+            billing, stay extension and checkout.
           </p>
         </div>
 
@@ -370,6 +411,13 @@ export default function Guests() {
       )}
     </div>
   );
+}
+
+function generateInvoiceNumber() {
+  const now = new Date();
+  const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const timePart = String(now.getTime()).slice(-6);
+  return `INV-${datePart}-${timePart}`;
 }
 
 const modalOverlay = {

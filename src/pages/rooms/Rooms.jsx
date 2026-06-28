@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { getCurrentHotel } from '../../lib/currentHotel'
 import RoomsTable from '../../components/table/RoomsTable'
 import AddRoomModal from '../../components/modals/AddRoomModal'
 import './Rooms.css'
@@ -9,24 +10,35 @@ export default function Rooms() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showAddRoomModal, setShowAddRoomModal] = useState(false)
+  const [currentHotel, setCurrentHotel] = useState(null)
 
   const fetchRooms = async () => {
     setLoading(true)
     setError(null)
 
-    const { data, error } = await supabase
-      .from('rooms')
-      .select('*')
-      .order('room_number', { ascending: true })
+    try {
+      const hotel = await getCurrentHotel()
 
-    if (error) {
-      console.error('Rooms fetch error:', error)
-      setError(error.message)
-      setLoading(false)
-      return
+      if (!hotel) {
+        throw new Error('No hotel assigned to current user')
+      }
+
+      setCurrentHotel(hotel)
+
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('hotel_id', hotel.id)
+        .order('room_number', { ascending: true })
+
+      if (error) throw error
+
+      setRooms(data || [])
+    } catch (err) {
+      console.error('Rooms fetch error:', err)
+      setError(err.message)
     }
 
-    setRooms(data || [])
     setLoading(false)
   }
 
@@ -46,7 +58,11 @@ export default function Rooms() {
       <div className="rooms-header">
         <div>
           <h1>Rooms</h1>
-          <p>Manage rooms, availability and live room status.</p>
+          <p>
+            {currentHotel
+              ? `${currentHotel.hotel_name} • Manage rooms, availability and live room status`
+              : 'Manage rooms, availability and live room status'}
+          </p>
         </div>
 
         <button

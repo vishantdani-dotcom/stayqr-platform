@@ -70,3 +70,25 @@ font-weight:700;
 .delete-room-btn:hover {
   opacity: 0.9;
 }
+.ready-room-btn {
+  background: #d4af37;
+  color: #000;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ready-room-btn:hover {
+  opacity: 0.9;
+}
+
+.no-action-text {
+  color: #777;
+}
+
+.room-status-cleaning {
+  background: rgba(212, 175, 55, 0.18);
+  color: #d4af37;
+}

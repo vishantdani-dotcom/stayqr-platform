@@ -1,0 +1,404 @@
+.guest-lux-page {
+  min-height: 100vh;
+  background: #030303;
+  color: #fff;
+  font-family: Inter, Arial, sans-serif;
+  padding-bottom: 80px;
+}
+
+/* TOP BAR */
+
+.guest-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 78px;
+  padding: 18px 40px;
+  background: rgba(0, 0, 0, 0.95);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.guest-topbar h3 {
+  margin: 0;
+  color: #d4af37;
+  letter-spacing: 1px;
+}
+
+.guest-topbar span {
+  color: #888;
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.guest-topbar button {
+  background: transparent;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  color: #d4af37;
+  padding: 10px 18px;
+  border-radius: 999px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* HERO */
+
+.guest-hero {
+  width: 100%;
+  max-width: 1100px;
+  min-height: 650px;
+
+  margin: 0 auto;
+
+  background:
+    linear-gradient(
+      rgba(0,0,0,.68),
+      rgba(0,0,0,.88)
+    ),
+    url("https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=1800&auto=format&fit=crop");
+
+  background-size: cover;
+  background-position: center;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+}
+
+.guest-hero-overlay {
+  padding: 70px 40px;
+}
+
+.section-kicker {
+  color: #d4af37;
+  letter-spacing: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.guest-hero h1 {
+  font-family: Georgia, serif;
+  font-size: clamp(70px, 10vw, 120px);
+  font-weight: 500;
+  margin: 0;
+}
+
+.guest-hero h1 span {
+  color: #d4af37;
+  font-style: italic;
+}
+
+.hero-sub {
+  margin-top: 18px;
+  color: #aaa;
+  letter-spacing: 3px;
+}
+
+.guest-room-pill {
+  margin-top: 25px;
+
+  display: inline-block;
+
+  border: 1px solid rgba(212,175,55,.4);
+
+  color: #d4af37;
+
+  background: rgba(0,0,0,.4);
+
+  padding: 12px 22px;
+
+  border-radius: 999px;
+}
+
+.guest-personal-card {
+  margin: 25px auto 0;
+
+  max-width: 500px;
+
+  background: rgba(10,10,10,.8);
+
+  border: 1px solid rgba(212,175,55,.18);
+
+  border-radius: 22px;
+
+  padding: 26px;
+}
+
+.guest-personal-card h2 {
+  margin: 8px 0;
+  font-size: 30px;
+}
+
+.guest-personal-card p {
+  color: #aaa;
+  margin: 0;
+}
+
+/* SECTIONS */
+
+.guest-section {
+  width: 100%;
+  max-width: 1100px;
+
+  margin: 80px auto 0;
+
+  padding: 0 24px;
+}
+
+.guest-section h2 {
+  font-family: Georgia, serif;
+  font-size: clamp(42px, 6vw, 64px);
+  margin-bottom: 10px;
+}
+
+.section-sub {
+  color: #888;
+  margin-bottom: 35px;
+}
+
+/* CONCIERGE GRID */
+
+.concierge-grid {
+  display: grid;
+
+  grid-template-columns: repeat(2, 1fr);
+
+  gap: 24px;
+}
+
+.concierge-grid button {
+  min-height: 180px;
+
+  background: #111;
+
+  border: 1px solid rgba(212,175,55,.18);
+
+  border-radius: 20px;
+
+  padding: 30px;
+
+  text-align: left;
+
+  color: white;
+
+  cursor: pointer;
+
+  transition: .25s ease;
+}
+
+.concierge-grid button:hover {
+  transform: translateY(-4px);
+  border-color: rgba(212,175,55,.6);
+  background: #151515;
+}
+
+.concierge-grid button > span {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 52px;
+  height: 52px;
+
+  border-radius: 14px;
+
+  background: rgba(212,175,55,.12);
+
+  border: 1px solid rgba(212,175,55,.25);
+
+  margin-bottom: 24px;
+}
+
+.concierge-grid h4 {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.concierge-grid p {
+  margin: 0;
+  color: #d4af37;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* INFO CARD */
+
+.info-card {
+  background: #111;
+
+  border: 1px solid rgba(212,175,55,.18);
+
+  border-radius: 24px;
+
+  padding: 40px;
+}
+
+.info-label {
+  color: #d4af37;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.info-card h3 {
+  margin-top: 12px;
+  font-size: 34px;
+}
+
+/* FOOTER */
+
+.guest-footer {
+  max-width: 1100px;
+
+  margin: 90px auto 0;
+
+  text-align: center;
+
+  border-top: 1px solid rgba(212,175,55,.15);
+
+  padding-top: 35px;
+}
+
+.guest-footer p {
+  color: #d4af37;
+}
+
+.guest-footer span {
+  color: #888;
+}
+
+/* LOADING */
+
+.guest-loading-card,
+.guest-inactive-card {
+  max-width: 700px;
+
+  margin: 160px auto;
+
+  background: #111;
+
+  border: 1px solid rgba(212,175,55,.18);
+
+  border-radius: 24px;
+
+  padding: 40px;
+
+  text-align: center;
+}
+
+.guest-inactive-card h1 {
+  font-size: 48px;
+}
+
+.guest-inactive-card p {
+  color: #aaa;
+  line-height: 1.7;
+}
+
+.guest-inactive-card button {
+  margin-top: 20px;
+
+  background: #d4af37;
+
+  color: black;
+
+  border: none;
+
+  padding: 14px 22px;
+
+  border-radius: 999px;
+
+  font-weight: 700;
+}
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+
+  .guest-topbar {
+    padding: 14px 18px;
+  }
+
+  .guest-topbar span {
+    letter-spacing: 2px;
+  }
+
+  .guest-hero {
+    min-height: 550px;
+  }
+
+  .guest-section {
+    margin-top: 60px;
+  }
+
+  .concierge-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guest-section h2 {
+    font-size: 42px;
+  }
+}
+.my-requests-box {
+  display: grid;
+  gap: 14px;
+}
+
+.my-request-card {
+  background: #111;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+}
+
+.my-request-card h4 {
+  margin: 0 0 6px;
+  color: #fff;
+}
+
+.my-request-card p {
+  margin: 0;
+  color: #999;
+}
+
+.guest-request-status {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.guest-request-status.pending {
+  background: rgba(255,170,0,.15);
+  color: #ffaa00;
+}
+
+.guest-request-status.in_progress {
+  background: rgba(52,152,219,.15);
+  color: #3498db;
+}
+
+.guest-request-status.completed {
+  background: rgba(46,204,113,.15);
+  color: #2ecc71;
+}

@@ -25,7 +25,6 @@ export default function RoomsTable({
     }
 
     alert("Room deleted successfully");
-
     onRefresh?.();
   };
 
@@ -40,6 +39,27 @@ export default function RoomsTable({
       return;
     }
 
+    onRefresh?.();
+  };
+
+  const markRoomReady = async (room) => {
+    const confirmReady = window.confirm(
+      `Mark Room ${room.room_number} as Available?`
+    );
+
+    if (!confirmReady) return;
+
+    const { error } = await supabase
+      .from("rooms")
+      .update({ status: "available" })
+      .eq("id", room.id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert(`Room ${room.room_number} is now available`);
     onRefresh?.();
   };
 
@@ -61,6 +81,7 @@ export default function RoomsTable({
             <th>Room</th>
             <th>Type</th>
             <th>Status</th>
+            <th>Quick Action</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -73,41 +94,38 @@ export default function RoomsTable({
               <td>{room.room_type}</td>
 
               <td>
-                <span
-                  className={`room-status room-status-${room.status}`}
-                >
+                <span className={`room-status room-status-${room.status}`}>
                   {room.status}
                 </span>
               </td>
 
               <td>
+                {room.status === "cleaning" ? (
+                  <button
+                    className="ready-room-btn"
+                    onClick={() => markRoomReady(room)}
+                  >
+                    Mark Available
+                  </button>
+                ) : (
+                  <span className="no-action-text">—</span>
+                )}
+              </td>
+
+              <td>
                 <select
                   value={room.status}
-                  onChange={(e) =>
-                    handleStatusChange(
-                      room,
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => handleStatusChange(room, e.target.value)}
                 >
-                  <option value="available">
-                    Available
-                  </option>
-
-                  <option value="occupied">
-                    Occupied
-                  </option>
-
-                  <option value="maintenance">
-                    Maintenance
-                  </option>
+                  <option value="available">Available</option>
+                  <option value="occupied">Occupied</option>
+                  <option value="cleaning">Cleaning</option>
+                  <option value="maintenance">Maintenance</option>
                 </select>
 
                 <button
                   className="delete-room-btn"
-                  onClick={() =>
-                    handleDeleteRoom(room)
-                  }
+                  onClick={() => handleDeleteRoom(room)}
                 >
                   Delete
                 </button>

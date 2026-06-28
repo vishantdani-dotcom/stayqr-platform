@@ -10,7 +10,22 @@ import Dashboard from './pages/dashboard/Dashboard'
 import Rooms from './pages/rooms/Rooms'
 import CheckIn from './pages/checkin/CheckIn'
 import Guests from './pages/guests/Guests'
+import GuestGuide from './pages/guestguide/GuestGuide'
+import FoodMenu from './pages/food/FoodMenu'
+import FoodOrders from './pages/foodorders/FoodOrders'
+import ServiceRequests from './pages/services/ServiceRequests'
+import Payments from './pages/payments/Payments'
+import Amenities from './pages/amenities/Amenities'
+import Charges from './pages/charges/Charges'
+import Housekeeping from './pages/housekeeping/Housekeeping'
 import Login from './pages/auth/Login'
+import HotelProfile from './pages/hotel/HotelProfile'
+import Reports from './pages/reports/Reports'
+import Invoices from './pages/invoices/Invoices'
+import QRGenerator from './pages/qr/QRGenerator'
+import SuperAdmin from './pages/superadmin/SuperAdmin'
+import MenuManagement from "./pages/menumanagement/MenuManagement";
+import StaffManagement from "./pages/staff/StaffManagement";
 
 import './styles/globals.css'
 import './App.css'
@@ -18,7 +33,6 @@ import './App.css'
 export default function App() {
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
-
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -37,6 +51,14 @@ export default function App() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  if (window.location.pathname.startsWith('/guest/')) {
+    return <GuestGuide />
+  }
+
+  if (window.location.pathname.startsWith('/food/')) {
+    return <FoodMenu />
+  }
 
   if (authLoading) {
     return (
@@ -87,6 +109,45 @@ export default function App() {
       case 'guests':
         return <Guests />
 
+      case 'services':
+        return <ServiceRequests />
+
+      case 'qr':
+        return <QRGenerator />
+
+      case 'payments':
+        return <Payments />
+
+      case 'foodorders':
+        return <FoodOrders />
+
+      case 'charges':
+        return <Charges />
+
+      case 'housekeeping':
+        return <Housekeeping />
+
+      case 'amenities':
+        return <Amenities />
+
+      case 'hotel':
+        return <HotelProfile />
+
+      case 'reports':
+        return <Reports />
+
+      case 'invoices':
+        return <Invoices />
+
+        case "menu":
+    return <MenuManagement />;
+
+    case "staff":
+  return <StaffManagement />;
+
+        case 'superadmin':
+  return <SuperAdmin />
+
       default:
         return <ComingSoonPage section={activeSection} />
     }
@@ -98,7 +159,7 @@ export default function App() {
         activeSection={activeSection}
         onNavigate={handleNavigate}
         collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(prev => !prev)}
+        onToggle={() => setSidebarCollapsed((prev) => !prev)}
         mobileOpen={mobileMenuOpen}
       />
 
@@ -121,9 +182,7 @@ export default function App() {
           activeSection={activeSection}
         />
 
-        <main className="app-content">
-          {renderPage()}
-        </main>
+        <main className="app-content">{renderPage()}</main>
       </div>
     </div>
   )
@@ -133,9 +192,12 @@ function ComingSoonPage({ section }) {
   const labels = {
     qr: 'QR Guides',
     payments: 'Payments',
-    services: 'Service Requests',
     amenities: 'Amenities',
     hotel: 'Hotel Profile',
+    reports: 'Reports',
+    invoices: 'Invoices',
+    charges: 'Charges',
+    housekeeping: 'Housekeeping',
     settings: 'Settings',
   }
 
@@ -148,13 +210,9 @@ function ComingSoonPage({ section }) {
           {labels[section] || section}
         </h2>
 
-        <p className="cs-sub">
-          This section is coming in Phase 2.
-        </p>
+        <p className="cs-sub">This section is coming in Phase 2.</p>
 
-        <p className="cs-desc">
-          StayQR SaaS Platform
-        </p>
+        <p className="cs-desc">StayQR SaaS Platform</p>
       </div>
     </div>
   )

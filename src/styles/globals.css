@@ -1,4 +1,4 @@
-{
+* {
   box-sizing: border-box;
 }
 
@@ -8,6 +8,7 @@ body {
   background: #0f0f0f;
   color: #ffffff;
 }
+
 .dashboard-page h1,
 .dashboard-page h2,
 .dashboard-page h3,

@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
+import {
+  getCurrentStaff,
+  normalizeRole,
+  canAccessSection,
+} from './lib/currentStaff'
 
 import Sidebar from './components/sidebar/Sidebar'
 import Navbar from './components/navbar/Navbar'
@@ -24,33 +29,76 @@ import Reports from './pages/reports/Reports'
 import Invoices from './pages/invoices/Invoices'
 import QRGenerator from './pages/qr/QRGenerator'
 import SuperAdmin from './pages/superadmin/SuperAdmin'
-import MenuManagement from "./pages/menumanagement/MenuManagement";
-import StaffManagement from "./pages/staff/StaffManagement";
+import MenuManagement from './pages/menumanagement/MenuManagement'
+import StaffManagement from './pages/staff/StaffManagement'
 
 import './styles/globals.css'
 import './App.css'
 
 export default function App() {
   const [session, setSession] = useState(null)
+  const [currentStaff, setCurrentStaff] = useState(null)
+  const [currentRole, setCurrentRole] = useState('')
   const [authLoading, setAuthLoading] = useState(true)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setAuthLoading(false)
-    })
+    initAuth()
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession)
+
+      if (newSession) {
+        loadStaff()
+      } else {
+        setCurrentStaff(null)
+        setCurrentRole('')
+        setAuthLoading(false)
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  async function initAuth() {
+    setAuthLoading(true)
+
+    const { data } = await supabase.auth.getSession()
+    setSession(data.session)
+
+    if (data.session) {
+      await loadStaff()
+    } else {
+      setAuthLoading(false)
+    }
+  }
+
+  async function loadStaff() {
+    const staff = await getCurrentStaff()
+
+    if (!staff) {
+      await supabase.auth.signOut()
+      setCurrentStaff(null)
+      setCurrentRole('')
+      setAuthLoading(false)
+      return
+    }
+
+    const role = normalizeRole(staff.role)
+
+    setCurrentStaff(staff)
+    setCurrentRole(role)
+
+    if (!canAccessSection(role, activeSection)) {
+      setActiveSection('dashboard')
+    }
+
+    setAuthLoading(false)
+  }
 
   if (window.location.pathname.startsWith('/guest/')) {
     return <GuestGuide />
@@ -83,6 +131,11 @@ export default function App() {
   }
 
   const handleNavigate = (section) => {
+    if (!canAccessSection(currentRole, section)) {
+      alert('You do not have access to this section.')
+      return
+    }
+
     setActiveSection(section)
     setMobileMenuOpen(false)
   }
@@ -96,6 +149,10 @@ export default function App() {
   }
 
   const renderPage = () => {
+    if (!canAccessSection(currentRole, activeSection)) {
+      return <AccessDenied section={activeSection} />
+    }
+
     switch (activeSection) {
       case 'dashboard':
         return <Dashboard />
@@ -139,14 +196,14 @@ export default function App() {
       case 'invoices':
         return <Invoices />
 
-        case "menu":
-    return <MenuManagement />;
+      case 'menu':
+        return <MenuManagement />
 
-    case "staff":
-  return <StaffManagement />;
+      case 'staff':
+        return <StaffManagement />
 
-        case 'superadmin':
-  return <SuperAdmin />
+      case 'superadmin':
+        return <SuperAdmin />
 
       default:
         return <ComingSoonPage section={activeSection} />
@@ -156,12 +213,14 @@ export default function App() {
   return (
     <div className="app-shell">
       <Sidebar
-        activeSection={activeSection}
-        onNavigate={handleNavigate}
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((prev) => !prev)}
-        mobileOpen={mobileMenuOpen}
-      />
+  activeSection={activeSection}
+  onNavigate={handleNavigate}
+  collapsed={sidebarCollapsed}
+  onToggle={() => setSidebarCollapsed((prev) => !prev)}
+  mobileOpen={mobileMenuOpen}
+  currentStaff={currentStaff}
+  currentRole={currentRole}
+/>
 
       {mobileMenuOpen && (
         <div
@@ -177,12 +236,32 @@ export default function App() {
         }}
       >
         <Navbar
-          sidebarCollapsed={sidebarCollapsed}
-          onMobileMenuToggle={handleMobileMenuToggle}
-          activeSection={activeSection}
-        />
+  sidebarCollapsed={sidebarCollapsed}
+  onMobileMenuToggle={handleMobileMenuToggle}
+  activeSection={activeSection}
+  currentStaff={currentStaff}
+  currentRole={currentRole}
+/>
 
         <main className="app-content">{renderPage()}</main>
+      </div>
+    </div>
+  )
+}
+
+function AccessDenied({ section }) {
+  return (
+    <div className="coming-soon-page">
+      <div className="cs-content">
+        <div className="cs-icon">🔒</div>
+
+        <h2 className="cs-title gold-text">Access Restricted</h2>
+
+        <p className="cs-sub">
+          You do not have permission to access {section}.
+        </p>
+
+        <p className="cs-desc">StayQR Role-Based Access</p>
       </div>
     </div>
   )
@@ -206,9 +285,7 @@ function ComingSoonPage({ section }) {
       <div className="cs-content">
         <div className="cs-icon">🏗️</div>
 
-        <h2 className="cs-title gold-text">
-          {labels[section] || section}
-        </h2>
+        <h2 className="cs-title gold-text">{labels[section] || section}</h2>
 
         <p className="cs-sub">This section is coming in Phase 2.</p>
 

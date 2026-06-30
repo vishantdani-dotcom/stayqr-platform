@@ -2,14 +2,29 @@
 
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { normalizeRole } from '../../lib/currentStaff'
 import './Navbar.css'
 
-export default function Navbar({ sidebarCollapsed, onMobileMenuToggle, activeSection }) {
+export default function Navbar({
+  sidebarCollapsed,
+  onMobileMenuToggle,
+  activeSection,
+  currentStaff,
+  currentRole,
+}) {
   const [notifOpen, setNotifOpen] = useState(false)
+
+  const userName = currentStaff?.full_name || 'Admin'
+
+  const hotelName =
+    currentStaff?.hotels?.hotel_name ||
+    currentStaff?.hotel_name ||
+    'StayQR Hotel'
+
+  const roleName = normalizeRole(currentRole || currentStaff?.role || 'manager')
 
   const handleLogout = async () => {
     const confirmLogout = window.confirm('Logout from StayQR?')
-
     if (!confirmLogout) return
 
     await supabase.auth.signOut()
@@ -26,7 +41,15 @@ export default function Navbar({ sidebarCollapsed, onMobileMenuToggle, activeSec
     services: 'Service Requests',
     amenities: 'Amenities',
     hotel: 'Hotel Profile',
+    reports: 'Reports',
+    invoices: 'Invoices',
+    charges: 'Charges',
+    housekeeping: 'Housekeeping',
+    foodorders: 'Food Orders',
+    menu: 'Menu Management',
+    staff: 'Staff',
     settings: 'Settings',
+    superadmin: 'Super Admin',
   }
 
   const now = new Date()
@@ -99,8 +122,9 @@ export default function Navbar({ sidebarCollapsed, onMobileMenuToggle, activeSec
 
         <div className="navbar-user">
           <div className="navbar-user-info">
-            <span className="navbar-user-name">Admin</span>
-            <span className="navbar-user-hotel">VD Stay Inn</span>
+            <span className="navbar-user-name">{userName}</span>
+            <span className="navbar-user-role">{roleName}</span>
+            <span className="navbar-user-hotel">{hotelName}</span>
           </div>
 
           <button
@@ -119,7 +143,9 @@ export default function Navbar({ sidebarCollapsed, onMobileMenuToggle, activeSec
             Logout
           </button>
 
-          <div className="navbar-avatar">A</div>
+          <div className="navbar-avatar">
+            {userName.charAt(0).toUpperCase()}
+          </div>
         </div>
       </div>
     </header>
@@ -138,7 +164,7 @@ const NOTIFS = [
     id: 2,
     type: 'gold',
     icon: '⭐',
-    title: 'New 5-star Google review',
+    title: 'New Google review activity',
     time: '18 min ago',
   },
   {
@@ -152,15 +178,7 @@ const NOTIFS = [
 
 function MenuIcon() {
   return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-    >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <line x1="3" y1="6" x2="21" y2="6" />
       <line x1="3" y1="12" x2="21" y2="12" />
       <line x1="3" y1="18" x2="21" y2="18" />
@@ -170,15 +188,7 @@ function MenuIcon() {
 
 function SearchIcon() {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-    >
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <circle cx="11" cy="11" r="8" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
@@ -187,15 +197,7 @@ function SearchIcon() {
 
 function BellIcon() {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-    >
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>

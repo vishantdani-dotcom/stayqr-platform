@@ -1,5 +1,6 @@
 // src/components/sidebar/Sidebar.jsx
 import './Sidebar.css'
+import { normalizeRole, canAccessSection } from '../../lib/currentStaff'
 
 const NAV_ITEMS = [
   {
@@ -9,22 +10,22 @@ const NAV_ITEMS = [
       { id: 'rooms', label: 'Rooms', icon: DoorIcon, badge: null },
       { id: 'guests', label: 'Guests', icon: UsersIcon, badge: '3' },
       { id: 'checkin', label: 'Check-In/Out', icon: KeyIcon, badge: null },
-      { id: "menu", label: "Menu Management", icon: "🍽️" },
-      {id: "staff",label: "Staff", icon: "👥"}
+      { id: 'menu', label: 'Menu Management', icon: '🍽️', badge: null },
+      { id: 'staff', label: 'Staff', icon: '👥', badge: null },
     ],
   },
   {
-  group: 'Operations',
-  items: [
-    { id: 'qr', label: 'QR Guides', icon: QrIcon, badge: null },
-    { id: 'payments', label: 'Payments', icon: CardIcon, badge: null },
-    { id: 'services', label: 'Service Requests', icon: BellIcon, badge: '5' },
-    { id: 'foodorders', label: 'Food Orders', icon: CardIcon, badge: null },
-    { id: 'charges', label: 'Charges', icon: DollarIcon, badge: null },
-    { id: 'housekeeping', label: 'Housekeeping', icon: BellIcon, badge: null },
-    { id: 'amenities', label: 'Amenities', icon: StarIcon, badge: null },
-  ],
-},
+    group: 'Operations',
+    items: [
+      { id: 'qr', label: 'QR Guides', icon: QrIcon, badge: null },
+      { id: 'payments', label: 'Payments', icon: CardIcon, badge: null },
+      { id: 'services', label: 'Service Requests', icon: BellIcon, badge: '5' },
+      { id: 'foodorders', label: 'Food Orders', icon: CardIcon, badge: null },
+      { id: 'charges', label: 'Charges', icon: DollarIcon, badge: null },
+      { id: 'housekeeping', label: 'Housekeeping', icon: BellIcon, badge: null },
+      { id: 'amenities', label: 'Amenities', icon: StarIcon, badge: null },
+    ],
+  },
   {
     group: 'Settings',
     items: [
@@ -37,9 +38,36 @@ const NAV_ITEMS = [
   },
 ]
 
-export default function Sidebar({ activeSection, onNavigate, collapsed, onToggle }) {
+export default function Sidebar({
+  activeSection,
+  onNavigate,
+  collapsed,
+  onToggle,
+  mobileOpen,
+  currentStaff,
+  currentRole,
+}) {
+  const role = normalizeRole(currentRole || currentStaff?.role || 'manager')
+
+  const hotelName =
+    currentStaff?.hotels?.hotel_name ||
+    currentStaff?.hotel_name ||
+    'StayQR Hotel'
+
+  const userName = currentStaff?.full_name || 'Admin'
+  const userRole = currentStaff?.role || role
+
+  const visibleGroups = NAV_ITEMS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => canAccessSection(role, item.id)),
+  })).filter((group) => group.items.length > 0)
+
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside
+      className={`sidebar ${collapsed ? 'collapsed' : ''} ${
+        mobileOpen ? 'mobile-open' : ''
+      }`}
+    >
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">
           <QrSquareIcon />
@@ -64,18 +92,19 @@ export default function Sidebar({ activeSection, onNavigate, collapsed, onToggle
       {!collapsed && (
         <div className="sidebar-hotel-badge">
           <div className="hotel-badge-dot" />
-          <span>VD Stay Inn</span>
+          <span>{hotelName}</span>
         </div>
       )}
 
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map(group => (
+        {visibleGroups.map((group) => (
           <div key={group.group} className="nav-group">
             {!collapsed && <p className="nav-group-label">{group.group}</p>}
 
-            {group.items.map(item => {
+            {group.items.map((item) => {
               const Icon = item.icon
               const isActive = activeSection === item.id
+              const isEmojiIcon = typeof Icon === 'string'
 
               return (
                 <button
@@ -85,7 +114,7 @@ export default function Sidebar({ activeSection, onNavigate, collapsed, onToggle
                   title={collapsed ? item.label : undefined}
                 >
                   <span className="nav-item-icon">
-                    <Icon />
+                    {isEmojiIcon ? <span>{Icon}</span> : <Icon />}
                   </span>
 
                   {!collapsed && (
@@ -96,9 +125,7 @@ export default function Sidebar({ activeSection, onNavigate, collapsed, onToggle
                     <span className="nav-badge">{item.badge}</span>
                   )}
 
-                  {collapsed && item.badge && (
-                    <span className="nav-badge-dot" />
-                  )}
+                  {collapsed && item.badge && <span className="nav-badge-dot" />}
                 </button>
               )
             })}
@@ -109,11 +136,13 @@ export default function Sidebar({ activeSection, onNavigate, collapsed, onToggle
       {!collapsed && (
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <div className="user-avatar">A</div>
+            <div className="user-avatar">
+              {userName.charAt(0).toUpperCase()}
+            </div>
 
             <div className="user-info">
-              <span className="user-name">Admin</span>
-              <span className="user-role">Hotel Manager</span>
+              <span className="user-name">{userName}</span>
+              <span className="user-role">{userRole}</span>
             </div>
           </div>
         </div>
@@ -193,6 +222,7 @@ function DollarIcon() {
     </svg>
   )
 }
+
 function BellIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

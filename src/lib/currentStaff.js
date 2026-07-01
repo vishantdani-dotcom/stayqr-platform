@@ -6,9 +6,7 @@ export async function getCurrentStaff() {
     error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError || !user) {
-    return null;
-  }
+  if (userError || !user) return null;
 
   const { data, error } = await supabase
     .from("staff")
@@ -38,6 +36,12 @@ export function normalizeRole(role) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "_");
+}
+
+export function formatRole(role) {
+  return String(role || "Staff")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export const ROLE_ACCESS = {
@@ -91,11 +95,26 @@ export const ROLE_ACCESS = {
     "invoices",
   ],
 
-  housekeeping: ["dashboard", "rooms", "housekeeping", "services"],
+  housekeeping: [
+    "dashboard",
+    "rooms",
+    "housekeeping",
+    "services",
+  ],
 
-  restaurant: ["dashboard", "foodorders", "menu"],
+  restaurant: [
+    "dashboard",
+    "menu",
+    "foodorders",
+  ],
 
-  accounts: ["dashboard", "payments", "charges", "reports", "invoices"],
+  accounts: [
+    "dashboard",
+    "payments",
+    "charges",
+    "reports",
+    "invoices",
+  ],
 
   super_admin: [
     "dashboard",
@@ -123,4 +142,9 @@ export function canAccessSection(role, section) {
   const normalizedRole = normalizeRole(role);
   const allowed = ROLE_ACCESS[normalizedRole] || [];
   return allowed.includes(section);
+}
+
+export function canManageStaff(role) {
+  const normalizedRole = normalizeRole(role);
+  return ["owner", "manager", "super_admin"].includes(normalizedRole);
 }

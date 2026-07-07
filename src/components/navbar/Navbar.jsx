@@ -1,8 +1,14 @@
 // src/components/navbar/Navbar.jsx
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { normalizeRole } from '../../lib/currentStaff'
+import {
+  getNotifications,
+  getUnreadCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '../../lib/notifications'
 import './Navbar.css'
 
 export default function Navbar({
@@ -13,6 +19,9 @@ export default function Navbar({
   currentRole,
 }) {
   const [notifOpen, setNotifOpen] = useState(false)
+  const [notifications, setNotifications] = useState([])
+
+  const hotelId = currentStaff?.hotel_id || currentStaff?.hotels?.id
 
   const userName = currentStaff?.full_name || 'Admin'
 
@@ -21,7 +30,54 @@ export default function Navbar({
     currentStaff?.hotel_name ||
     'StayQR Hotel'
 
-  const roleName = normalizeRole(currentRole || currentStaff?.role || 'manager')
+  const roleName = formatRole(normalizeRole(currentRole || currentStaff?.role || 'manager'))
+
+  const unreadCount = getUnreadCount(notifications)
+
+  useEffect(() => {
+    if (!hotelId) return
+
+    loadNotifications(hotelId)
+
+    const channel = supabase
+      .channel(`notifications_${hotelId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `hotel_id=eq.${hotelId}`,
+        },
+        () => loadNotifications(hotelId)
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [hotelId])
+
+  async function loadNotifications(id) {
+    const data = await getNotifications(id)
+    setNotifications(data || [])
+  }
+
+  async function handleOpenNotifications() {
+    setNotifOpen((prev) => !prev)
+  }
+
+  async function handleMarkAllRead() {
+    if (!hotelId) return
+    await markAllNotificationsRead(hotelId)
+    await loadNotifications(hotelId)
+  }
+
+  async function handleNotificationClick(notification) {
+    if (!notification?.id || notification.is_read) return
+    await markNotificationRead(notification.id)
+    await loadNotifications(hotelId)
+  }
 
   const handleLogout = async () => {
     const confirmLogout = window.confirm('Logout from StayQR?')
@@ -90,30 +146,67 @@ export default function Navbar({
         <div className="notif-wrapper">
           <button
             className="navbar-icon-btn notif-btn"
-            onClick={() => setNotifOpen(!notifOpen)}
+            onClick={handleOpenNotifications}
             title="Notifications"
           >
             <BellIcon />
-            <span className="notif-dot" />
+            {unreadCount > 0 && (
+              <span className="notif-live-count">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {notifOpen && (
             <div className="notif-dropdown">
               <div className="notif-header">
                 <span>Notifications</span>
-                <span className="notif-count">3 new</span>
+
+                <div className="notif-header-actions">
+                  <span className="notif-count">
+                    {unreadCount} new
+                  </span>
+
+                  {unreadCount > 0 && (
+                    <button
+                      className="notif-mark-read"
+                      onClick={handleMarkAllRead}
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {NOTIFS.map((n) => (
-                <div key={n.id} className="notif-item">
-                  <div className={`notif-item-icon ${n.type}`}>{n.icon}</div>
-
-                  <div className="notif-item-body">
-                    <p className="notif-item-title">{n.title}</p>
-                    <p className="notif-item-time">{n.time}</p>
-                  </div>
+              {notifications.length === 0 ? (
+                <div className="notif-empty">
+                  <div>🔔</div>
+                  <p>No notifications yet</p>
+                  <span>Live hotel updates will appear here.</span>
                 </div>
-              ))}
+              ) : (
+                notifications.map((n) => (
+                  <button
+                    key={n.id}
+                    className={`notif-item ${n.is_read ? 'read' : 'unread'}`}
+                    onClick={() => handleNotificationClick(n)}
+                  >
+                    <div className={`notif-item-icon ${n.type}`}>
+                      {getNotificationIcon(n.type)}
+                    </div>
+
+                    <div className="notif-item-body">
+                      <p className="notif-item-title">{n.title}</p>
+                      <p className="notif-item-message">{n.message}</p>
+                      <p className="notif-item-time">
+                        {timeAgo(n.created_at)}
+                      </p>
+                    </div>
+
+                    {!n.is_read && <span className="notif-unread-dot" />}
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>
@@ -152,29 +245,42 @@ export default function Navbar({
   )
 }
 
-const NOTIFS = [
-  {
-    id: 1,
-    type: 'green',
-    icon: '🛎️',
-    title: 'Room 101 checked in',
-    time: '2 min ago',
-  },
-  {
-    id: 2,
-    type: 'gold',
-    icon: '⭐',
-    title: 'New Google review activity',
-    time: '18 min ago',
-  },
-  {
-    id: 3,
-    type: 'orange',
-    icon: '🔧',
-    title: 'Service request — Room 204',
-    time: '1 hr ago',
-  },
-]
+function getNotificationIcon(type) {
+  const icons = {
+    service_status: '🛎️',
+    service_request: '🛎️',
+    checkout: '🚪',
+    food_order: '🍽️',
+    payment: '💳',
+    housekeeping: '🧹',
+    review: '⭐',
+    general: '🔔',
+  }
+
+  return icons[type] || '🔔'
+}
+
+function timeAgo(dateValue) {
+  if (!dateValue) return ''
+
+  const diffMs = Date.now() - new Date(dateValue).getTime()
+  const diffSec = Math.floor(diffMs / 1000)
+  const diffMin = Math.floor(diffSec / 60)
+  const diffHr = Math.floor(diffMin / 60)
+  const diffDay = Math.floor(diffHr / 24)
+
+  if (diffSec < 30) return 'Just now'
+  if (diffMin < 1) return `${diffSec} sec ago`
+  if (diffMin < 60) return `${diffMin} min ago`
+  if (diffHr < 24) return `${diffHr} hr ago`
+  return `${diffDay} day ago`
+}
+
+function formatRole(role) {
+  return String(role || 'Staff')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
 
 function MenuIcon() {
   return (

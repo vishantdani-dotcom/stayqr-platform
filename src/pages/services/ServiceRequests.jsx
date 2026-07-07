@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createNotification } from "../../lib/notifications";
 import {
   DndContext,
   PointerSensor,
@@ -155,12 +156,21 @@ export default function ServiceRequests() {
       .eq("id", request.id)
       .eq("hotel_id", currentHotel?.id);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+   if (error) {
+  alert(error.message);
+  return;
+}
 
-    fetchRequests(currentHotel?.id);
+await createNotification({
+  hotelId: currentHotel.id,
+  roomId: request.room_id,
+  guestId: request.guest_id,
+  type: "service_status",
+  title: `Room ${request.rooms?.room_number}`,
+  message: `${request.request_type} marked ${status}`,
+});
+
+fetchRequests(currentHotel?.id);
   }
 
   async function processCheckout(request) {
@@ -210,8 +220,18 @@ export default function ServiceRequests() {
 
       if (housekeepingError) throw housekeepingError;
 
-      alert("Guest checked out successfully. Housekeeping task created.");
-      fetchRequests(currentHotel?.id);
+      await createNotification({
+  hotelId: currentHotel.id,
+  roomId: request.room_id,
+  guestId: request.guest_id,
+  type: "checkout",
+  title: `Room ${request.rooms?.room_number}`,
+  message: "Guest checkout completed",
+});
+
+alert("Guest checked out successfully. Housekeeping task created.");
+
+fetchRequests(currentHotel?.id);
     } catch (err) {
       alert(err.message);
     }

@@ -1,3 +1,4 @@
+import { createNotification } from "../../lib/notifications";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import "./GuestGuide.css";
@@ -130,17 +131,26 @@ export default function GuestGuide() {
       setRequestLoading(true);
 
       const { error } = await supabase.from("service_requests").insert([
-        {
-          hotel_id: session.hotel_id,
-          room_id: session.room_id,
-          guest_id: session.guest_id,
-          request_type: requestType,
-          request_details: `${requestType} requested from Room ${session.rooms?.room_number}`,
-          status: "pending",
-        },
-      ]);
+  {
+    hotel_id: session.hotel_id,
+    room_id: session.room_id,
+    guest_id: session.guest_id,
+    request_type: requestType,
+    request_details: `${requestType} requested from Room ${session.rooms?.room_number}`,
+    status: "pending",
+  },
+]);
 
-      if (error) throw error;
+if (error) throw error;
+
+await createNotification({
+  hotelId: session.hotel_id,
+  roomId: session.room_id,
+  guestId: session.guest_id,
+  type: "service_request",
+  title: `${requestType} Request`,
+  message: `Room ${session.rooms?.room_number} requested ${requestType}`,
+});
 
       alert(`${requestType} request sent to hotel staff`);
       fetchMyRequests(session.guest_id, session.hotel_id);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { createNotification } from "../../lib/notifications";
 import "./FoodMenu.css";
 
 export default function FoodMenu() {
@@ -15,55 +16,79 @@ export default function FoodMenu() {
   }, []);
 
   useEffect(() => {
-  if (!activeSession?.guest_id) return;
+    if (!activeSession?.guest_id || !activeSession?.hotel_id) return;
 
-  fetchMyOrders(activeSession.guest_id);
+    fetchMyOrders(activeSession.guest_id, activeSession.hotel_id);
 
-  const interval = setInterval(() => {
-    fetchMyOrders(activeSession.guest_id);
-  }, 3000);
+    const channel = supabase
+      .channel(`guest_food_orders_${activeSession.guest_id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "food_orders",
+          filter: `guest_id=eq.${activeSession.guest_id}`,
+        },
+        () => {
+          fetchMyOrders(activeSession.guest_id, activeSession.hotel_id);
+        }
+      )
+      .subscribe();
 
-  return () => clearInterval(interval);
-}, [activeSession]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeSession?.guest_id, activeSession?.hotel_id]);
 
   const initFoodPage = async () => {
     setLoading(true);
 
-    await fetchMenu();
-
     const roomNumber = window.location.pathname.split("/").pop();
 
-    const { data: room } = await supabase
+    const { data: room, error: roomError } = await supabase
       .from("rooms")
       .select("*")
       .eq("room_number", roomNumber)
-      .single();
+      .maybeSingle();
 
-    if (!room) {
+    if (roomError || !room) {
       setLoading(false);
       return;
     }
 
-    const { data: session } = await supabase
+    await fetchMenu(room.hotel_id);
+
+    const { data: session, error: sessionError } = await supabase
       .from("guest_sessions")
       .select("*")
       .eq("room_id", room.id)
+      .eq("hotel_id", room.hotel_id)
       .eq("status", "active")
-      .single();
+      .maybeSingle();
 
-    if (session) {
-      setActiveSession(session);
-      await fetchMyOrders(session.guest_id);
+    if (sessionError || !session) {
+      setLoading(false);
+      return;
     }
 
+    setActiveSession(session);
+    await fetchMyOrders(session.guest_id, session.hotel_id);
     setLoading(false);
   };
 
-  const fetchMenu = async () => {
-    const { data, error } = await supabase
+  const fetchMenu = async (hotelId) => {
+    let query = supabase
       .from("menu_items")
       .select("*")
+      .eq("is_available", true)
       .order("item_name", { ascending: true });
+
+    if (hotelId) {
+      query = query.eq("hotel_id", hotelId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       alert(error.message);
@@ -73,7 +98,9 @@ export default function FoodMenu() {
     setItems(data || []);
   };
 
-  const fetchMyOrders = async (guestId) => {
+  const fetchMyOrders = async (guestId, hotelId) => {
+    if (!guestId || !hotelId) return;
+
     const { data, error } = await supabase
       .from("food_orders")
       .select(`
@@ -86,6 +113,7 @@ export default function FoodMenu() {
           )
         )
       `)
+      .eq("hotel_id", hotelId)
       .eq("guest_id", guestId)
       .order("created_at", { ascending: false });
 
@@ -184,10 +212,18 @@ export default function FoodMenu() {
 
       if (itemsError) throw itemsError;
 
-      alert("Food order placed successfully");
+      await createNotification({
+        hotelId: activeSession.hotel_id,
+        roomId: activeSession.room_id,
+        guestId: activeSession.guest_id,
+        type: "food_order",
+        title: "New Food Order",
+        message: `Room order placed · ₹${cartTotal} · ${cart.length} item(s)`,
+      });
 
+      alert("Food order placed successfully");
       setCart([]);
-      fetchMyOrders(activeSession.guest_id);
+      fetchMyOrders(activeSession.guest_id, activeSession.hotel_id);
     } catch (err) {
       console.error("Food order error:", err);
       alert(err.message);
@@ -214,11 +250,22 @@ export default function FoodMenu() {
     );
   }
 
+  if (!activeSession) {
+    return (
+      <div className="food-page">
+        <div className="my-orders-box">
+          <h2>Food Menu Not Active</h2>
+          <p>No active guest session found for this room.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="food-page">
       <div className="food-header">
         <h1>🍽 Food Menu</h1>
-        <p>VD Stay Inn Room Service</p>
+        <p>Room Service</p>
       </div>
 
       {myOrders.length > 0 && (
@@ -267,7 +314,7 @@ export default function FoodMenu() {
         <div className="food-grid">
           {items.map((item) => (
             <div key={item.id} className="food-card">
-              <div className="food-category">Menu Item</div>
+              <div className="food-category">{item.category || "Menu Item"}</div>
 
               <h3>{item.item_name}</h3>
 
@@ -275,7 +322,6 @@ export default function FoodMenu() {
 
               <div className="food-footer">
                 <span>₹{item.price}</span>
-
                 <button onClick={() => addToCart(item)}>Add</button>
               </div>
             </div>

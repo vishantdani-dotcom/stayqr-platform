@@ -1,22 +1,59 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { getCurrentHotel } from '../../lib/currentHotel'
+import { createNotification } from '../../lib/notifications'
 
 export default function FoodOrders() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [currentHotel, setCurrentHotel] = useState(null)
 
   useEffect(() => {
-    loadOrders()
-
-    const interval = setInterval(() => {
-      loadOrders()
-    }, 3000)
-
-    return () => clearInterval(interval)
+    initPage()
   }, [])
 
-  async function loadOrders() {
-    setLoading(true)
+  useEffect(() => {
+    if (!currentHotel?.id) return
+
+    loadOrders(currentHotel.id)
+
+    const channel = supabase
+      .channel(`food_orders_${currentHotel.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'food_orders',
+          filter: `hotel_id=eq.${currentHotel.id}`,
+        },
+        () => {
+          loadOrders(currentHotel.id)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [currentHotel?.id])
+
+  async function initPage() {
+    const hotel = await getCurrentHotel()
+
+    if (!hotel) {
+      alert('No hotel assigned')
+      setLoading(false)
+      return
+    }
+
+    setCurrentHotel(hotel)
+    await loadOrders(hotel.id)
+    setLoading(false)
+  }
+
+  async function loadOrders(hotelId = currentHotel?.id) {
+    if (!hotelId) return
 
     const { data, error } = await supabase
       .from('food_orders')
@@ -36,34 +73,44 @@ export default function FoodOrders() {
           )
         )
       `)
+      .eq('hotel_id', hotelId)
       .order('created_at', { ascending: false })
-
-    if (error) {
-      alert(error.message)
-    } else {
-      setOrders(data || [])
-    }
-
-    setLoading(false)
-  }
-
-  async function updateStatus(orderId, status) {
-    const { error } = await supabase
-      .from('food_orders')
-      .update({ order_status: status })
-      .eq('id', orderId)
 
     if (error) {
       alert(error.message)
       return
     }
 
-    loadOrders()
+    setOrders(data || [])
+  }
+
+  async function updateStatus(order, status) {
+    const { error } = await supabase
+      .from('food_orders')
+      .update({ order_status: status })
+      .eq('id', order.id)
+      .eq('hotel_id', currentHotel?.id)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    await createNotification({
+      hotelId: currentHotel.id,
+      roomId: order.room_id,
+      guestId: order.guest_id,
+      type: 'food_order',
+      title: `Food Order · Room ${order.rooms?.room_number || '-'}`,
+      message: `Order #${order.id.slice(0, 8)} marked ${status}`,
+    })
+
+    loadOrders(currentHotel?.id)
   }
 
   const today = new Date().toDateString()
 
-  const todayOrders = orders.filter(order => {
+  const todayOrders = orders.filter((order) => {
     return new Date(order.created_at).toDateString() === today
   })
 
@@ -71,15 +118,27 @@ export default function FoodOrders() {
     return sum + Number(order.total_amount || 0)
   }, 0)
 
-  const pendingOrders = orders.filter(order => order.order_status === 'pending')
-  const preparingOrders = orders.filter(order => order.order_status === 'preparing')
-  const deliveredOrders = orders.filter(order => order.order_status === 'delivered')
+  const pendingOrders = orders.filter((order) => order.order_status === 'pending')
+  const preparingOrders = orders.filter((order) => order.order_status === 'preparing')
+  const deliveredOrders = orders.filter((order) => order.order_status === 'delivered')
 
   if (loading) return <div style={page}>Loading Food Orders...</div>
 
   return (
     <div style={page}>
-      <h1 style={title}>Food Orders</h1>
+      <div style={header}>
+        <div>
+          <p style={kicker}>Kitchen Operations</p>
+          <h1 style={title}>Food Orders</h1>
+          <p style={subtitle}>
+            {currentHotel?.hotel_name || 'Hotel'} · Live kitchen order dashboard.
+          </p>
+        </div>
+
+        <button style={refreshBtn} onClick={() => loadOrders(currentHotel?.id)}>
+          Refresh
+        </button>
+      </div>
 
       <div style={statsGrid}>
         <div style={statCard}>
@@ -109,7 +168,10 @@ export default function FoodOrders() {
       </div>
 
       {orders.length === 0 ? (
-        <p>No food orders found.</p>
+        <div style={emptyCard}>
+          <h3>No food orders yet</h3>
+          <p>Guest food orders will appear here instantly.</p>
+        </div>
       ) : (
         <div style={card}>
           <table style={table}>
@@ -127,7 +189,7 @@ export default function FoodOrders() {
             </thead>
 
             <tbody>
-              {orders.map(order => (
+              {orders.map((order) => (
                 <tr key={order.id}>
                   <td style={td}>Room {order.rooms?.room_number || '-'}</td>
                   <td style={td}>{order.guests?.full_name || '-'}</td>
@@ -136,7 +198,8 @@ export default function FoodOrders() {
                     {order.food_order_items?.length > 0
                       ? order.food_order_items.map((item, index) => (
                           <div key={index}>
-                            {item.menu_items?.item_name || 'Unknown Item'} x {item.quantity}
+                            {item.menu_items?.item_name || 'Unknown Item'} x{' '}
+                            {item.quantity}
                           </div>
                         ))
                       : 'No items'}
@@ -160,7 +223,7 @@ export default function FoodOrders() {
                     {order.order_status === 'pending' && (
                       <button
                         style={btn}
-                        onClick={() => updateStatus(order.id, 'preparing')}
+                        onClick={() => updateStatus(order, 'preparing')}
                       >
                         Start Preparing
                       </button>
@@ -169,7 +232,7 @@ export default function FoodOrders() {
                     {order.order_status === 'preparing' && (
                       <button
                         style={btn}
-                        onClick={() => updateStatus(order.id, 'delivered')}
+                        onClick={() => updateStatus(order, 'delivered')}
                       >
                         Mark Delivered
                       </button>
@@ -196,9 +259,40 @@ const page = {
   color: '#fff',
 }
 
+const header = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '20px',
+  marginBottom: '25px',
+}
+
+const kicker = {
+  color: '#d4af37',
+  fontSize: '12px',
+  fontWeight: 900,
+  letterSpacing: '2px',
+  textTransform: 'uppercase',
+  marginBottom: '8px',
+}
+
 const title = {
   fontSize: '42px',
-  marginBottom: '25px',
+  marginBottom: '8px',
+}
+
+const subtitle = {
+  color: '#aaa',
+}
+
+const refreshBtn = {
+  background: '#d4af37',
+  color: '#000',
+  border: 'none',
+  borderRadius: '10px',
+  padding: '12px 18px',
+  fontWeight: 800,
+  cursor: 'pointer',
 }
 
 const statsGrid = {
@@ -224,6 +318,14 @@ const statLabel = {
 
 const statValue = {
   fontSize: '28px',
+}
+
+const emptyCard = {
+  background: '#0f0f0f',
+  border: '1px solid #222',
+  borderRadius: '18px',
+  padding: '28px',
+  color: '#aaa',
 }
 
 const card = {

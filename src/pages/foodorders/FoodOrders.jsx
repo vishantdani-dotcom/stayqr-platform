@@ -174,6 +174,30 @@ export default function FoodOrders() {
   const acceptedOrders = orders.filter((order) => order.order_status === 'accepted')
   const preparingOrders = orders.filter((order) => order.order_status === 'preparing')
   const deliveredOrders = orders.filter((order) => order.order_status === 'delivered')
+  const deliveredRevenue = deliveredOrders.reduce(
+  (sum, order) => sum + Number(order.total_amount || 0),
+  0
+)
+
+const pendingRevenue = pendingOrders.reduce(
+  (sum, order) => sum + Number(order.total_amount || 0),
+  0
+)
+
+const averageOrderValue =
+  orders.length > 0
+    ? Math.round(
+        orders.reduce(
+          (sum, order) => sum + Number(order.total_amount || 0),
+          0
+        ) / orders.length
+      )
+    : 0
+
+const deliveryRate =
+  orders.length > 0
+    ? Math.round((deliveredOrders.length / orders.length) * 100)
+    : 0
 
   if (loading) return <div style={page}>Loading Food Orders...</div>
 
@@ -206,13 +230,33 @@ export default function FoodOrders() {
       </div>
 
       <div style={statsGrid}>
-        <Stat title="Today's Orders" value={todayOrders.length} />
-        <Stat title="Today's Revenue" value={`₹${todayRevenue}`} />
-        <Stat title="Pending" value={pendingOrders.length} />
-        <Stat title="Accepted" value={acceptedOrders.length} />
-        <Stat title="Preparing" value={preparingOrders.length} />
-        <Stat title="Delivered" value={deliveredOrders.length} />
-      </div>
+  <Stat title="Today's Orders" value={todayOrders.length} />
+  <Stat title="Today's Revenue" value={`₹${todayRevenue}`} />
+  <Stat title="Pending" value={pendingOrders.length} />
+  <Stat title="Accepted" value={acceptedOrders.length} />
+  <Stat title="Preparing" value={preparingOrders.length} />
+  <Stat title="Delivered" value={deliveredOrders.length} />
+
+  <Stat
+    title="Delivered Revenue"
+    value={`₹${deliveredRevenue}`}
+  />
+
+  <Stat
+    title="Pending Revenue"
+    value={`₹${pendingRevenue}`}
+  />
+
+  <Stat
+    title="Avg Order Value"
+    value={`₹${averageOrderValue}`}
+  />
+
+  <Stat
+    title="Delivery Rate"
+    value={`${deliveryRate}%`}
+  />
+</div>
 
       {orders.length === 0 ? (
         <div style={emptyCard}>

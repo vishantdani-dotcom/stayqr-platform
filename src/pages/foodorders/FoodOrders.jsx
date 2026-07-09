@@ -198,6 +198,29 @@ const deliveryRate =
   orders.length > 0
     ? Math.round((deliveredOrders.length / orders.length) * 100)
     : 0
+    const topSellingItems = Object.values(
+  orders.reduce((acc, order) => {
+    order.food_order_items?.forEach((item) => {
+      const name = item.menu_items?.item_name || "Unknown";
+
+      if (!acc[name]) {
+        acc[name] = {
+          name,
+          quantity: 0,
+          revenue: 0,
+        };
+      }
+
+      acc[name].quantity += Number(item.quantity || 0);
+      acc[name].revenue +=
+        Number(item.quantity || 0) * Number(item.price || 0);
+    });
+
+    return acc;
+  }, {})
+)
+  .sort((a, b) => b.quantity - a.quantity)
+  .slice(0, 5);
 
   if (loading) return <div style={page}>Loading Food Orders...</div>
 
@@ -258,7 +281,54 @@ const deliveryRate =
   />
 </div>
 
-      {orders.length === 0 ? (
+      <div
+  style={{
+    background: "#0f0f0f",
+    border: "1px solid #222",
+    borderRadius: "18px",
+    padding: "24px",
+    marginBottom: "25px",
+  }}
+>
+  <h2
+    style={{
+      color: "#d4af37",
+      marginBottom: "18px",
+      fontSize: "22px",
+    }}
+  >
+    🏆 Top Selling Items
+  </h2>
+
+  {topSellingItems.length === 0 ? (
+    <p style={{ color: "#888" }}>No sales yet.</p>
+  ) : (
+    topSellingItems.map((item, index) => (
+      <div
+        key={item.name}
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "12px 0",
+          borderBottom:
+            index === topSellingItems.length - 1
+              ? "none"
+              : "1px solid #222",
+        }}
+      >
+        <div>
+          <strong>{item.name}</strong>
+        </div>
+
+        <div style={{ color: "#d4af37", fontWeight: 700 }}>
+          {item.quantity} sold · ₹{item.revenue}
+        </div>
+      </div>
+    ))
+  )}
+</div>
+
+{orders.length === 0 ? (
         <div style={emptyCard}>
           <h3>No food orders yet</h3>
           <p>Guest food orders will appear here instantly.</p>

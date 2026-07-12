@@ -7,6 +7,7 @@ export default function Guests() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentHotel, setCurrentHotel] = useState(null);
+  const [checkoutLoadingId, setCheckoutLoadingId] = useState(null);
 
   const [extendModalOpen, setExtendModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -16,7 +17,7 @@ export default function Guests() {
     initPage();
   }, []);
 
-  const initPage = async () => {
+  async function initPage() {
     const hotel = await getCurrentHotel();
 
     if (!hotel) {
@@ -26,10 +27,10 @@ export default function Guests() {
     }
 
     setCurrentHotel(hotel);
-    fetchGuests(hotel.id);
-  };
+    await fetchGuests(hotel.id);
+  }
 
-  const fetchGuests = async (hotelId = currentHotel?.id) => {
+  async function fetchGuests(hotelId = currentHotel?.id) {
     if (!hotelId) return;
 
     setLoading(true);
@@ -54,7 +55,7 @@ export default function Guests() {
       .order("checkin_time", { ascending: false });
 
     if (error) {
-      console.error(error);
+      console.error("Fetch guests error:", error);
       alert(error.message);
       setLoading(false);
       return;
@@ -62,34 +63,43 @@ export default function Guests() {
 
     setSessions(data || []);
     setLoading(false);
-  };
+  }
 
-  const openExtendModal = (session) => {
+  function openExtendModal(session) {
     const currentValue =
-      session.extended_until || session.checkout_time || new Date().toISOString();
+      session.extended_until ||
+      session.checkout_time ||
+      new Date().toISOString();
 
     setSelectedSession(session);
     setExtendDateTime(new Date(currentValue).toISOString().slice(0, 16));
     setExtendModalOpen(true);
-  };
+  }
 
-  const closeExtendModal = () => {
+  function closeExtendModal() {
     setExtendModalOpen(false);
     setSelectedSession(null);
     setExtendDateTime("");
-  };
+  }
 
-  const handleExtendStay = async () => {
+  async function handleExtendStay() {
     if (!selectedSession || !extendDateTime) {
       alert("Please select new checkout date and time");
       return;
     }
 
     try {
+      const selectedDate = new Date(extendDateTime);
+
+      if (Number.isNaN(selectedDate.getTime())) {
+        alert("Please select a valid checkout date and time");
+        return;
+      }
+
       const { error } = await supabase
         .from("guest_sessions")
         .update({
-          extended_until: new Date(extendDateTime).toISOString(),
+          extended_until: selectedDate.toISOString(),
           status: "active",
         })
         .eq("id", selectedSession.id)
@@ -99,14 +109,14 @@ export default function Guests() {
 
       alert("Stay extended successfully");
       closeExtendModal();
-      fetchGuests(currentHotel?.id);
-    } catch (err) {
-      console.error(err);
-      alert(err.message);
+      await fetchGuests(currentHotel?.id);
+    } catch (error) {
+      console.error("Extend stay error:", error);
+      alert(error.message);
     }
-  };
+  }
 
-  const handleFinalCheckout = async (session) => {
+  async function handleFinalCheckout(session) {
     const guest = session.guests;
     const room = session.rooms;
 
@@ -115,40 +125,124 @@ export default function Guests() {
       return;
     }
 
+    if (!session.checkin_time) {
+      alert("Guest check-in time is missing");
+      return;
+    }
+
+    setCheckoutLoadingId(session.id);
+
     const stayStart = session.checkin_time;
     const stayEnd = new Date().toISOString();
 
+    const checkInDate = new Date(stayStart);
+    const checkOutDate = new Date(stayEnd);
+
+    if (
+      Number.isNaN(checkInDate.getTime()) ||
+      Number.isNaN(checkOutDate.getTime())
+    ) {
+      alert("Invalid stay date information");
+      setCheckoutLoadingId(null);
+      return;
+    }
+
+    const stayHours = Math.max(
+      1,
+      Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / 3600000)
+    );
+
+    const stayNights = Math.max(1, Math.ceil(stayHours / 24));
+
     try {
-      let paymentsQuery = supabase
+      /*
+       * Prevent checkout while kitchen orders are still open.
+       */
+      const { data: openFoodOrders, error: openFoodError } = await supabase
+        .from("food_orders")
+        .select("id, order_status")
+        .eq("hotel_id", session.hotel_id)
+        .eq("guest_id", guest.id)
+        .gte("created_at", stayStart)
+        .in("order_status", ["pending", "accepted", "preparing"]);
+
+      if (openFoodError) throw openFoodError;
+
+      if (openFoodOrders?.length > 0) {
+        alert(
+          `${openFoodOrders.length} food order(s) are still pending, accepted or preparing.\n\nComplete or cancel them before checkout.`
+        );
+        return;
+      }
+
+      /*
+       * Prevent duplicate invoice only for this particular stay.
+       * A returning guest can still receive a new invoice in a future stay.
+       */
+      const { data: existingInvoice, error: existingInvoiceError } =
+        await supabase
+          .from("invoices")
+          .select("id, invoice_number")
+          .eq("hotel_id", session.hotel_id)
+          .eq("guest_id", guest.id)
+          .eq("room_id", room.id)
+          .gte("created_at", stayStart)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+      if (existingInvoiceError) throw existingInvoiceError;
+
+      if (existingInvoice) {
+        alert(
+          `Invoice already exists for this stay.\nInvoice No: ${existingInvoice.invoice_number}`
+        );
+        return;
+      }
+
+      /*
+       * Fetch all payments for this stay.
+       */
+      const { data: payments, error: paymentError } = await supabase
         .from("payments")
         .select("*")
         .eq("hotel_id", session.hotel_id)
-        .eq("guest_id", guest.id);
-
-      if (stayStart) {
-        paymentsQuery = paymentsQuery.gte("created_at", stayStart);
-      }
-
-      const { data: payments, error: paymentError } = await paymentsQuery;
+        .eq("guest_id", guest.id)
+        .gte("created_at", stayStart);
 
       if (paymentError) throw paymentError;
 
       const roomAmount =
         payments
-          ?.filter((p) => p.payment_type === "room_charge")
-          .reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
+          ?.filter((payment) => payment.payment_type === "room_charge")
+          .reduce(
+            (sum, payment) => sum + Number(payment.amount || 0),
+            0
+          ) || 0;
 
-      let foodQuery = supabase
+      const previouslyPaidAmount =
+        payments
+          ?.filter((payment) => payment.payment_status === "paid")
+          .reduce(
+            (sum, payment) => sum + Number(payment.amount || 0),
+            0
+          ) || 0;
+
+      /*
+       * Fetch only delivered food orders and their real item quantities.
+       */
+      const { data: foodOrders, error: foodError } = await supabase
         .from("food_orders")
-        .select("*")
+        .select(`
+          *,
+          food_order_items (
+            quantity
+          )
+        `)
         .eq("hotel_id", session.hotel_id)
-        .eq("guest_id", guest.id);
-
-      if (stayStart) {
-        foodQuery = foodQuery.gte("created_at", stayStart);
-      }
-
-      const { data: foodOrders, error: foodError } = await foodQuery;
+        .eq("guest_id", guest.id)
+        .eq("order_status", "delivered")
+        .gte("created_at", stayStart);
 
       if (foodError) throw foodError;
 
@@ -158,17 +252,29 @@ export default function Guests() {
           0
         ) || 0;
 
-      let chargesQuery = supabase
+      const foodOrderCount = foodOrders?.length || 0;
+
+      const totalFoodItems =
+        foodOrders?.reduce((orderTotal, order) => {
+          const orderItemCount =
+            order.food_order_items?.reduce(
+              (itemTotal, item) =>
+                itemTotal + Number(item.quantity || 0),
+              0
+            ) || 0;
+
+          return orderTotal + orderItemCount;
+        }, 0) || 0;
+
+      /*
+       * Fetch manual charges for this stay.
+       */
+      const { data: manualCharges, error: chargeError } = await supabase
         .from("manual_charges")
         .select("*")
         .eq("hotel_id", session.hotel_id)
-        .eq("guest_id", guest.id);
-
-      if (stayStart) {
-        chargesQuery = chargesQuery.gte("created_at", stayStart);
-      }
-
-      const { data: manualCharges, error: chargeError } = await chargesQuery;
+        .eq("guest_id", guest.id)
+        .gte("created_at", stayStart);
 
       if (chargeError) throw chargeError;
 
@@ -179,75 +285,116 @@ export default function Guests() {
         ) || 0;
 
       const serviceAmount = 0;
-      const totalAmount = roomAmount + foodAmount + manualAmount + serviceAmount;
+
+      const totalAmount =
+        roomAmount + foodAmount + manualAmount + serviceAmount;
+
+      const amountToCollect = Math.max(
+        0,
+        totalAmount - previouslyPaidAmount
+      );
 
       const confirmCheckout = window.confirm(
-        `Final Checkout Bill\n\nGuest: ${guest.full_name}\nRoom: ${room.room_number}\n\nRoom Charges: ₹${roomAmount}\nFood Charges: ₹${foodAmount}\nManual Charges: ₹${manualAmount}\nService Charges: ₹${serviceAmount}\n\nTotal: ₹${totalAmount}\n\nCreate invoice, mark paid, and checkout guest?`
+        `Final Checkout Bill\n\n` +
+          `Guest: ${guest.full_name}\n` +
+          `Room: ${room.room_number}\n` +
+          `Stay: ${stayNights} night(s) / ${stayHours} hour(s)\n\n` +
+          `Room Charges: ₹${roomAmount}\n` +
+          `Food Charges: ₹${foodAmount}\n` +
+          `Manual Charges: ₹${manualAmount}\n` +
+          `Service Charges: ₹${serviceAmount}\n\n` +
+          `Food Orders: ${foodOrderCount}\n` +
+          `Food Items: ${totalFoodItems}\n\n` +
+          `Previously Paid: ₹${previouslyPaidAmount}\n` +
+          `Amount to Collect: ₹${amountToCollect}\n\n` +
+          `Final Total: ₹${totalAmount}\n\n` +
+          `Confirm that payment has been collected, create the invoice and checkout the guest?`
       );
 
       if (!confirmCheckout) return;
 
       const invoiceNumber = generateInvoiceNumber();
 
-      const { error: invoiceError } = await supabase.from("invoices").insert([
-        {
-          hotel_id: session.hotel_id,
-          room_id: room.id,
-          guest_id: guest.id,
-          invoice_number: invoiceNumber,
-          room_amount: roomAmount,
-          food_amount: foodAmount,
-          manual_amount: manualAmount,
-          service_amount: serviceAmount,
-          total_amount: totalAmount,
-          payment_status: "paid",
-        },
-      ]);
+      /*
+       * Final checkout assumes reception has collected the remaining amount.
+       * Invoice and related stay records therefore become paid.
+       */
+      const { data: createdInvoice, error: invoiceError } = await supabase
+        .from("invoices")
+        .insert([
+          {
+            hotel_id: session.hotel_id,
+            room_id: room.id,
+            guest_id: guest.id,
+            invoice_number: invoiceNumber,
+
+            room_amount: roomAmount,
+            food_amount: foodAmount,
+            manual_amount: manualAmount,
+            service_amount: serviceAmount,
+            total_amount: totalAmount,
+
+            payment_status: "paid",
+            paid_amount: totalAmount,
+            pending_amount: 0,
+
+            checkin_time: stayStart,
+            checkout_time: stayEnd,
+            stay_hours: stayHours,
+            stay_nights: stayNights,
+
+            food_order_count: foodOrderCount,
+            food_item_count: totalFoodItems,
+          },
+        ])
+        .select()
+        .single();
 
       if (invoiceError) throw invoiceError;
 
-      let paymentUpdateQuery = supabase
+      console.log("Created invoice:", createdInvoice);
+
+      /*
+       * Mark payments from this stay as paid.
+       */
+      const { error: paymentUpdateError } = await supabase
         .from("payments")
         .update({ payment_status: "paid" })
         .eq("hotel_id", session.hotel_id)
-        .eq("guest_id", guest.id);
-
-      if (stayStart) {
-        paymentUpdateQuery = paymentUpdateQuery.gte("created_at", stayStart);
-      }
-
-      const { error: paymentUpdateError } = await paymentUpdateQuery;
+        .eq("guest_id", guest.id)
+        .gte("created_at", stayStart);
 
       if (paymentUpdateError) throw paymentUpdateError;
 
-      let foodUpdateQuery = supabase
+      /*
+       * Mark only delivered food orders as paid.
+       * Pending/preparing orders are never included or marked as paid.
+       */
+      const { error: foodUpdateError } = await supabase
         .from("food_orders")
         .update({ payment_status: "paid" })
         .eq("hotel_id", session.hotel_id)
-        .eq("guest_id", guest.id);
-
-      if (stayStart) {
-        foodUpdateQuery = foodUpdateQuery.gte("created_at", stayStart);
-      }
-
-      const { error: foodUpdateError } = await foodUpdateQuery;
+        .eq("guest_id", guest.id)
+        .eq("order_status", "delivered")
+        .gte("created_at", stayStart);
 
       if (foodUpdateError) throw foodUpdateError;
 
-      let chargesUpdateQuery = supabase
+      /*
+       * Mark manual charges for this stay as paid.
+       */
+      const { error: chargesUpdateError } = await supabase
         .from("manual_charges")
         .update({ payment_status: "paid" })
         .eq("hotel_id", session.hotel_id)
-        .eq("guest_id", guest.id);
-
-      if (stayStart) {
-        chargesUpdateQuery = chargesUpdateQuery.gte("created_at", stayStart);
-      }
-
-      const { error: chargesUpdateError } = await chargesUpdateQuery;
+        .eq("guest_id", guest.id)
+        .gte("created_at", stayStart);
 
       if (chargesUpdateError) throw chargesUpdateError;
 
+      /*
+       * Complete guest session and expire QR access.
+       */
       const { error: sessionError } = await supabase
         .from("guest_sessions")
         .update({
@@ -255,10 +402,14 @@ export default function Guests() {
           expired_at: stayEnd,
         })
         .eq("id", session.id)
-        .eq("hotel_id", session.hotel_id);
+        .eq("hotel_id", session.hotel_id)
+        .eq("status", "active");
 
       if (sessionError) throw sessionError;
 
+      /*
+       * Send room to cleaning.
+       */
       const { error: roomError } = await supabase
         .from("rooms")
         .update({ status: "cleaning" })
@@ -267,43 +418,66 @@ export default function Guests() {
 
       if (roomError) throw roomError;
 
-      const { error: housekeepingError } = await supabase
-        .from("housekeeping_tasks")
-        .insert([
-          {
-            hotel_id: session.hotel_id,
-            room_id: room.id,
-            room_number: room.room_number,
-            task_type: "room_cleaning",
-            status: "pending",
-          },
-        ]);
+      /*
+       * Avoid duplicate pending cleaning tasks for the same room.
+       */
+      const { data: existingCleaningTask, error: cleaningTaskCheckError } =
+        await supabase
+          .from("housekeeping_tasks")
+          .select("id")
+          .eq("hotel_id", session.hotel_id)
+          .eq("room_id", room.id)
+          .eq("task_type", "room_cleaning")
+          .in("status", ["pending", "in_progress"])
+          .limit(1)
+          .maybeSingle();
 
-      if (housekeepingError) throw housekeepingError;
+      if (cleaningTaskCheckError) throw cleaningTaskCheckError;
+
+      if (!existingCleaningTask) {
+        const { error: housekeepingError } = await supabase
+          .from("housekeeping_tasks")
+          .insert([
+            {
+              hotel_id: session.hotel_id,
+              room_id: room.id,
+              room_number: room.room_number,
+              task_type: "room_cleaning",
+              status: "pending",
+            },
+          ]);
+
+        if (housekeepingError) throw housekeepingError;
+      }
 
       alert(
         `Checkout completed successfully.\nInvoice created: ${invoiceNumber}`
       );
 
-      fetchGuests(currentHotel?.id);
-    } catch (err) {
-      console.error(err);
-      alert(err.message);
+      await fetchGuests(currentHotel?.id);
+    } catch (error) {
+      console.error("Final checkout error:", error);
+      alert(error.message || "Checkout failed");
+    } finally {
+      setCheckoutLoadingId(null);
     }
-  };
+  }
 
   return (
     <div className="rooms-page">
       <div className="rooms-header">
         <div>
           <h1>Guests</h1>
+
           <p>
-            {currentHotel?.hotel_name || "Hotel"} · Manage active guests, final
-            billing, stay extension and checkout.
+            {currentHotel?.hotel_name || "Hotel"} · Manage active guests,
+            final billing, stay extension and checkout.
           </p>
         </div>
 
-        <button onClick={() => fetchGuests(currentHotel?.id)}>Refresh</button>
+        <button onClick={() => fetchGuests(currentHotel?.id)}>
+          Refresh
+        </button>
       </div>
 
       <div className="rooms-card">
@@ -325,55 +499,78 @@ export default function Guests() {
             </thead>
 
             <tbody>
-              {sessions.map((session) => (
-                <tr key={session.id}>
-                  <td>{session.guests?.full_name || "-"}</td>
+              {sessions.map((session) => {
+                const checkoutLoading =
+                  checkoutLoadingId === session.id;
 
-                  <td>
-                    Room {session.rooms?.room_number || "-"}
-                    <br />
-                    <small>{session.rooms?.room_type || ""}</small>
-                  </td>
+                return (
+                  <tr key={session.id}>
+                    <td>{session.guests?.full_name || "-"}</td>
 
-                  <td>{session.guests?.phone || "-"}</td>
+                    <td>
+                      Room {session.rooms?.room_number || "-"}
+                      <br />
+                      <small>{session.rooms?.room_type || ""}</small>
+                    </td>
 
-                  <td>
-                    {session.checkin_time
-                      ? new Date(session.checkin_time).toLocaleString("en-IN")
-                      : "-"}
-                  </td>
+                    <td>{session.guests?.phone || "-"}</td>
 
-                  <td>
-                    {session.extended_until
-                      ? new Date(session.extended_until).toLocaleString("en-IN")
-                      : session.checkout_time
-                      ? new Date(session.checkout_time).toLocaleString("en-IN")
-                      : "-"}
-                  </td>
+                    <td>
+                      {session.checkin_time
+                        ? new Date(
+                            session.checkin_time
+                          ).toLocaleString("en-IN")
+                        : "-"}
+                    </td>
 
-                  <td>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      <button
-                        className="checkout-btn"
-                        onClick={() => handleFinalCheckout(session)}
-                      >
-                        Final Bill & Checkout
-                      </button>
+                    <td>
+                      {session.extended_until
+                        ? new Date(
+                            session.extended_until
+                          ).toLocaleString("en-IN")
+                        : session.checkout_time
+                          ? new Date(
+                              session.checkout_time
+                            ).toLocaleString("en-IN")
+                          : "-"}
+                    </td>
 
-                      <button
-                        className="checkout-btn"
+                    <td>
+                      <div
                         style={{
-                          background: "#d4af37",
-                          color: "#000",
+                          display: "flex",
+                          gap: "8px",
+                          flexWrap: "wrap",
                         }}
-                        onClick={() => openExtendModal(session)}
                       >
-                        Extend Stay
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        <button
+                          className="checkout-btn"
+                          disabled={checkoutLoading}
+                          onClick={() =>
+                            handleFinalCheckout(session)
+                          }
+                        >
+                          {checkoutLoading
+                            ? "Processing..."
+                            : "Final Bill & Checkout"}
+                        </button>
+
+                        <button
+                          className="checkout-btn"
+                          disabled={checkoutLoading}
+                          style={{
+                            background: "#d4af37",
+                            color: "#000",
+                          }}
+                          onClick={() => openExtendModal(session)}
+                        >
+                          Extend Stay
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -388,12 +585,16 @@ export default function Guests() {
               Select the new checkout date and time for this guest.
             </p>
 
-            <label style={label}>New Checkout Date & Time</label>
+            <label style={label}>
+              New Checkout Date &amp; Time
+            </label>
 
             <input
               type="datetime-local"
               value={extendDateTime}
-              onChange={(e) => setExtendDateTime(e.target.value)}
+              onChange={(event) =>
+                setExtendDateTime(event.target.value)
+              }
               style={dateInput}
             />
 
@@ -417,6 +618,7 @@ function generateInvoiceNumber() {
   const now = new Date();
   const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
   const timePart = String(now.getTime()).slice(-6);
+
   return `INV-${datePart}-${timePart}`;
 }
 

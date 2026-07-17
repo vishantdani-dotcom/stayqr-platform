@@ -140,3 +140,181 @@
   color: #fff;
   font-size: 13px;
 }
+.guest-order-current-status {
+  margin: 5px 0 0;
+  color: #d4af37;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.guest-order-eta {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 14px;
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.guest-order-eta > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.guest-order-eta span {
+  color: #aaa;
+  font-size: 13px;
+}
+
+.guest-order-eta strong {
+  color: #d4af37;
+  font-size: 16px;
+  text-align: right;
+}
+
+.guest-order-eta p {
+  margin: 8px 0 0;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.guest-order-eta-waiting {
+  border-color: rgba(255, 170, 0, 0.24);
+  background: rgba(255, 170, 0, 0.06);
+}
+
+.guest-order-eta-waiting strong {
+  color: #ffaa00;
+}
+
+.guest-order-delivered {
+  margin: 16px 0;
+  padding: 13px 15px;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  border-radius: 12px;
+  background: rgba(46, 204, 113, 0.14);
+  color: #2ecc71;
+  font-weight: 800;
+}
+
+.order-progress-section {
+  margin-top: 18px;
+  padding: 15px;
+  border: 1px solid #252525;
+  border-radius: 14px;
+  background: #0d0d0d;
+}
+
+.order-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.order-progress-header span {
+  color: #aaa;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.order-progress-header strong {
+  color: #d4af37;
+  font-size: 14px;
+}
+
+.order-progress {
+  width: 100%;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #232323;
+}
+
+.order-progress-fill {
+  height: 100%;
+  min-width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #a88315 0%,
+    #d4af37 55%,
+    #f4d35e 100%
+  );
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.45);
+  transition: width 1s linear;
+}
+
+.order-progress-status {
+  margin: 9px 0 0;
+  color: #d4af37;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.order-tracker {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(85px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.track-step {
+  min-width: 85px;
+  padding: 12px 8px;
+  border: 1px solid #262626;
+  border-radius: 12px;
+  background: #111;
+  text-align: center;
+  opacity: 0.42;
+  transition:
+    opacity 0.25s ease,
+    background 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.track-step span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.track-step p {
+  margin: 0;
+  color: #888;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.track-step.active {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.1);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.track-step.active p {
+  color: #d4af37;
+}
+
+@media (max-width: 700px) {
+  .guest-order-eta > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .guest-order-eta strong {
+    text-align: left;
+  }
+
+  .order-tracker {
+    grid-template-columns: repeat(5, 105px);
+  }
+}

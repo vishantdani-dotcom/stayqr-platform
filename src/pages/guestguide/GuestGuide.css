@@ -495,3 +495,249 @@ body {
     align-items: flex-start;
   }
 }
+.premium-service-request {
+  display: block;
+  padding: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 16px;
+  background: #0d0d0d;
+}
+
+.service-request-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.service-request-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.service-request-icon {
+  display: flex;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.12);
+  font-size: 21px;
+}
+
+.service-request-heading h4 {
+  margin: 0 0 5px;
+}
+
+.service-request-heading p {
+  margin: 0;
+  color: #999;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.guest-request-status.accepted {
+  background: rgba(212, 175, 55, 0.16);
+  color: #d4af37;
+}
+
+.guest-request-status.cancelled {
+  background: rgba(255, 90, 95, 0.16);
+  color: #ff5a5f;
+}
+
+.service-request-eta {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 13px;
+  background: rgba(212, 175, 55, 0.07);
+}
+
+.service-request-eta > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.service-request-eta span {
+  color: #aaa;
+  font-size: 12px;
+}
+
+.service-request-eta strong {
+  color: #d4af37;
+  font-size: 14px;
+  text-align: right;
+}
+
+.service-request-eta p {
+  margin: 8px 0 0;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.service-request-eta small {
+  display: block;
+  margin-top: 5px;
+  color: #999;
+  font-size: 11px;
+}
+
+.service-request-completed {
+  margin-top: 16px;
+  padding: 13px;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  border-radius: 12px;
+  background: rgba(46, 204, 113, 0.12);
+  color: #2ecc71;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.service-request-cancelled {
+  margin-top: 16px;
+  padding: 13px;
+  border: 1px solid rgba(255, 90, 95, 0.3);
+  border-radius: 12px;
+  background: rgba(255, 90, 95, 0.1);
+  color: #ff767b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.service-progress-section {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #242424;
+  border-radius: 13px;
+  background: #090909;
+}
+
+.service-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.service-progress-header span {
+  color: #999;
+  font-size: 11px;
+}
+
+.service-progress-header strong {
+  color: #d4af37;
+  font-size: 13px;
+}
+
+.service-progress-bar {
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #242424;
+}
+
+.service-progress-fill {
+  height: 100%;
+  min-width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #a88315,
+    #d4af37,
+    #f4d35e
+  );
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+  transition: width 1s linear;
+}
+
+.service-progress-section > p {
+  margin: 8px 0 0;
+  color: #d4af37;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.service-request-tracker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, 1fr));
+  gap: 9px;
+  margin-top: 14px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.service-track-step {
+  min-width: 90px;
+  padding: 11px 7px;
+  border: 1px solid #292929;
+  border-radius: 11px;
+  background: #111;
+  text-align: center;
+  opacity: 0.4;
+  transition:
+    opacity 0.25s ease,
+    border-color 0.25s ease,
+    background 0.25s ease,
+    transform 0.25s ease;
+}
+
+.service-track-step span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 17px;
+}
+
+.service-track-step p {
+  margin: 0;
+  color: #888;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.service-track-step.active {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.09);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.service-track-step.active p {
+  color: #d4af37;
+}
+
+.service-request-created {
+  display: block;
+  margin-top: 14px;
+  color: #777;
+  font-size: 10px;
+  text-align: right;
+}
+
+@media (max-width: 700px) {
+  .service-request-top {
+    flex-direction: column;
+  }
+
+  .service-request-eta > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .service-request-eta strong {
+    text-align: left;
+  }
+
+  .service-request-tracker {
+    grid-template-columns: repeat(4, 105px);
+  }
+}

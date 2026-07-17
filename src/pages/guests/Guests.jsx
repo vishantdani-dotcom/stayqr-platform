@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
 import "./Guests.css";
@@ -7,11 +7,33 @@ export default function Guests() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentHotel, setCurrentHotel] = useState(null);
-  const [checkoutLoadingId, setCheckoutLoadingId] = useState(null);
+  const [checkoutLoadingId, setCheckoutLoadingId] =
+    useState(null);
 
-  const [extendModalOpen, setExtendModalOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState(null);
-  const [extendDateTime, setExtendDateTime] = useState("");
+  const [extendModalOpen, setExtendModalOpen] =
+    useState(false);
+  const [selectedSession, setSelectedSession] =
+    useState(null);
+  const [extendDateTime, setExtendDateTime] =
+    useState("");
+
+  const [settlementModalOpen, setSettlementModalOpen] =
+    useState(false);
+  const [settlementLoading, setSettlementLoading] =
+    useState(false);
+  const [settlementData, setSettlementData] =
+    useState(null);
+
+  const [taxPercent, setTaxPercent] = useState("0");
+  const [discountType, setDiscountType] =
+    useState("fixed");
+  const [discountValue, setDiscountValue] =
+    useState("0");
+  const [invoiceNotes, setInvoiceNotes] = useState("");
+  const [
+    remainingPaymentCollected,
+    setRemainingPaymentCollected,
+  ] = useState(false);
 
   useEffect(() => {
     initPage();
@@ -30,7 +52,9 @@ export default function Guests() {
     await fetchGuests(hotel.id);
   }
 
-  async function fetchGuests(hotelId = currentHotel?.id) {
+  async function fetchGuests(
+    hotelId = currentHotel?.id
+  ) {
     if (!hotelId) return;
 
     setLoading(true);
@@ -52,7 +76,9 @@ export default function Guests() {
       `)
       .eq("hotel_id", hotelId)
       .eq("status", "active")
-      .order("checkin_time", { ascending: false });
+      .order("checkin_time", {
+        ascending: false,
+      });
 
     if (error) {
       console.error("Fetch guests error:", error);
@@ -72,9 +98,13 @@ export default function Guests() {
       new Date().toISOString();
 
     setSelectedSession(session);
+
     setExtendDateTime(
-      new Date(currentValue).toISOString().slice(0, 16)
+      new Date(currentValue)
+        .toISOString()
+        .slice(0, 16)
     );
+
     setExtendModalOpen(true);
   }
 
@@ -86,7 +116,9 @@ export default function Guests() {
 
   async function handleExtendStay() {
     if (!selectedSession || !extendDateTime) {
-      alert("Please select new checkout date and time");
+      alert(
+        "Please select new checkout date and time"
+      );
       return;
     }
 
@@ -94,7 +126,9 @@ export default function Guests() {
       const selectedDate = new Date(extendDateTime);
 
       if (Number.isNaN(selectedDate.getTime())) {
-        alert("Please select a valid checkout date and time");
+        alert(
+          "Please select a valid checkout date and time"
+        );
         return;
       }
 
@@ -105,12 +139,17 @@ export default function Guests() {
           status: "active",
         })
         .eq("id", selectedSession.id)
-        .eq("hotel_id", selectedSession.hotel_id);
+        .eq(
+          "hotel_id",
+          selectedSession.hotel_id
+        );
 
       if (error) throw error;
 
       alert("Stay extended successfully");
+
       closeExtendModal();
+
       await fetchGuests(currentHotel?.id);
     } catch (error) {
       console.error("Extend stay error:", error);
@@ -118,7 +157,24 @@ export default function Guests() {
     }
   }
 
-  async function handleFinalCheckout(session) {
+  function resetSettlementState() {
+    setSettlementModalOpen(false);
+    setSettlementLoading(false);
+    setSettlementData(null);
+
+    setTaxPercent("0");
+    setDiscountType("fixed");
+    setDiscountValue("0");
+    setInvoiceNotes("");
+    setRemainingPaymentCollected(false);
+  }
+
+  function closeSettlementModal() {
+    if (settlementLoading) return;
+    resetSettlementState();
+  }
+
+  async function openSettlementModal(session) {
     const guest = session.guests;
     const room = session.rooms;
 
@@ -134,66 +190,65 @@ export default function Guests() {
 
     setCheckoutLoadingId(session.id);
 
-    const stayStart = session.checkin_time;
-    const stayEnd = new Date().toISOString();
-
-    const checkInDate = new Date(stayStart);
-    const checkOutDate = new Date(stayEnd);
-
-    if (
-      Number.isNaN(checkInDate.getTime()) ||
-      Number.isNaN(checkOutDate.getTime())
-    ) {
-      alert("Invalid stay date information");
-      setCheckoutLoadingId(null);
-      return;
-    }
-
-    const stayHours = Math.max(
-      1,
-      Math.ceil(
-        (checkOutDate.getTime() - checkInDate.getTime()) /
-          3600000
-      )
-    );
-
-    const stayNights = Math.max(
-      1,
-      Math.ceil(stayHours / 24)
-    );
-
-    let createdInvoiceId = null;
-
     try {
+      const stayStart = session.checkin_time;
+      const stayEnd = new Date().toISOString();
+
+      const checkInDate = new Date(stayStart);
+      const checkOutDate = new Date(stayEnd);
+
+      if (
+        Number.isNaN(checkInDate.getTime()) ||
+        Number.isNaN(checkOutDate.getTime())
+      ) {
+        throw new Error(
+          "Invalid stay date information"
+        );
+      }
+
+      const stayHours = Math.max(
+        1,
+        Math.ceil(
+          (checkOutDate.getTime() -
+            checkInDate.getTime()) /
+            3600000
+        )
+      );
+
+      const stayNights = Math.max(
+        1,
+        Math.ceil(stayHours / 24)
+      );
+
       /*
-       * Do not allow checkout while any kitchen order
-       * is still being processed or delivered.
+       * Prevent checkout while food orders are open.
        */
-      const { data: openFoodOrders, error: openFoodError } =
-        await supabase
-          .from("food_orders")
-          .select("id, order_status")
-          .eq("hotel_id", session.hotel_id)
-          .eq("guest_id", guest.id)
-          .gte("created_at", stayStart)
-          .in("order_status", [
-            "pending",
-            "accepted",
-            "preparing",
-            "out_for_delivery",
-          ]);
+      const {
+        data: openFoodOrders,
+        error: openFoodError,
+      } = await supabase
+        .from("food_orders")
+        .select("id, order_status")
+        .eq("hotel_id", session.hotel_id)
+        .eq("guest_id", guest.id)
+        .gte("created_at", stayStart)
+        .in("order_status", [
+          "pending",
+          "accepted",
+          "preparing",
+          "out_for_delivery",
+        ]);
 
       if (openFoodError) throw openFoodError;
 
       if (openFoodOrders?.length > 0) {
-        alert(
-          `${openFoodOrders.length} food order(s) are still open.\n\nComplete or cancel them before checkout.`
+        throw new Error(
+          `${openFoodOrders.length} food order(s) are still active. Complete or cancel them before checkout.`
         );
-        return;
       }
 
       /*
-       * Prevent duplicate invoice for this exact guest session.
+       * Prevent duplicate invoice for this stay.
        */
       const {
         data: existingInvoice,
@@ -211,22 +266,23 @@ export default function Guests() {
       }
 
       if (existingInvoice) {
-        alert(
-          `Invoice already exists for this stay.\nInvoice No: ${existingInvoice.invoice_number}`
+        throw new Error(
+          `Invoice already exists for this stay: ${existingInvoice.invoice_number}`
         );
-        return;
       }
 
       /*
-       * Fetch all payment demand records created during this stay.
+       * Fetch payment demand records.
        */
-      const { data: payments, error: paymentError } =
-        await supabase
-          .from("payments")
-          .select("*")
-          .eq("hotel_id", session.hotel_id)
-          .eq("guest_id", guest.id)
-          .gte("created_at", stayStart);
+      const {
+        data: payments,
+        error: paymentError,
+      } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("hotel_id", session.hotel_id)
+        .eq("guest_id", guest.id)
+        .gte("created_at", stayStart);
 
       if (paymentError) throw paymentError;
 
@@ -235,115 +291,130 @@ export default function Guests() {
       );
 
       /*
-       * Fetch actual split/partial payment collections.
+       * Fetch partial and split collections.
        */
       let paymentCollections = [];
 
       if (paymentIds.length > 0) {
         const {
           data: collectionData,
-          error: collectionError,
+          error: collectionsError,
         } = await supabase
           .from("payment_collections")
           .select("*")
           .eq("hotel_id", session.hotel_id)
           .in("payment_id", paymentIds);
 
-        if (collectionError) throw collectionError;
+        if (collectionsError) {
+          throw collectionsError;
+        }
 
         paymentCollections = collectionData || [];
       }
 
-      const roomAmount =
-        payments
-          ?.filter(
-            (payment) =>
-              payment.payment_type === "room_charge"
-          )
-          .reduce(
-            (sum, payment) =>
-              sum + Number(payment.amount || 0),
-            0
-          ) || 0;
-
-      /*
-       * Correctly calculate paid amount from collection history.
-       * Old paid records without collection rows are supported.
-       */
-      const previouslyPaidAmount = (payments || []).reduce(
-        (total, payment) => {
-          const collectionTotal = paymentCollections
-            .filter(
-              (collection) =>
-                String(collection.payment_id) ===
-                String(payment.id)
-            )
-            .reduce(
-              (sum, collection) =>
-                sum + Number(collection.amount || 0),
-              0
-            );
-
-          if (
-            collectionTotal === 0 &&
-            payment.payment_status === "paid"
-          ) {
-            return total + Number(payment.amount || 0);
-          }
-
-          return total + collectionTotal;
-        },
-        0
+      const collectedPaymentIds = new Set(
+        paymentCollections.map((collection) =>
+          String(collection.payment_id)
+        )
       );
 
+      const collectionPaidAmount =
+        paymentCollections.reduce(
+          (sum, collection) =>
+            sum +
+            Number(collection.amount || 0),
+          0
+        );
+
       /*
-       * Fetch delivered food orders with full item details.
+       * Support older paid records without collection rows.
        */
-      const { data: foodOrders, error: foodError } =
-        await supabase
-          .from("food_orders")
-          .select(`
-            *,
-            food_order_items (
-              id,
-              menu_item_id,
-              quantity,
-              price,
-              menu_items (
-                item_name
-              )
+      const legacyPaidAmount = (payments || [])
+        .filter(
+          (payment) =>
+            payment.payment_status === "paid" &&
+            !collectedPaymentIds.has(
+              String(payment.id)
             )
-          `)
-          .eq("hotel_id", session.hotel_id)
-          .eq("guest_id", guest.id)
-          .eq("order_status", "delivered")
-          .gte("created_at", stayStart);
+        )
+        .reduce(
+          (sum, payment) =>
+            sum + Number(payment.amount || 0),
+          0
+        );
+
+      const previouslyPaidAmount =
+        collectionPaidAmount + legacyPaidAmount;
+
+      const roomAmount = (payments || [])
+        .filter(
+          (payment) =>
+            payment.payment_type ===
+            "room_charge"
+        )
+        .reduce(
+          (sum, payment) =>
+            sum + Number(payment.amount || 0),
+          0
+        );
+
+      /*
+       * Fetch delivered food orders with item details.
+       */
+      const {
+        data: foodOrders,
+        error: foodError,
+      } = await supabase
+        .from("food_orders")
+        .select(`
+          *,
+          food_order_items (
+            id,
+            menu_item_id,
+            quantity,
+            price,
+            menu_items (
+              item_name,
+              category
+            )
+          )
+        `)
+        .eq("hotel_id", session.hotel_id)
+        .eq("guest_id", guest.id)
+        .eq("order_status", "delivered")
+        .gte("created_at", stayStart);
 
       if (foodError) throw foodError;
 
-      const foodAmount =
-        foodOrders?.reduce(
-          (sum, order) =>
-            sum + Number(order.total_amount || 0),
+      const foodAmount = (
+        foodOrders || []
+      ).reduce(
+        (sum, order) =>
+          sum +
+          Number(order.total_amount || 0),
+        0
+      );
+
+      const foodOrderCount =
+        foodOrders?.length || 0;
+
+      const totalFoodItems = (
+        foodOrders || []
+      ).reduce((orderTotal, order) => {
+        const orderItemCount = (
+          order.food_order_items || []
+        ).reduce(
+          (itemTotal, item) =>
+            itemTotal +
+            Number(item.quantity || 0),
           0
-        ) || 0;
+        );
 
-      const foodOrderCount = foodOrders?.length || 0;
-
-      const totalFoodItems =
-        foodOrders?.reduce((orderTotal, order) => {
-          const itemCount =
-            order.food_order_items?.reduce(
-              (itemTotal, item) =>
-                itemTotal + Number(item.quantity || 0),
-              0
-            ) || 0;
-
-          return orderTotal + itemCount;
-        }, 0) || 0;
+        return orderTotal + orderItemCount;
+      }, 0);
 
       /*
-       * Fetch manual/additional charges for this stay.
+       * Fetch manual charges.
        */
       const {
         data: manualCharges,
@@ -357,18 +428,55 @@ export default function Guests() {
 
       if (chargeError) throw chargeError;
 
-      const manualAmount =
-        manualCharges?.reduce(
-          (sum, charge) =>
-            sum + Number(charge.charge_amount || 0),
-          0
-        ) || 0;
+      const manualAmount = (
+        manualCharges || []
+      ).reduce(
+        (sum, charge) =>
+          sum +
+          Number(charge.charge_amount || 0),
+        0
+      );
 
       /*
-       * Service charges can be integrated later when a
-       * charge amount is added to service_requests.
+       * Fetch chargeable completed services.
        */
-      const serviceAmount = 0;
+      const {
+        data: completedServices,
+        error: serviceError,
+      } = await supabase
+        .from("service_requests")
+        .select("*")
+        .eq("hotel_id", session.hotel_id)
+        .eq("guest_id", guest.id)
+        .eq("status", "completed")
+        .gte("created_at", stayStart);
+
+      if (serviceError) throw serviceError;
+
+      const chargeableServices = (
+        completedServices || []
+      ).filter(
+        (service) =>
+          Number(
+            service.service_amount ||
+              service.charge_amount ||
+              service.amount ||
+              0
+          ) > 0
+      );
+
+      const serviceAmount =
+        chargeableServices.reduce(
+          (sum, service) =>
+            sum +
+            Number(
+              service.service_amount ||
+                service.charge_amount ||
+                service.amount ||
+                0
+            ),
+          0
+        );
 
       const subtotalAmount =
         roomAmount +
@@ -376,62 +484,240 @@ export default function Guests() {
         manualAmount +
         serviceAmount;
 
-      const taxPercent = 0;
-      const taxAmount = 0;
+      setSettlementData({
+        session,
+        guest,
+        room,
 
-      const discountType = "fixed";
-      const discountValue = 0;
-      const discountAmount = 0;
+        stayStart,
+        stayEnd,
+        stayHours,
+        stayNights,
 
-      const totalAmount = Math.max(
-        0,
-        subtotalAmount + taxAmount - discountAmount
+        payments: payments || [],
+        paymentIds,
+        paymentCollections,
+
+        roomAmount,
+        foodAmount,
+        manualAmount,
+        serviceAmount,
+        subtotalAmount,
+
+        previouslyPaidAmount,
+
+        foodOrders: foodOrders || [],
+        foodOrderCount,
+        totalFoodItems,
+
+        manualCharges:
+          manualCharges || [],
+
+        chargeableServices,
+      });
+
+      setTaxPercent("0");
+      setDiscountType("fixed");
+      setDiscountValue("0");
+      setInvoiceNotes(
+        "Final checkout invoice generated by StayQR."
+      );
+      setRemainingPaymentCollected(false);
+      setSettlementModalOpen(true);
+    } catch (error) {
+      console.error(
+        "Prepare settlement error:",
+        error
       );
 
-      const amountToCollect = Math.max(
-        0,
-        totalAmount - previouslyPaidAmount
+      alert(
+        error.message ||
+          "Unable to prepare final settlement"
+      );
+    } finally {
+      setCheckoutLoadingId(null);
+    }
+  }
+
+  const settlementCalculation = useMemo(() => {
+    const subtotal = Number(
+      settlementData?.subtotalAmount || 0
+    );
+
+    const safeTaxPercent = Math.min(
+      100,
+      Math.max(0, Number(taxPercent || 0))
+    );
+
+    const taxAmount =
+      subtotal * (safeTaxPercent / 100);
+
+    const safeDiscountValue = Math.max(
+      0,
+      Number(discountValue || 0)
+    );
+
+    let discountAmount = 0;
+
+    if (discountType === "percentage") {
+      const safeDiscountPercent = Math.min(
+        100,
+        safeDiscountValue
       );
 
-      const confirmCheckout = window.confirm(
-        `Final Checkout Bill\n\n` +
-          `Guest: ${guest.full_name}\n` +
-          `Room: ${room.room_number}\n` +
-          `Stay: ${stayNights} night(s) / ${stayHours} hour(s)\n\n` +
-          `Room Charges: ₹${roomAmount}\n` +
-          `Food Charges: ₹${foodAmount}\n` +
-          `Manual Charges: ₹${manualAmount}\n` +
-          `Service Charges: ₹${serviceAmount}\n\n` +
-          `Subtotal: ₹${subtotalAmount}\n` +
-          `Tax: ₹${taxAmount}\n` +
-          `Discount: ₹${discountAmount}\n\n` +
-          `Previously Paid: ₹${previouslyPaidAmount}\n` +
-          `Amount to Collect: ₹${amountToCollect}\n\n` +
-          `Grand Total: ₹${totalAmount}\n\n` +
-          `Confirm payment settlement, create invoice and checkout?`
+      discountAmount =
+        (subtotal + taxAmount) *
+        (safeDiscountPercent / 100);
+    } else {
+      discountAmount = safeDiscountValue;
+    }
+
+    const amountBeforeDiscount =
+      subtotal + taxAmount;
+
+    discountAmount = Math.min(
+      amountBeforeDiscount,
+      discountAmount
+    );
+
+    const grandTotal = Math.max(
+      0,
+      amountBeforeDiscount - discountAmount
+    );
+
+    const previouslyPaid = Number(
+      settlementData?.previouslyPaidAmount || 0
+    );
+
+    const amountToCollect = Math.max(
+      0,
+      grandTotal - previouslyPaid
+    );
+
+    const excessPaid = Math.max(
+      0,
+      previouslyPaid - grandTotal
+    );
+
+    return {
+      subtotal,
+      taxPercent: safeTaxPercent,
+      taxAmount,
+      discountValue: safeDiscountValue,
+      discountAmount,
+      grandTotal,
+      previouslyPaid,
+      amountToCollect,
+      excessPaid,
+    };
+  }, [
+    settlementData,
+    taxPercent,
+    discountType,
+    discountValue,
+  ]);
+
+  async function completeFinalSettlement() {
+    if (!settlementData) return;
+
+    const {
+      session,
+      guest,
+      room,
+      stayStart,
+      stayEnd,
+      stayHours,
+      stayNights,
+      payments,
+      paymentIds,
+      paymentCollections,
+      roomAmount,
+      foodAmount,
+      manualAmount,
+      serviceAmount,
+      foodOrders,
+      foodOrderCount,
+      totalFoodItems,
+      manualCharges,
+      chargeableServices,
+    } = settlementData;
+
+    const {
+      subtotal,
+      taxPercent: finalTaxPercent,
+      taxAmount,
+      discountValue: finalDiscountValue,
+      discountAmount,
+      grandTotal,
+      previouslyPaid,
+      amountToCollect,
+      excessPaid,
+    } = settlementCalculation;
+
+    if (
+      Number(taxPercent || 0) < 0 ||
+      Number(taxPercent || 0) > 100
+    ) {
+      alert(
+        "Tax percentage must be between 0 and 100."
       );
+      return;
+    }
 
-      if (!confirmCheckout) return;
+    if (Number(discountValue || 0) < 0) {
+      alert(
+        "Discount value cannot be negative."
+      );
+      return;
+    }
 
-      const invoiceNumber = generateInvoiceNumber();
+    if (
+      discountType === "percentage" &&
+      Number(discountValue || 0) > 100
+    ) {
+      alert(
+        "Discount percentage cannot exceed 100%."
+      );
+      return;
+    }
 
-      const invoicePaymentStatus =
-        amountToCollect <= 0
-          ? "paid"
-          : previouslyPaidAmount > 0
-            ? "partial"
-            : "pending";
+    if (
+      amountToCollect > 0 &&
+      !remainingPaymentCollected
+    ) {
+      alert(
+        `Please confirm that the remaining ₹${formatMoney(
+          amountToCollect
+        )} has been collected before checkout.`
+      );
+      return;
+    }
 
-      const invoiceStatus =
-        amountToCollect <= 0
-          ? "paid"
-          : previouslyPaidAmount > 0
-            ? "partially_paid"
-            : "issued";
+    if (excessPaid > 0) {
+      const proceedWithExcess =
+        window.confirm(
+          `Previous payments exceed the final bill by ₹${formatMoney(
+            excessPaid
+          )}.\n\nPlease verify whether a refund or adjustment is required. Continue checkout?`
+        );
+
+      if (!proceedWithExcess) return;
+    }
+
+    setSettlementLoading(true);
+    setCheckoutLoadingId(session.id);
+
+    try {
+      const invoiceNumber =
+        generateInvoiceNumber();
 
       /*
-       * Create the main invoice record.
+       * Settlement confirmation means the final invoice
+       * is fully paid before checkout.
        */
+      const finalPaidAmount = grandTotal;
+      const pendingAmount = 0;
+
       const {
         data: createdInvoice,
         error: invoiceError,
@@ -440,9 +726,9 @@ export default function Guests() {
         .insert([
           {
             hotel_id: session.hotel_id,
+            guest_session_id: session.id,
             room_id: room.id,
             guest_id: guest.id,
-            guest_session_id: session.id,
 
             invoice_number: invoiceNumber,
 
@@ -451,33 +737,42 @@ export default function Guests() {
             manual_amount: manualAmount,
             service_amount: serviceAmount,
 
-            subtotal_amount: subtotalAmount,
+            subtotal_amount: subtotal,
 
-            tax_percent: taxPercent,
+            tax_percent: finalTaxPercent,
             tax_amount: taxAmount,
 
             discount_type: discountType,
-            discount_value: discountValue,
+            discount_value:
+              finalDiscountValue,
             discount_amount: discountAmount,
 
-            total_amount: totalAmount,
+            previous_paid_amount:
+              previouslyPaid,
+            amount_to_collect:
+              amountToCollect,
 
-            previous_paid_amount: previouslyPaidAmount,
-            amount_to_collect: amountToCollect,
+            total_amount: grandTotal,
 
-            payment_status: invoicePaymentStatus,
-            paid_amount: previouslyPaidAmount,
-            pending_amount: amountToCollect,
+            payment_status: "paid",
+            invoice_status: "paid",
 
-            invoice_status: invoiceStatus,
+            paid_amount: finalPaidAmount,
+            pending_amount: pendingAmount,
+            settled_at: stayEnd,
 
             checkin_time: stayStart,
             checkout_time: stayEnd,
             stay_hours: stayHours,
             stay_nights: stayNights,
 
-            food_order_count: foodOrderCount,
-            food_item_count: totalFoodItems,
+            food_order_count:
+              foodOrderCount,
+            food_item_count:
+              totalFoodItems,
+
+            invoice_notes:
+              invoiceNotes.trim() || null,
           },
         ])
         .select()
@@ -485,10 +780,8 @@ export default function Guests() {
 
       if (invoiceError) throw invoiceError;
 
-      createdInvoiceId = createdInvoice.id;
-
       /*
-       * Build detailed invoice line items.
+       * Create detailed invoice line items.
        */
       const invoiceItems = [];
 
@@ -500,33 +793,55 @@ export default function Guests() {
           room_id: room.id,
 
           item_type: "room",
+
           description: `${
             room.room_type || "Hotel Room"
           } · ${stayNights} night(s)`,
 
-          quantity: 1,
-          unit_price: roomAmount,
+          quantity: stayNights,
+
+          unit_price:
+            stayNights > 0
+              ? roomAmount / stayNights
+              : roomAmount,
+
           amount: roomAmount,
 
           source_id: session.id,
         });
       }
 
-      foodOrders?.forEach((order) => {
-        order.food_order_items?.forEach((item) => {
-          const quantity = Number(item.quantity || 0);
-          const unitPrice = Number(item.price || 0);
-          const amount = quantity * unitPrice;
+      foodOrders.forEach((order) => {
+        (
+          order.food_order_items || []
+        ).forEach((item) => {
+          const quantity = Number(
+            item.quantity || 0
+          );
 
-          if (quantity <= 0 || amount <= 0) return;
+          const unitPrice = Number(
+            item.price || 0
+          );
+
+          const amount =
+            quantity * unitPrice;
+
+          if (
+            quantity <= 0 ||
+            amount <= 0
+          ) {
+            return;
+          }
 
           invoiceItems.push({
-            invoice_id: createdInvoice.id,
+            invoice_id:
+              createdInvoice.id,
             hotel_id: session.hotel_id,
             guest_id: guest.id,
             room_id: room.id,
 
             item_type: "food",
+
             description:
               item.menu_items?.item_name ||
               "Food Item",
@@ -540,7 +855,7 @@ export default function Guests() {
         });
       });
 
-      manualCharges?.forEach((charge) => {
+      manualCharges.forEach((charge) => {
         const amount = Number(
           charge.charge_amount || 0
         );
@@ -554,6 +869,7 @@ export default function Guests() {
           room_id: room.id,
 
           item_type: "manual_charge",
+
           description:
             charge.charge_name ||
             "Additional Charge",
@@ -566,145 +882,215 @@ export default function Guests() {
         });
       });
 
-      if (serviceAmount > 0) {
+      chargeableServices.forEach(
+        (service) => {
+          const amount = Number(
+            service.service_amount ||
+              service.charge_amount ||
+              service.amount ||
+              0
+          );
+
+          if (amount <= 0) return;
+
+          invoiceItems.push({
+            invoice_id:
+              createdInvoice.id,
+            hotel_id:
+              session.hotel_id,
+            guest_id: guest.id,
+            room_id: room.id,
+
+            item_type: "service",
+
+            description:
+              service.request_type ||
+              "Hotel Service",
+
+            quantity: 1,
+            unit_price: amount,
+            amount,
+
+            source_id: service.id,
+          });
+        }
+      );
+
+      if (taxAmount > 0) {
         invoiceItems.push({
           invoice_id: createdInvoice.id,
           hotel_id: session.hotel_id,
           guest_id: guest.id,
           room_id: room.id,
 
-          item_type: "service",
-          description: "Hotel Service Charges",
+          item_type: "tax",
+
+          description: `Tax ${formatMoney(
+            finalTaxPercent
+          )}%`,
 
           quantity: 1,
-          unit_price: serviceAmount,
-          amount: serviceAmount,
+          unit_price: taxAmount,
+          amount: taxAmount,
+
+          source_id: null,
+        });
+      }
+
+      if (discountAmount > 0) {
+        invoiceItems.push({
+          invoice_id: createdInvoice.id,
+          hotel_id: session.hotel_id,
+          guest_id: guest.id,
+          room_id: room.id,
+
+          item_type: "discount",
+
+          description:
+            discountType === "percentage"
+              ? `Discount ${formatMoney(
+                  finalDiscountValue
+                )}%`
+              : "Fixed Discount",
+
+          quantity: 1,
+          unit_price: -discountAmount,
+          amount: -discountAmount,
 
           source_id: null,
         });
       }
 
       if (invoiceItems.length > 0) {
-        const { error: invoiceItemsError } =
-          await supabase
-            .from("invoice_items")
-            .insert(invoiceItems);
+        const {
+          error: invoiceItemsError,
+        } = await supabase
+          .from("invoice_items")
+          .insert(invoiceItems);
 
         if (invoiceItemsError) {
           /*
-           * Remove incomplete invoice if its line items fail.
+           * Prevent incomplete invoices.
            */
           await supabase
             .from("invoices")
             .delete()
             .eq("id", createdInvoice.id)
-            .eq("hotel_id", session.hotel_id);
+            .eq(
+              "hotel_id",
+              session.hotel_id
+            );
 
-          createdInvoiceId = null;
           throw invoiceItemsError;
         }
       }
 
       /*
-       * Link stay payment demand records to this invoice.
+       * Link payment records to invoice.
        */
       if (paymentIds.length > 0) {
-        const { error: paymentLinkError } =
-          await supabase
-            .from("payments")
-            .update({
-              invoice_id: createdInvoice.id,
-            })
-            .eq("hotel_id", session.hotel_id)
-            .in("id", paymentIds);
+        const {
+          error: paymentUpdateError,
+        } = await supabase
+          .from("payments")
+          .update({
+            payment_status: "paid",
+            invoice_id: createdInvoice.id,
+            paid_at: stayEnd,
+          })
+          .eq("hotel_id", session.hotel_id)
+          .in("id", paymentIds);
 
-        if (paymentLinkError) {
-          throw paymentLinkError;
+        if (paymentUpdateError) {
+          throw paymentUpdateError;
+        }
+
+        const {
+          error: collectionUpdateError,
+        } = await supabase
+          .from("payment_collections")
+          .update({
+            invoice_id: createdInvoice.id,
+          })
+          .eq("hotel_id", session.hotel_id)
+          .in("payment_id", paymentIds);
+
+        if (collectionUpdateError) {
+          throw collectionUpdateError;
         }
       }
 
       /*
-       * Link actual collection transactions to the invoice.
-       */
-      if (paymentCollections.length > 0) {
-        const collectionIds = paymentCollections.map(
-          (collection) => collection.id
-        );
-
-        const { error: collectionLinkError } =
-          await supabase
-            .from("payment_collections")
-            .update({
-              invoice_id: createdInvoice.id,
-            })
-            .eq("hotel_id", session.hotel_id)
-            .in("id", collectionIds);
-
-        if (collectionLinkError) {
-          throw collectionLinkError;
-        }
-      }
-
-      /*
-       * Mark delivered food orders as billed.
+       * Mark delivered food orders paid.
        */
       const { error: foodUpdateError } =
         await supabase
           .from("food_orders")
           .update({
-            payment_status:
-              amountToCollect <= 0 ? "paid" : "pending",
+            payment_status: "paid",
           })
           .eq("hotel_id", session.hotel_id)
           .eq("guest_id", guest.id)
           .eq("order_status", "delivered")
           .gte("created_at", stayStart);
 
-      if (foodUpdateError) throw foodUpdateError;
-
-      /*
-       * Mark manual charges according to settlement.
-       */
-      const { error: chargesUpdateError } =
-        await supabase
-          .from("manual_charges")
-          .update({
-            payment_status:
-              amountToCollect <= 0 ? "paid" : "pending",
-          })
-          .eq("hotel_id", session.hotel_id)
-          .eq("guest_id", guest.id)
-          .gte("created_at", stayStart);
-
-      if (chargesUpdateError) {
-        throw chargesUpdateError;
+      if (foodUpdateError) {
+        throw foodUpdateError;
       }
 
       /*
-       * Complete guest session and expire QR access.
+       * Mark manual charges paid.
        */
-      const { error: sessionError } = await supabase
-        .from("guest_sessions")
+      const {
+        error: chargeUpdateError,
+      } = await supabase
+        .from("manual_charges")
         .update({
-          status: "completed",
-          expired_at: stayEnd,
+          payment_status: "paid",
         })
-        .eq("id", session.id)
         .eq("hotel_id", session.hotel_id)
-        .eq("status", "active");
+        .eq("guest_id", guest.id)
+        .gte("created_at", stayStart);
 
-      if (sessionError) throw sessionError;
+      if (chargeUpdateError) {
+        throw chargeUpdateError;
+      }
+
+      /*
+       * Complete guest session and expire QR.
+       */
+      const { error: sessionError } =
+        await supabase
+          .from("guest_sessions")
+          .update({
+            status: "completed",
+            expired_at: stayEnd,
+          })
+          .eq("id", session.id)
+          .eq(
+            "hotel_id",
+            session.hotel_id
+          )
+          .eq("status", "active");
+
+      if (sessionError) {
+        throw sessionError;
+      }
 
       /*
        * Send room to cleaning.
        */
-      const { error: roomError } = await supabase
-        .from("rooms")
-        .update({
-          status: "cleaning",
-        })
-        .eq("id", room.id)
-        .eq("hotel_id", session.hotel_id);
+      const { error: roomError } =
+        await supabase
+          .from("rooms")
+          .update({
+            status: "cleaning",
+          })
+          .eq("id", room.id)
+          .eq(
+            "hotel_id",
+            session.hotel_id
+          );
 
       if (roomError) throw roomError;
 
@@ -719,8 +1105,14 @@ export default function Guests() {
         .select("id")
         .eq("hotel_id", session.hotel_id)
         .eq("room_id", room.id)
-        .eq("task_type", "room_cleaning")
-        .in("status", ["pending", "in_progress"])
+        .eq(
+          "task_type",
+          "room_cleaning"
+        )
+        .in("status", [
+          "pending",
+          "in_progress",
+        ])
         .limit(1)
         .maybeSingle();
 
@@ -729,18 +1121,22 @@ export default function Guests() {
       }
 
       if (!existingCleaningTask) {
-        const { error: housekeepingError } =
-          await supabase
-            .from("housekeeping_tasks")
-            .insert([
-              {
-                hotel_id: session.hotel_id,
-                room_id: room.id,
-                room_number: room.room_number,
-                task_type: "room_cleaning",
-                status: "pending",
-              },
-            ]);
+        const {
+          error: housekeepingError,
+        } = await supabase
+          .from("housekeeping_tasks")
+          .insert([
+            {
+              hotel_id:
+                session.hotel_id,
+              room_id: room.id,
+              room_number:
+                room.room_number,
+              task_type:
+                "room_cleaning",
+              status: "pending",
+            },
+          ]);
 
         if (housekeepingError) {
           throw housekeepingError;
@@ -748,26 +1144,30 @@ export default function Guests() {
       }
 
       alert(
-        `Checkout completed successfully.\nInvoice created: ${invoiceNumber}\nPending balance: ₹${amountToCollect}`
+        `Checkout completed successfully.\n\nInvoice: ${invoiceNumber}\nGrand Total: ₹${formatMoney(
+          grandTotal
+        )}\nTax: ₹${formatMoney(
+          taxAmount
+        )}\nDiscount: ₹${formatMoney(
+          discountAmount
+        )}`
       );
+
+      resetSettlementState();
 
       await fetchGuests(currentHotel?.id);
     } catch (error) {
-      console.error("Final checkout error:", error);
+      console.error(
+        "Final settlement error:",
+        error
+      );
 
-      /*
-       * Clean up invoice if a later critical checkout step failed.
-       * Existing invoice items are deleted through ON DELETE CASCADE.
-       */
-      if (createdInvoiceId) {
-        console.warn(
-          "Checkout failed after invoice creation. Invoice retained for review:",
-          createdInvoiceId
-        );
-      }
-
-      alert(error.message || "Checkout failed");
+      alert(
+        error.message ||
+          "Final checkout failed"
+      );
     } finally {
+      setSettlementLoading(false);
       setCheckoutLoadingId(null);
     }
   }
@@ -779,8 +1179,9 @@ export default function Guests() {
           <h1>Guests</h1>
 
           <p>
-            {currentHotel?.hotel_name || "Hotel"} · Manage
-            active guests, final billing, stay extension and
+            {currentHotel?.hotel_name || "Hotel"} ·
+            Manage active guests, final billing,
+            tax, discounts, stay extension and
             checkout.
           </p>
         </div>
@@ -815,33 +1216,40 @@ export default function Guests() {
             <tbody>
               {sessions.map((session) => {
                 const checkoutLoading =
-                  checkoutLoadingId === session.id;
+                  checkoutLoadingId ===
+                  session.id;
 
                 return (
                   <tr key={session.id}>
                     <td>
-                      {session.guests?.full_name || "-"}
+                      {session.guests
+                        ?.full_name || "-"}
                     </td>
 
                     <td>
                       Room{" "}
-                      {session.rooms?.room_number || "-"}
+                      {session.rooms
+                        ?.room_number || "-"}
                       <br />
 
                       <small>
-                        {session.rooms?.room_type || ""}
+                        {session.rooms
+                          ?.room_type || ""}
                       </small>
                     </td>
 
                     <td>
-                      {session.guests?.phone || "-"}
+                      {session.guests?.phone ||
+                        "-"}
                     </td>
 
                     <td>
                       {session.checkin_time
                         ? new Date(
                             session.checkin_time
-                          ).toLocaleString("en-IN")
+                          ).toLocaleString(
+                            "en-IN"
+                          )
                         : "-"}
                     </td>
 
@@ -849,11 +1257,15 @@ export default function Guests() {
                       {session.extended_until
                         ? new Date(
                             session.extended_until
-                          ).toLocaleString("en-IN")
+                          ).toLocaleString(
+                            "en-IN"
+                          )
                         : session.checkout_time
                           ? new Date(
                               session.checkout_time
-                            ).toLocaleString("en-IN")
+                            ).toLocaleString(
+                              "en-IN"
+                            )
                           : "-"}
                     </td>
 
@@ -867,25 +1279,34 @@ export default function Guests() {
                       >
                         <button
                           className="checkout-btn"
-                          disabled={checkoutLoading}
+                          disabled={
+                            checkoutLoading
+                          }
                           onClick={() =>
-                            handleFinalCheckout(session)
+                            openSettlementModal(
+                              session
+                            )
                           }
                         >
                           {checkoutLoading
-                            ? "Processing..."
+                            ? "Preparing..."
                             : "Final Bill & Checkout"}
                         </button>
 
                         <button
                           className="checkout-btn"
-                          disabled={checkoutLoading}
+                          disabled={
+                            checkoutLoading
+                          }
                           style={{
-                            background: "#d4af37",
+                            background:
+                              "#d4af37",
                             color: "#000",
                           }}
                           onClick={() =>
-                            openExtendModal(session)
+                            openExtendModal(
+                              session
+                            )
                           }
                         >
                           Extend Stay
@@ -902,12 +1323,14 @@ export default function Guests() {
 
       {extendModalOpen && (
         <div style={modalOverlay}>
-          <div style={modal}>
-            <h2 style={modalTitle}>Extend Stay</h2>
+          <div style={smallModal}>
+            <h2 style={modalTitle}>
+              Extend Stay
+            </h2>
 
             <p style={modalSub}>
-              Select the new checkout date and time for
-              this guest.
+              Select the new checkout date and time
+              for this guest.
             </p>
 
             <label style={label}>
@@ -918,9 +1341,11 @@ export default function Guests() {
               type="datetime-local"
               value={extendDateTime}
               onChange={(event) =>
-                setExtendDateTime(event.target.value)
+                setExtendDateTime(
+                  event.target.value
+                )
               }
-              style={dateInput}
+              style={input}
             />
 
             <div style={modalActions}>
@@ -941,6 +1366,370 @@ export default function Guests() {
           </div>
         </div>
       )}
+
+      {settlementModalOpen &&
+        settlementData && (
+          <div style={modalOverlay}>
+            <div style={settlementModal}>
+              <div style={settlementHeader}>
+                <div>
+                  <p style={kicker}>
+                    FINAL CHECKOUT
+                  </p>
+
+                  <h2 style={settlementTitle}>
+                    Tax, Discount &amp;
+                    Settlement
+                  </h2>
+
+                  <p style={modalSub}>
+                    {
+                      settlementData.guest
+                        .full_name
+                    }{" "}
+                    · Room{" "}
+                    {
+                      settlementData.room
+                        .room_number
+                    }
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  style={modalCloseButton}
+                  disabled={settlementLoading}
+                  onClick={
+                    closeSettlementModal
+                  }
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={settlementGrid}>
+                <div style={settlementSection}>
+                  <h3 style={sectionTitle}>
+                    Charge Breakdown
+                  </h3>
+
+                  <SettlementRow
+                    label="Room Charges"
+                    value={
+                      settlementData.roomAmount
+                    }
+                  />
+
+                  <SettlementRow
+                    label="Food Charges"
+                    value={
+                      settlementData.foodAmount
+                    }
+                  />
+
+                  <SettlementRow
+                    label="Manual Charges"
+                    value={
+                      settlementData.manualAmount
+                    }
+                  />
+
+                  <SettlementRow
+                    label="Service Charges"
+                    value={
+                      settlementData.serviceAmount
+                    }
+                  />
+
+                  <div style={divider} />
+
+                  <SettlementRow
+                    label="Subtotal"
+                    value={
+                      settlementCalculation.subtotal
+                    }
+                    strong
+                  />
+
+                  <div style={stayInfoBox}>
+                    <span>
+                      Stay duration
+                    </span>
+
+                    <strong>
+                      {
+                        settlementData.stayNights
+                      }{" "}
+                      night(s) ·{" "}
+                      {
+                        settlementData.stayHours
+                      }{" "}
+                      hour(s)
+                    </strong>
+                  </div>
+                </div>
+
+                <div style={settlementSection}>
+                  <h3 style={sectionTitle}>
+                    Tax &amp; Discount
+                  </h3>
+
+                  <label style={label}>
+                    Tax / GST Percentage
+                  </label>
+
+                  <input
+                    style={input}
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={taxPercent}
+                    onChange={(event) =>
+                      setTaxPercent(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Example: 12"
+                  />
+
+                  <label style={label}>
+                    Discount Type
+                  </label>
+
+                  <select
+                    style={input}
+                    value={discountType}
+                    onChange={(event) =>
+                      setDiscountType(
+                        event.target.value
+                      )
+                    }
+                  >
+                    <option value="fixed">
+                      Fixed Amount
+                    </option>
+
+                    <option value="percentage">
+                      Percentage
+                    </option>
+                  </select>
+
+                  <label style={label}>
+                    {discountType ===
+                    "percentage"
+                      ? "Discount Percentage"
+                      : "Discount Amount"}
+                  </label>
+
+                  <input
+                    style={input}
+                    type="number"
+                    min="0"
+                    max={
+                      discountType ===
+                      "percentage"
+                        ? "100"
+                        : undefined
+                    }
+                    step="0.01"
+                    value={discountValue}
+                    onChange={(event) =>
+                      setDiscountValue(
+                        event.target.value
+                      )
+                    }
+                    placeholder={
+                      discountType ===
+                      "percentage"
+                        ? "Example: 10"
+                        : "Example: 500"
+                    }
+                  />
+
+                  <label style={label}>
+                    Invoice Notes
+                  </label>
+
+                  <textarea
+                    style={textarea}
+                    value={invoiceNotes}
+                    onChange={(event) =>
+                      setInvoiceNotes(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Optional invoice or checkout notes"
+                  />
+                </div>
+              </div>
+
+              <div style={settlementSummary}>
+                <SettlementRow
+                  label="Subtotal"
+                  value={
+                    settlementCalculation.subtotal
+                  }
+                />
+
+                <SettlementRow
+                  label={`Tax (${formatMoney(
+                    settlementCalculation.taxPercent
+                  )}%)`}
+                  value={
+                    settlementCalculation.taxAmount
+                  }
+                />
+
+                <SettlementRow
+                  label="Discount"
+                  value={
+                    settlementCalculation.discountAmount
+                  }
+                  negative
+                />
+
+                <div style={divider} />
+
+                <SettlementRow
+                  label="Grand Total"
+                  value={
+                    settlementCalculation.grandTotal
+                  }
+                  strong
+                />
+
+                <SettlementRow
+                  label="Previously Paid"
+                  value={
+                    settlementCalculation.previouslyPaid
+                  }
+                  positive
+                />
+
+                <SettlementRow
+                  label="Remaining to Collect"
+                  value={
+                    settlementCalculation.amountToCollect
+                  }
+                  danger={
+                    settlementCalculation.amountToCollect >
+                    0
+                  }
+                  strong
+                />
+
+                {settlementCalculation.excessPaid >
+                  0 && (
+                  <div style={warningBox}>
+                    Previous payments exceed the final
+                    invoice by ₹
+                    {formatMoney(
+                      settlementCalculation.excessPaid
+                    )}
+                    . Verify refund or adjustment.
+                  </div>
+                )}
+              </div>
+
+              {settlementCalculation.amountToCollect >
+                0 && (
+                <label style={confirmationBox}>
+                  <input
+                    type="checkbox"
+                    checked={
+                      remainingPaymentCollected
+                    }
+                    onChange={(event) =>
+                      setRemainingPaymentCollected(
+                        event.target.checked
+                      )
+                    }
+                  />
+
+                  <span>
+                    I confirm that the remaining ₹
+                    {formatMoney(
+                      settlementCalculation.amountToCollect
+                    )}{" "}
+                    has been collected from the guest.
+                  </span>
+                </label>
+              )}
+
+              {settlementCalculation.amountToCollect ===
+                0 && (
+                <div style={paidConfirmationBox}>
+                  ✅ The invoice is already fully
+                  covered by previous payments.
+                </div>
+              )}
+
+              <div style={settlementActions}>
+                <button
+                  type="button"
+                  style={cancelBtn}
+                  disabled={settlementLoading}
+                  onClick={
+                    closeSettlementModal
+                  }
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  style={saveBtn}
+                  disabled={settlementLoading}
+                  onClick={
+                    completeFinalSettlement
+                  }
+                >
+                  {settlementLoading
+                    ? "Completing Checkout..."
+                    : "Confirm Settlement & Checkout"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+    </div>
+  );
+}
+
+function SettlementRow({
+  label,
+  value,
+  strong = false,
+  negative = false,
+  positive = false,
+  danger = false,
+}) {
+  return (
+    <div
+      style={{
+        ...summaryRow,
+        fontSize: strong ? "17px" : "14px",
+        fontWeight: strong ? 900 : 600,
+        color: positive
+          ? "#2ecc71"
+          : danger
+            ? "#ff767b"
+            : "#fff",
+      }}
+    >
+      <span>{label}</span>
+
+      <strong>
+        {negative &&
+        Number(value || 0) > 0
+          ? "- "
+          : ""}
+        ₹
+        {formatMoney(
+          Math.abs(Number(value || 0))
+        )}
+      </strong>
     </div>
   );
 }
@@ -953,29 +1742,75 @@ function generateInvoiceNumber() {
     .slice(0, 10)
     .replace(/-/g, "");
 
-  const timePart = String(now.getTime()).slice(-6);
+  const timePart = String(
+    now.getTime()
+  ).slice(-6);
 
   return `INV-${datePart}-${timePart}`;
+}
+
+function formatMoney(value) {
+  const amount = Number(value || 0);
+
+  return amount.toLocaleString("en-IN", {
+    minimumFractionDigits:
+      Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 const modalOverlay = {
   position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,0.75)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   zIndex: 9999,
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "center",
+  overflowY: "auto",
+  padding: "30px 20px",
+  background: "rgba(0,0,0,0.82)",
 };
 
-const modal = {
-  background: "#0f0f0f",
-  border: "1px solid #333",
-  borderRadius: "18px",
-  padding: "28px",
+const smallModal = {
   width: "90%",
   maxWidth: "460px",
+  padding: "28px",
+  border: "1px solid #333",
+  borderRadius: "18px",
+  background: "#0f0f0f",
   color: "#fff",
+};
+
+const settlementModal = {
+  width: "100%",
+  maxWidth: "980px",
+  padding: "28px",
+  border: "1px solid #333",
+  borderRadius: "20px",
+  background: "#0f0f0f",
+  color: "#fff",
+  boxShadow: "0 30px 90px rgba(0,0,0,.6)",
+};
+
+const settlementHeader = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "20px",
+  marginBottom: "25px",
+};
+
+const kicker = {
+  margin: "0 0 7px",
+  color: "#d4af37",
+  fontSize: "11px",
+  fontWeight: 900,
+  letterSpacing: "2px",
+};
+
+const settlementTitle = {
+  margin: "0 0 7px",
+  fontSize: "31px",
 };
 
 const modalTitle = {
@@ -985,26 +1820,142 @@ const modalTitle = {
 };
 
 const modalSub = {
+  margin: 0,
   color: "#aaa",
-  marginBottom: "20px",
+};
+
+const modalCloseButton = {
+  width: "38px",
+  height: "38px",
+  border: "1px solid #444",
+  borderRadius: "10px",
+  background: "#1a1a1a",
+  color: "#fff",
+  cursor: "pointer",
+};
+
+const settlementGrid = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(300px,1fr))",
+  gap: "20px",
+};
+
+const settlementSection = {
+  padding: "20px",
+  border: "1px solid #252525",
+  borderRadius: "15px",
+  background: "#0a0a0a",
+};
+
+const sectionTitle = {
+  margin: "0 0 18px",
+  color: "#d4af37",
+  fontSize: "18px",
 };
 
 const label = {
   display: "block",
-  color: "#d4af37",
   marginBottom: "8px",
-  fontSize: "13px",
+  color: "#d4af37",
+  fontSize: "12px",
+  fontWeight: 800,
 };
 
-const dateInput = {
+const input = {
   width: "100%",
   boxSizing: "border-box",
-  padding: "14px",
-  borderRadius: "10px",
+  marginBottom: "17px",
+  padding: "13px",
   border: "1px solid #333",
+  borderRadius: "10px",
+  outline: "none",
   background: "#111",
   color: "#fff",
-  marginBottom: "20px",
+};
+
+const textarea = {
+  ...input,
+  minHeight: "95px",
+  resize: "vertical",
+};
+
+const stayInfoBox = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "15px",
+  marginTop: "15px",
+  padding: "13px",
+  borderRadius: "10px",
+  background: "rgba(212,175,55,.08)",
+  color: "#d4af37",
+  fontSize: "12px",
+};
+
+const settlementSummary = {
+  width: "100%",
+  maxWidth: "520px",
+  boxSizing: "border-box",
+  margin: "24px 0 0 auto",
+  padding: "20px",
+  border: "1px solid rgba(212,175,55,.3)",
+  borderRadius: "15px",
+  background: "rgba(212,175,55,.06)",
+};
+
+const summaryRow = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "20px",
+  padding: "7px 0",
+};
+
+const divider = {
+  height: "1px",
+  margin: "10px 0",
+  background: "#333",
+};
+
+const warningBox = {
+  marginTop: "13px",
+  padding: "12px",
+  border: "1px solid rgba(255,170,0,.35)",
+  borderRadius: "10px",
+  background: "rgba(255,170,0,.08)",
+  color: "#ffaa00",
+  fontSize: "12px",
+};
+
+const confirmationBox = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "11px",
+  marginTop: "20px",
+  padding: "15px",
+  border: "1px solid rgba(212,175,55,.35)",
+  borderRadius: "12px",
+  background: "rgba(212,175,55,.07)",
+  color: "#fff",
+  cursor: "pointer",
+};
+
+const paidConfirmationBox = {
+  marginTop: "20px",
+  padding: "15px",
+  border: "1px solid rgba(46,204,113,.35)",
+  borderRadius: "12px",
+  background: "rgba(46,204,113,.1)",
+  color: "#2ecc71",
+  fontWeight: 800,
+};
+
+const settlementActions = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "10px",
+  marginTop: "22px",
 };
 
 const modalActions = {
@@ -1014,20 +1965,20 @@ const modalActions = {
 };
 
 const saveBtn = {
-  background: "#d4af37",
-  color: "#000",
+  padding: "11px 17px",
   border: "none",
   borderRadius: "10px",
-  padding: "10px 16px",
+  background: "#d4af37",
+  color: "#000",
   fontWeight: 800,
   cursor: "pointer",
 };
 
 const cancelBtn = {
-  background: "#222",
-  color: "#fff",
+  padding: "11px 17px",
   border: "1px solid #444",
   borderRadius: "10px",
-  padding: "10px 16px",
+  background: "#222",
+  color: "#fff",
   cursor: "pointer",
 };

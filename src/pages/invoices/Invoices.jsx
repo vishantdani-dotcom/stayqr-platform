@@ -232,6 +232,68 @@ export default function Invoices() {
     window.print();
   }
 
+  function shareOnWhatsApp() {
+    if (!selectedInvoice) return;
+
+    const guestName =
+      selectedInvoice.guests?.full_name || "Guest";
+
+    let phone = (
+      selectedInvoice.guests?.phone || ""
+    ).replace(/\D/g, "");
+
+    if (!phone) {
+      alert("Guest phone number not available.");
+      return;
+    }
+
+    if (phone.length === 10) {
+      phone = `91${phone}`;
+    }
+
+    const hotelName =
+      currentHotel?.hotel_name || "Our Hotel";
+
+    const roomNumber =
+      selectedInvoice.rooms?.room_number || "-";
+
+    const totalAmount = Number(
+      selectedInvoice.total_amount || 0
+    );
+
+    const paidAmount = Number(
+      selectedInvoice.paid_amount ||
+        selectedInvoice.previous_paid_amount ||
+        0
+    );
+
+    const balanceAmount =
+      getInvoiceBalance(selectedInvoice);
+
+    const message = `Hello ${guestName},
+
+Thank you for staying with ${hotelName}.
+
+Invoice No: ${selectedInvoice.invoice_number}
+Room: ${roomNumber}
+Total Amount: ₹${formatMoney(totalAmount)}
+Paid Amount: ₹${formatMoney(paidAmount)}
+Balance Due: ₹${formatMoney(balanceAmount)}
+
+Thank you for choosing us. Have a safe journey!
+
+Powered by StayQR
+https://stayqr.in`;
+
+    window.open(
+      `https://wa.me/${phone}?text=${encodeURIComponent(
+        message
+      )}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
+
   const totalInvoiceValue = invoices.reduce(
     (sum, invoice) =>
       sum + Number(invoice.total_amount || 0),
@@ -519,6 +581,17 @@ export default function Invoices() {
               </button>
 
               <button
+                style={{
+                  ...smallBtn,
+                  background: "#25D366",
+                  color: "#fff",
+                }}
+                onClick={shareOnWhatsApp}
+              >
+                WhatsApp
+              </button>
+
+              <button
                 style={closeBtn}
                 onClick={() =>
                   setSelectedInvoice(null)
@@ -534,9 +607,21 @@ export default function Invoices() {
             >
               <div style={invoiceTop}>
                 <div>
-                  <div style={brandBadge}>
-                    StayQR
-                  </div>
+                  {currentHotel?.logo_url ? (
+                    <img
+                      src={currentHotel.logo_url}
+                      alt={
+                        currentHotel?.hotel_name ||
+                        "Hotel logo"
+                      }
+                      style={invoiceLogo}
+                      crossOrigin="anonymous"
+                    />
+                  ) : (
+                    <div style={brandBadge}>
+                      StayQR
+                    </div>
+                  )}
 
                   <h1 style={invoiceHotel}>
                     {currentHotel?.hotel_name ||
@@ -548,6 +633,30 @@ export default function Invoices() {
                       currentHotel?.address ||
                       "Hotel Address"}
                   </p>
+
+                  {currentHotel?.phone && (
+                    <p style={invoiceMuted}>
+                      Phone: {currentHotel.phone}
+                    </p>
+                  )}
+
+                  {currentHotel?.email && (
+                    <p style={invoiceMuted}>
+                      Email: {currentHotel.email}
+                    </p>
+                  )}
+
+                  {currentHotel?.website && (
+                    <p style={invoiceMuted}>
+                      Website: {currentHotel.website}
+                    </p>
+                  )}
+
+                  {currentHotel?.gst_number && (
+                    <p style={invoiceMuted}>
+                      GSTIN: {currentHotel.gst_number}
+                    </p>
+                  )}
                 </div>
 
                 <div style={invoiceTopRight}>
@@ -779,6 +888,18 @@ export default function Invoices() {
                   )}
                   strong
                 />
+
+                <div style={paymentStatusBox}>
+                  <span>Payment Status</span>
+
+                  <strong>
+                    {formatLabel(
+                      getInvoicePaymentStatus(
+                        selectedInvoice
+                      )
+                    )}
+                  </strong>
+                </div>
               </div>
 
               {selectedInvoice.invoice_notes && (
@@ -800,15 +921,40 @@ export default function Invoices() {
                 </p>
               </div>
 
-              <div style={invoiceFooter}>
-                <p>
-                  Thank you for staying with us.
-                </p>
+              <div style={invoiceTermsSection}>
+                <div>
+                  <h3 style={invoiceSectionTitle}>
+                    Terms &amp; Conditions
+                  </h3>
 
-                <p>
-                  Powered by StayQR · Smart Hospitality
-                  Experience
-                </p>
+                  <p style={invoiceMuted}>
+                    {currentHotel?.invoice_terms ||
+                      "All charges are subject to hotel policies. Please contact reception for any billing clarification."}
+                  </p>
+                </div>
+
+                <div style={signatureBox}>
+                  <div style={signatureLine} />
+                  <span>Authorised Signature</span>
+                </div>
+              </div>
+
+              <div style={invoiceFooter}>
+                <div>
+                  <p style={footerThankYou}>
+                    Thank you for staying with us.
+                  </p>
+
+                  <p>
+                    {currentHotel?.invoice_footer ||
+                      "We hope to welcome you again soon."}
+                  </p>
+                </div>
+
+                <div style={footerBrand}>
+                  <strong>Powered by StayQR</strong>
+                  <span>Smart Hospitality Experience</span>
+                </div>
               </div>
             </div>
           </div>
@@ -953,6 +1099,16 @@ function formatLabel(value) {
     .replace(/\b\w/g, (letter) =>
       letter.toUpperCase()
     );
+}
+
+function formatMoney(value) {
+  const amount = Number(value || 0);
+
+  return amount.toLocaleString("en-IN", {
+    minimumFractionDigits:
+      Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 const page = {
@@ -1137,9 +1293,10 @@ const modalActions = {
 const invoicePaper = {
   background: "#fff",
   color: "#111",
-  borderRadius: "10px",
-  padding: "42px",
+  borderRadius: "12px",
+  padding: "48px",
   fontFamily: "Arial, sans-serif",
+  boxShadow: "0 18px 55px rgba(0,0,0,.22)",
 };
 
 const brandBadge = {
@@ -1294,11 +1451,69 @@ const invoiceNote = {
 };
 
 const invoiceFooter = {
-  marginTop: "40px",
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "30px",
+  marginTop: "36px",
   paddingTop: "20px",
   borderTop: "1px solid #ddd",
   color: "#555",
+  fontSize: "12px",
+};
+
+const invoiceLogo = {
+  maxWidth: "150px",
+  maxHeight: "72px",
+  objectFit: "contain",
+  marginBottom: "14px",
+};
+
+const paymentStatusBox = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "20px",
+  marginTop: "12px",
+  padding: "12px",
+  borderRadius: "8px",
+  background: "#111",
+  color: "#fff",
   fontSize: "13px",
+};
+
+const invoiceTermsSection = {
+  display: "grid",
+  gridTemplateColumns: "1fr 220px",
+  gap: "30px",
+  alignItems: "end",
+  marginTop: "32px",
+  paddingTop: "22px",
+  borderTop: "1px solid #ddd",
+};
+
+const signatureBox = {
+  textAlign: "center",
+  color: "#555",
+  fontSize: "12px",
+};
+
+const signatureLine = {
+  height: "1px",
+  background: "#555",
+  marginBottom: "8px",
+};
+
+const footerThankYou = {
+  margin: "0 0 5px",
+  color: "#111",
+  fontSize: "16px",
+  fontWeight: 800,
+};
+
+const footerBrand = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "4px",
+  textAlign: "right",
 };
 
 const invoiceStatusBadge = (status) => ({

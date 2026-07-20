@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-export default function AddRoomModal({ onClose, onSuccess }) {
+export default function AddRoomModal({ hotelId, onClose, onSuccess }) {
   const [roomNumber, setRoomNumber] = useState('')
   const [roomType, setRoomType] = useState('Standard Room')
   const [status, setStatus] = useState('available')
@@ -10,7 +10,12 @@ export default function AddRoomModal({ onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!roomNumber) {
+    if (!hotelId) {
+      alert('No active hotel is assigned to this account')
+      return
+    }
+
+    if (!roomNumber.trim()) {
       alert('Enter room number')
       return
     }
@@ -22,7 +27,8 @@ export default function AddRoomModal({ onClose, onSuccess }) {
         .from('rooms')
         .insert([
           {
-            room_number: roomNumber,
+            hotel_id: hotelId,
+            room_number: roomNumber.trim(),
             room_type: roomType,
             status,
           },

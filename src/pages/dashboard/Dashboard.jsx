@@ -151,6 +151,7 @@ export default function Dashboard() {
     <div className="dashboard-page">
       {showAddRoomModal && (
         <AddRoomModal
+          hotelId={currentHotel?.id}
           onClose={() => setShowAddRoomModal(false)}
           onSuccess={fetchDashboardData}
         />

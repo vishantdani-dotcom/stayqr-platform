@@ -50,6 +50,7 @@ export default function Rooms() {
     <div className="rooms-page">
       {showAddRoomModal && (
         <AddRoomModal
+          hotelId={currentHotel?.id}
           onClose={() => setShowAddRoomModal(false)}
           onSuccess={fetchRooms}
         />

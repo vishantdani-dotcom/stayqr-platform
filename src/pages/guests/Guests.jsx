@@ -557,27 +557,18 @@ export default function Guests() {
       Number(discountValue || 0)
     );
 
-    let discountAmount = 0;
-
-    if (discountType === "percentage") {
-      const safeDiscountPercent = Math.min(
-        100,
-        safeDiscountValue
-      );
-
-      discountAmount =
-        (subtotal + taxAmount) *
-        (safeDiscountPercent / 100);
-    } else {
-      discountAmount = safeDiscountValue;
-    }
+    const rawDiscountAmount =
+      discountType === "percentage"
+        ? (subtotal + taxAmount) *
+          (Math.min(100, safeDiscountValue) / 100)
+        : safeDiscountValue;
 
     const amountBeforeDiscount =
       subtotal + taxAmount;
 
-    discountAmount = Math.min(
+    const discountAmount = Math.min(
       amountBeforeDiscount,
-      discountAmount
+      rawDiscountAmount
     );
 
     const grandTotal = Math.max(
@@ -628,9 +619,7 @@ export default function Guests() {
       stayEnd,
       stayHours,
       stayNights,
-      payments,
       paymentIds,
-      paymentCollections,
       roomAmount,
       foodAmount,
       manualAmount,

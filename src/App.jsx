@@ -1,12 +1,12 @@
 // src/App.jsx
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import {
-  getCurrentStaff,
-  normalizeRole,
-  canAccessSection,
-} from './lib/currentStaff'
+  clearTenantContextCache,
+  loadTenantContext,
+} from './lib/tenantContext'
+import { canAccessSection } from './lib/currentStaff'
 
 import Sidebar from './components/sidebar/Sidebar'
 import Navbar from './components/navbar/Navbar'
@@ -40,9 +40,72 @@ export default function App() {
   const [currentStaff, setCurrentStaff] = useState(null)
   const [currentRole, setCurrentRole] = useState('')
   const [authLoading, setAuthLoading] = useState(true)
+  const [authError, setAuthError] = useState('')
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const loadUserContext = useCallback(async () => {
+    setAuthError('')
+
+    try {
+      const context = await loadTenantContext({ force: true })
+
+      if (!context) {
+        setCurrentStaff(null)
+        setCurrentRole('')
+        setAuthError('Your StayQR session could not be resolved.')
+        return
+      }
+
+      if (!context.selectedHotel && !context.isPlatformAdmin) {
+        setCurrentStaff(null)
+        setCurrentRole('')
+        setAuthError(
+          'Your login is not assigned to an active hotel. Ask the hotel owner or StayQR support to assign access.'
+        )
+        return
+      }
+
+      setCurrentStaff(context.currentStaff)
+      setCurrentRole(context.currentRole)
+      setActiveSection((currentSection) =>
+        canAccessSection(context.currentRole, currentSection)
+          ? currentSection
+          : context.isPlatformAdmin
+            ? 'superadmin'
+            : 'dashboard'
+      )
+    } catch (error) {
+      console.error('StayQR tenant context error:', error)
+      setCurrentStaff(null)
+      setCurrentRole('')
+      setAuthError(
+        'StayQR could not load your hotel access. Please try again or contact support.'
+      )
+    }
+  }, [])
+
+  const initAuth = useCallback(async () => {
+    setAuthLoading(true)
+
+    const { data, error } = await supabase.auth.getSession()
+
+    if (error) {
+      console.error('Initial auth session error:', error)
+      setAuthError('StayQR could not verify your login session.')
+      setAuthLoading(false)
+      return
+    }
+
+    setSession(data.session)
+
+    if (data.session) {
+      await loadUserContext()
+    }
+
+    setAuthLoading(false)
+  }, [loadUserContext])
 
   useEffect(() => {
     initAuth()
@@ -50,55 +113,21 @@ export default function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      clearTenantContextCache()
       setSession(newSession)
 
       if (newSession) {
-        loadStaff()
+        loadUserContext().finally(() => setAuthLoading(false))
       } else {
         setCurrentStaff(null)
         setCurrentRole('')
+        setAuthError('')
         setAuthLoading(false)
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [])
-
-  async function initAuth() {
-    setAuthLoading(true)
-
-    const { data } = await supabase.auth.getSession()
-    setSession(data.session)
-
-    if (data.session) {
-      await loadStaff()
-    } else {
-      setAuthLoading(false)
-    }
-  }
-
-  async function loadStaff() {
-    const staff = await getCurrentStaff()
-
-    if (!staff) {
-      await supabase.auth.signOut()
-      setCurrentStaff(null)
-      setCurrentRole('')
-      setAuthLoading(false)
-      return
-    }
-
-    const role = normalizeRole(staff.role)
-
-    setCurrentStaff(staff)
-    setCurrentRole(role)
-
-    if (!canAccessSection(role, activeSection)) {
-      setActiveSection('dashboard')
-    }
-
-    setAuthLoading(false)
-  }
+  }, [initAuth, loadUserContext])
 
   if (window.location.pathname.startsWith('/guest/')) {
     return <GuestGuide />
@@ -130,6 +159,10 @@ export default function App() {
     return <Login />
   }
 
+  if (authError) {
+    return <TenantAccessError message={authError} />
+  }
+
   const handleNavigate = (section) => {
     if (!canAccessSection(currentRole, section)) {
       alert('You do not have access to this section.')
@@ -156,55 +189,38 @@ export default function App() {
     switch (activeSection) {
       case 'dashboard':
         return <Dashboard />
-
       case 'rooms':
         return <Rooms />
-
       case 'checkin':
         return <CheckIn />
-
       case 'guests':
         return <Guests />
-
       case 'services':
         return <ServiceRequests />
-
       case 'qr':
         return <QRGenerator />
-
       case 'payments':
         return <Payments />
-
       case 'foodorders':
         return <FoodOrders />
-
       case 'charges':
         return <Charges />
-
       case 'housekeeping':
         return <Housekeeping />
-
       case 'amenities':
         return <Amenities />
-
       case 'hotel':
         return <HotelProfile />
-
       case 'reports':
         return <Reports />
-
       case 'invoices':
         return <Invoices />
-
       case 'menu':
         return <MenuManagement />
-
       case 'staff':
         return <StaffManagement />
-
       case 'superadmin':
         return <SuperAdmin />
-
       default:
         return <ComingSoonPage section={activeSection} />
     }
@@ -213,14 +229,14 @@ export default function App() {
   return (
     <div className="app-shell">
       <Sidebar
-  activeSection={activeSection}
-  onNavigate={handleNavigate}
-  collapsed={sidebarCollapsed}
-  onToggle={() => setSidebarCollapsed((prev) => !prev)}
-  mobileOpen={mobileMenuOpen}
-  currentStaff={currentStaff}
-  currentRole={currentRole}
-/>
+        activeSection={activeSection}
+        onNavigate={handleNavigate}
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((prev) => !prev)}
+        mobileOpen={mobileMenuOpen}
+        currentStaff={currentStaff}
+        currentRole={currentRole}
+      />
 
       {mobileMenuOpen && (
         <div
@@ -236,14 +252,48 @@ export default function App() {
         }}
       >
         <Navbar
-  sidebarCollapsed={sidebarCollapsed}
-  onMobileMenuToggle={handleMobileMenuToggle}
-  activeSection={activeSection}
-  currentStaff={currentStaff}
-  currentRole={currentRole}
-/>
+          sidebarCollapsed={sidebarCollapsed}
+          onMobileMenuToggle={handleMobileMenuToggle}
+          activeSection={activeSection}
+          currentStaff={currentStaff}
+          currentRole={currentRole}
+        />
 
         <main className="app-content">{renderPage()}</main>
+      </div>
+    </div>
+  )
+}
+
+function TenantAccessError({ message }) {
+  const handleLogout = async () => {
+    clearTenantContextCache()
+    await supabase.auth.signOut()
+    window.location.reload()
+  }
+
+  return (
+    <div className="coming-soon-page">
+      <div className="cs-content">
+        <div className="cs-icon">⚠️</div>
+        <h2 className="cs-title gold-text">Hotel Access Required</h2>
+        <p className="cs-sub">{message}</p>
+        <button
+          type="button"
+          onClick={handleLogout}
+          style={{
+            marginTop: '18px',
+            background: '#D4AF37',
+            color: '#000',
+            border: 'none',
+            padding: '10px 18px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '700',
+          }}
+        >
+          Return to Login
+        </button>
       </div>
     </div>
   )
@@ -254,42 +304,24 @@ function AccessDenied({ section }) {
     <div className="coming-soon-page">
       <div className="cs-content">
         <div className="cs-icon">🔒</div>
-
         <h2 className="cs-title gold-text">Access Restricted</h2>
-
         <p className="cs-sub">
-          You do not have permission to access {section}.
+          You do not have permission to open the {section} section.
         </p>
-
-        <p className="cs-desc">StayQR Role-Based Access</p>
       </div>
     </div>
   )
 }
 
 function ComingSoonPage({ section }) {
-  const labels = {
-    qr: 'QR Guides',
-    payments: 'Payments',
-    amenities: 'Amenities',
-    hotel: 'Hotel Profile',
-    reports: 'Reports',
-    invoices: 'Invoices',
-    charges: 'Charges',
-    housekeeping: 'Housekeeping',
-    settings: 'Settings',
-  }
-
   return (
     <div className="coming-soon-page">
       <div className="cs-content">
-        <div className="cs-icon">🏗️</div>
-
-        <h2 className="cs-title gold-text">{labels[section] || section}</h2>
-
-        <p className="cs-sub">This section is coming in Phase 2.</p>
-
-        <p className="cs-desc">StayQR SaaS Platform</p>
+        <div className="cs-icon">🚧</div>
+        <h2 className="cs-title gold-text">Coming Soon</h2>
+        <p className="cs-sub">
+          The {section} module is being prepared for StayQR v1.0.
+        </p>
       </div>
     </div>
   )

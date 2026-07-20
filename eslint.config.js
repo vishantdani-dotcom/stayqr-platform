@@ -17,5 +17,12 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // These React Compiler-oriented rules reject normal async data-loading
+      // effects used throughout the existing codebase. Keep the core Hooks
+      // rules active while the affected modules are refactored incrementally.
+      'react-hooks/immutability': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

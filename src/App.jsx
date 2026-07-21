@@ -32,6 +32,8 @@ import SuperAdmin from './pages/superadmin/SuperAdmin'
 import MenuManagement from './pages/menumanagement/MenuManagement'
 import StaffManagement from './pages/staff/StaffManagement'
 import Reservations from './pages/reservations/Reservations'
+import BookingCalendar from './pages/calendar/BookingCalendar'
+import { NAVIGATE_EVENT } from './lib/bookingCalendar'
 
 import './styles/globals.css'
 import './App.css'
@@ -130,6 +132,18 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [initAuth, loadUserContext])
 
+  useEffect(() => {
+    const handleExternalNavigation = (event) => {
+      const section = event.detail?.section
+      if (!section || !canAccessSection(currentRole, section)) return
+      setActiveSection(section)
+      setMobileMenuOpen(false)
+    }
+
+    window.addEventListener(NAVIGATE_EVENT, handleExternalNavigation)
+    return () => window.removeEventListener(NAVIGATE_EVENT, handleExternalNavigation)
+  }, [currentRole])
+
   if (window.location.pathname.startsWith('/guest/')) {
     return <GuestGuide />
   }
@@ -194,6 +208,8 @@ export default function App() {
         return <Rooms />
       case 'reservations':
         return <Reservations />
+      case 'calendar':
+        return <BookingCalendar />
       case 'checkin':
         return <CheckIn />
       case 'guests':

@@ -90,6 +90,7 @@ export default function Navbar({
   const sectionLabels = {
     dashboard: 'Dashboard',
     reservations: 'Reservations',
+    calendar: 'Booking Calendar',
     rooms: 'Rooms',
     guests: 'Guests',
     checkin: 'Check-In / Out',

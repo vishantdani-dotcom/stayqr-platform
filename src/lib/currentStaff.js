@@ -26,6 +26,7 @@ export function formatRole(role) {
 const HOTEL_ADMIN_ACCESS = [
   'dashboard',
   'reservations',
+  'calendar',
   'rooms',
   'guests',
   'checkin',
@@ -51,6 +52,7 @@ export const ROLE_ACCESS = {
   reception: [
     'dashboard',
     'reservations',
+    'calendar',
     'rooms',
     'guests',
     'checkin',
@@ -62,6 +64,7 @@ export const ROLE_ACCESS = {
   front_desk: [
     'dashboard',
     'reservations',
+    'calendar',
     'rooms',
     'guests',
     'checkin',
@@ -73,6 +76,7 @@ export const ROLE_ACCESS = {
   frontdesk: [
     'dashboard',
     'reservations',
+    'calendar',
     'rooms',
     'guests',
     'checkin',

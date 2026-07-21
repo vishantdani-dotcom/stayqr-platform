@@ -12,6 +12,9 @@ import {
   searchGuests,
   updateReservation,
 } from '../../lib/reservations'
+import {
+  notifyCalendarInvalidated,
+} from '../../lib/bookingCalendar'
 import './Reservations.css'
 
 const ACTIVE_STATUSES = ['draft', 'tentative', 'confirmed']
@@ -288,6 +291,10 @@ export default function Reservations() {
         status,
         reason,
       })
+      notifyCalendarInvalidated({
+        reason: `reservation_${status}`,
+        reservationId: reservation.id,
+      })
       showNotice(
         'success',
         status === 'cancelled'
@@ -307,6 +314,10 @@ export default function Reservations() {
   }
 
   async function handleFormSuccess(reservation, message) {
+    notifyCalendarInvalidated({
+      reason: editingReservation ? 'reservation_updated' : 'reservation_created',
+      reservationId: reservation.id,
+    })
     setFormOpen(false)
     setEditingReservation(null)
     showNotice('success', message)

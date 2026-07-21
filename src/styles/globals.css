@@ -1,3 +1,98 @@
+:root {
+  --sidebar-w: 248px;
+  --navbar-h: 64px;
+  --surface-1: #0b0b0b;
+  --surface-2: #121212;
+  --surface-3: #1a1a1a;
+  --glass-bg: rgba(22, 22, 22, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-hover: rgba(255, 255, 255, 0.05);
+  --text-primary: #f5f5f5;
+  --text-secondary: #c4c4c4;
+  --text-muted: #818181;
+  --gold: #d4af37;
+  --gold-light: #e4c75f;
+  --gold-dim: #a98a2a;
+  --gold-subtle: rgba(212, 175, 55, 0.09);
+  --gold-border: rgba(212, 175, 55, 0.28);
+  --gold-glow: rgba(212, 175, 55, 0.2);
+  --green: #4fd18b;
+  --green-dim: rgba(79, 209, 139, 0.12);
+  --blue: #64a7ff;
+  --blue-dim: rgba(100, 167, 255, 0.12);
+  --orange: #f1a34b;
+  --orange-dim: rgba(241, 163, 75, 0.12);
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.32);
+  --shadow-gold: 0 12px 30px rgba(212, 175, 55, 0.12);
+  --transition: all 0.2s ease;
+  --font-body: Inter, Arial, sans-serif;
+  --font-ui: Inter, Arial, sans-serif;
+  --font-display: Inter, Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: none;
+  min-height: 100%;
+  margin: 0;
+  border: 0;
+  text-align: left;
+  background: #0f0f0f;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: #0f0f0f;
+}
+
+.app-main {
+  min-height: 100vh;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-content {
+  min-height: 100vh;
+  padding-top: var(--navbar-h);
+}
+
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: rgba(0, 0, 0, 0.66);
+}
+
+.coming-soon-page {
+  min-height: calc(100vh - var(--navbar-h));
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #0f0f0f;
+}
+
+.cs-content {
+  width: min(540px, 100%);
+  padding: 34px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+
+.cs-icon { font-size: 34px; }
+.cs-title { margin: 12px 0 7px; }
+.cs-sub { color: var(--text-muted); line-height: 1.6; }
+
+@media (max-width: 768px) {
+  .app-main { margin-left: 0 !important; }
+}
+
 * {
   box-sizing: border-box;
 }

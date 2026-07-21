@@ -7,6 +7,7 @@ const NAV_ITEMS = [
     group: 'Main',
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: GridIcon, badge: null },
+      { id: 'reservations', label: 'Reservations', icon: CalendarIcon, badge: null },
       { id: 'rooms', label: 'Rooms', icon: DoorIcon, badge: null },
       { id: 'guests', label: 'Guests', icon: UsersIcon, badge: '3' },
       { id: 'checkin', label: 'Check-In/Out', icon: KeyIcon, badge: null },
@@ -158,6 +159,18 @@ function GridIcon() {
       <rect x="14" y="3" width="7" height="7" />
       <rect x="3" y="14" width="7" height="7" />
       <rect x="14" y="14" width="7" height="7" />
+    </svg>
+  )
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
     </svg>
   )
 }

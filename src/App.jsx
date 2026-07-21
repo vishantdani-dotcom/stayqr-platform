@@ -31,6 +31,7 @@ import QRGenerator from './pages/qr/QRGenerator'
 import SuperAdmin from './pages/superadmin/SuperAdmin'
 import MenuManagement from './pages/menumanagement/MenuManagement'
 import StaffManagement from './pages/staff/StaffManagement'
+import Reservations from './pages/reservations/Reservations'
 
 import './styles/globals.css'
 import './App.css'
@@ -191,6 +192,8 @@ export default function App() {
         return <Dashboard />
       case 'rooms':
         return <Rooms />
+      case 'reservations':
+        return <Reservations />
       case 'checkin':
         return <CheckIn />
       case 'guests':

@@ -89,6 +89,7 @@ export default function Navbar({
 
   const sectionLabels = {
     dashboard: 'Dashboard',
+    reservations: 'Reservations',
     rooms: 'Rooms',
     guests: 'Guests',
     checkin: 'Check-In / Out',

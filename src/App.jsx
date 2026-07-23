@@ -47,6 +47,7 @@ export default function App() {
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [navigationRequest, setNavigationRequest] = useState(null)
 
   const loadUserContext = useCallback(async () => {
     setAuthError('')
@@ -136,6 +137,10 @@ export default function App() {
     const handleExternalNavigation = (event) => {
       const section = event.detail?.section
       if (!section || !canAccessSection(currentRole, section)) return
+      setNavigationRequest({
+        ...event.detail,
+        requestId: `${Date.now()}-${Math.random()}`,
+      })
       setActiveSection(section)
       setMobileMenuOpen(false)
     }
@@ -184,6 +189,7 @@ export default function App() {
       return
     }
 
+    setNavigationRequest(null)
     setActiveSection(section)
     setMobileMenuOpen(false)
   }
@@ -207,13 +213,23 @@ export default function App() {
       case 'rooms':
         return <Rooms />
       case 'reservations':
-        return <Reservations />
+        return (
+          <Reservations
+            initialReservationId={navigationRequest?.reservationId || null}
+            navigationRequestId={navigationRequest?.requestId || null}
+          />
+        )
       case 'calendar':
         return <BookingCalendar />
       case 'checkin':
         return <CheckIn />
       case 'guests':
-        return <Guests />
+        return (
+          <Guests
+            initialGuestSessionId={navigationRequest?.guestSessionId || null}
+            navigationRequestId={navigationRequest?.requestId || null}
+          />
+        )
       case 'services':
         return <ServiceRequests />
       case 'qr':

@@ -159,39 +159,6 @@ function getEventPlacement(event, rangeStart, rangeEnd) {
   return { startIndex, span }
 }
 
-function allocateHistoricalEventLanes(events) {
-  const laneEnds = []
-  const laneByEventKey = new Map()
-
-  events
-    .filter((event) => !event.occupies_inventory)
-    .slice()
-    .sort((left, right) => {
-      const startComparison = String(left.start_date || '').localeCompare(String(right.start_date || ''))
-      if (startComparison !== 0) return startComparison
-      return String(left.end_date || '').localeCompare(String(right.end_date || ''))
-    })
-    .forEach((event) => {
-      const eventStart = event.start_date || ''
-      const eventEnd = event.end_date || eventStart
-      let laneIndex = laneEnds.findIndex((laneEnd) => laneEnd <= eventStart)
-
-      if (laneIndex === -1) {
-        laneIndex = laneEnds.length
-        laneEnds.push(eventEnd)
-      } else {
-        laneEnds[laneIndex] = eventEnd
-      }
-
-      laneByEventKey.set(`${event.event_type}-${event.id}`, laneIndex)
-    })
-
-  return {
-    laneByEventKey,
-    laneCount: laneEnds.length,
-  }
-}
-
 function eventClass(event) {
   if (event.event_type === 'room_block') {
     return `block-${normalizeStatus(event.block_type)}`
@@ -223,7 +190,7 @@ function setCompactDragImage(event, label) {
   preview.textContent = label
   document.body.appendChild(preview)
   event.dataTransfer.setDragImage(preview, 22, 18)
-  window.setTimeout(() => preview.remove(), 100)
+  window.setTimeout(() => preview.remove(), 0)
 }
 
 export default function BookingCalendar() {
@@ -247,8 +214,6 @@ export default function BookingCalendar() {
   const [draggingReservation, setDraggingReservation] = useState(null)
   const [dragTarget, setDragTarget] = useState(null)
   const operationLockRef = useRef(false)
-  const noticeTimerRef = useRef(null)
-  const draggingReservationRef = useRef(null)
 
   const hotelId = hotel?.id || ''
 
@@ -263,33 +228,9 @@ export default function BookingCalendar() {
   )
 
   const showNotice = useCallback((type, message) => {
-    if (noticeTimerRef.current) {
-      window.clearTimeout(noticeTimerRef.current)
-    }
     setNotice({ type, message })
-    noticeTimerRef.current = window.setTimeout(() => {
-      setNotice(null)
-      noticeTimerRef.current = null
-    }, 6500)
+    window.setTimeout(() => setNotice(null), 5500)
   }, [])
-
-  const resetDragUi = useCallback(() => {
-    draggingReservationRef.current = null
-    setDraggingReservation(null)
-    setDragTarget(null)
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur()
-    }
-  }, [])
-
-  useEffect(
-    () => () => {
-      if (noticeTimerRef.current) {
-        window.clearTimeout(noticeTimerRef.current)
-      }
-    },
-    []
-  )
 
   const loadCalendar = useCallback(
     async ({ silent = false } = {}) => {
@@ -388,38 +329,23 @@ export default function BookingCalendar() {
 
   async function handleDrop(event, roomId, arrivalDate) {
     event.preventDefault()
-    event.stopPropagation()
     event.currentTarget?.blur?.()
-    if (operationLockRef.current) {
-      resetDragUi()
-      return
-    }
+    if (operationLockRef.current) return
 
     let payload
     try {
-      const serializedPayload =
-        event.dataTransfer.getData('application/json') ||
-        event.dataTransfer.getData('text/plain')
-      payload = JSON.parse(serializedPayload)
+      payload = JSON.parse(event.dataTransfer.getData('application/json'))
     } catch {
-      resetDragUi()
-      showNotice('error', 'The dragged reservation could not be read. Please try again.')
       return
     }
 
-    if (payload.type !== 'reservation') {
-      resetDragUi()
-      return
-    }
+    if (payload.type !== 'reservation') return
 
     const room = calendar?.rooms?.find((item) => item.id === roomId)
-    if (!room) {
-      resetDragUi()
-      showNotice('error', 'The target room is no longer available. Refresh and try again.')
-      return
-    }
+    if (!room) return
 
-    resetDragUi()
+    setDragTarget(null)
+    setDraggingReservation(null)
 
     if (payload.roomId === roomId && payload.startDate === arrivalDate) {
       showNotice('error', 'Choose a different room or arrival date.')
@@ -429,10 +355,7 @@ export default function BookingCalendar() {
     const confirmed = window.confirm(
       `Move ${payload.reservationNumber} to Room ${room.room_number} from ${formatDate(arrivalDate, { year: true })}?`
     )
-    if (!confirmed) {
-      resetDragUi()
-      return
-    }
+    if (!confirmed) return
 
     operationLockRef.current = true
     setBusyAction(true)
@@ -449,102 +372,12 @@ export default function BookingCalendar() {
       await loadCalendar({ silent: true })
     } catch (error) {
       console.error('Calendar move rejected:', error)
-      showNotice(
-        'error',
-        error?.message ||
-          error?.details ||
-          'The reservation could not be moved because the selected room or dates are unavailable.'
-      )
+      showNotice('error', error.message || 'The calendar move was rejected.')
       await loadCalendar({ silent: true })
     } finally {
       operationLockRef.current = false
       setBusyAction(false)
-      resetDragUi()
     }
-  }
-
-  function getTrackElement(event) {
-    const currentTarget = event.currentTarget
-    if (!(currentTarget instanceof HTMLElement)) return null
-    if (currentTarget.classList.contains('calendar-room-track')) return currentTarget
-    return currentTarget.closest('.calendar-room-track')
-  }
-
-  function getTrackDropDate(event) {
-    const track = getTrackElement(event)
-    if (!track || days.length === 0) return null
-
-    const bounds = track.getBoundingClientRect()
-    if (!bounds.width) return null
-
-    const pointerOffset = Math.min(
-      Math.max(event.clientX - bounds.left, 0),
-      Math.max(bounds.width - 1, 0)
-    )
-    const dayIndex = Math.min(
-      days.length - 1,
-      Math.floor((pointerOffset / bounds.width) * days.length)
-    )
-    return days[dayIndex]
-  }
-
-  function updateDragTarget(room, arrivalDate) {
-    setDragTarget((current) => {
-      if (current?.roomId === room.id && current?.arrivalDate === arrivalDate) {
-        return current
-      }
-      return {
-        roomId: room.id,
-        roomNumber: room.room_number,
-        arrivalDate,
-      }
-    })
-  }
-
-  function handleTrackDragOver(event, room) {
-    if (!draggingReservationRef.current) return
-    event.preventDefault()
-    event.stopPropagation()
-    event.dataTransfer.dropEffect = 'move'
-
-    const arrivalDate = getTrackDropDate(event)
-    if (!arrivalDate) return
-    updateDragTarget(room, arrivalDate)
-  }
-
-  function handleCellDragOver(event, room, day) {
-    if (!draggingReservationRef.current) return
-    event.preventDefault()
-    event.stopPropagation()
-    event.dataTransfer.dropEffect = 'move'
-    updateDragTarget(room, day)
-  }
-
-  function handleCellDrop(event, room, day) {
-    event.preventDefault()
-    event.stopPropagation()
-    handleDrop(event, room.id, day)
-  }
-
-  function handleTrackDragLeave(event, roomId) {
-    const nextTarget = event.relatedTarget
-    if (nextTarget && event.currentTarget.contains(nextTarget)) return
-
-    setDragTarget((current) => (current?.roomId === roomId ? null : current))
-  }
-
-  function handleTrackDrop(event, room) {
-    event.preventDefault()
-    event.stopPropagation()
-    const arrivalDate = getTrackDropDate(event)
-
-    if (!arrivalDate) {
-      resetDragUi()
-      showNotice('error', 'The target date could not be determined. Please try again.')
-      return
-    }
-
-    handleDrop(event, room.id, arrivalDate)
   }
 
   function handleDragStart(event, calendarEvent) {
@@ -557,62 +390,64 @@ export default function BookingCalendar() {
     }
 
     event.dataTransfer.effectAllowed = 'move'
-    const dragState = {
+    setDraggingReservation({
       reservationNumber: calendarEvent.reservation_number,
       roomId: calendarEvent.room_id,
       startDate: calendarEvent.start_date,
       endDate: calendarEvent.end_date,
       nights: differenceInDays(calendarEvent.start_date, calendarEvent.end_date),
-    }
-    draggingReservationRef.current = dragState
-    setDraggingReservation(dragState)
+    })
     setCompactDragImage(
       event,
       `${calendarEvent.reservation_number} · ${differenceInDays(calendarEvent.start_date, calendarEvent.end_date)} night(s)`
     )
-    const dragPayload = JSON.stringify({
-      type: 'reservation',
-      reservationId: calendarEvent.reservation_id,
-      reservationRoomId: calendarEvent.reservation_room_id,
-      reservationNumber: calendarEvent.reservation_number,
-      updatedAt: calendarEvent.updated_at,
-      roomId: calendarEvent.room_id,
-      startDate: calendarEvent.start_date,
-    })
-    event.dataTransfer.setData('application/json', dragPayload)
-    event.dataTransfer.setData('text/plain', dragPayload)
+    event.dataTransfer.setData(
+      'application/json',
+      JSON.stringify({
+        type: 'reservation',
+        reservationId: calendarEvent.reservation_id,
+        reservationRoomId: calendarEvent.reservation_room_id,
+        reservationNumber: calendarEvent.reservation_number,
+        updatedAt: calendarEvent.updated_at,
+        roomId: calendarEvent.room_id,
+        startDate: calendarEvent.start_date,
+      })
+    )
   }
 
   function handleDragEnd() {
-    resetDragUi()
+    setDraggingReservation(null)
+    setDragTarget(null)
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
   }
 
   function handleUnallocatedDragStart(event, reservation) {
     event.dataTransfer.effectAllowed = 'move'
-    const dragState = {
+    setDraggingReservation({
       reservationNumber: reservation.reservation_number,
       roomId: null,
       startDate: reservation.start_date,
       endDate: reservation.end_date,
       nights: differenceInDays(reservation.start_date, reservation.end_date),
-    }
-    draggingReservationRef.current = dragState
-    setDraggingReservation(dragState)
+    })
     setCompactDragImage(
       event,
       `${reservation.reservation_number} · ${differenceInDays(reservation.start_date, reservation.end_date)} night(s)`
     )
-    const dragPayload = JSON.stringify({
-      type: 'reservation',
-      reservationId: reservation.reservation_id,
-      reservationRoomId: reservation.reservation_room_id,
-      reservationNumber: reservation.reservation_number,
-      updatedAt: reservation.updated_at,
-      roomId: null,
-      startDate: reservation.start_date,
-    })
-    event.dataTransfer.setData('application/json', dragPayload)
-    event.dataTransfer.setData('text/plain', dragPayload)
+    event.dataTransfer.setData(
+      'application/json',
+      JSON.stringify({
+        type: 'reservation',
+        reservationId: reservation.reservation_id,
+        reservationRoomId: reservation.reservation_room_id,
+        reservationNumber: reservation.reservation_number,
+        updatedAt: reservation.updated_at,
+        roomId: null,
+        startDate: reservation.start_date,
+      })
+    )
   }
 
   async function openBlockDetails(event) {
@@ -660,19 +495,10 @@ export default function BookingCalendar() {
 
   async function handleBlockStatus(block, status) {
     if (operationLockRef.current) return
-    const actionLabel = status === 'released' ? 'release' : 'cancel'
     const reason = window.prompt(
-      `Enter the reason to ${actionLabel} this room block:`
+      `Enter the reason to ${status === 'released' ? 'release' : 'cancel'} this room block:`
     )
-
-    // Cancel closes the browser prompt without changing the room block.
-    if (reason === null) return
-
-    const normalizedReason = reason.trim()
-    if (!normalizedReason) {
-      showNotice('error', `A reason is required to ${actionLabel} this room block.`)
-      return
-    }
+    if (!reason?.trim()) return
 
     operationLockRef.current = true
     setBusyAction(true)
@@ -681,7 +507,7 @@ export default function BookingCalendar() {
         hotelId: hotel.id,
         roomBlockId: block.id || block.room_block_id,
         status,
-        reason: normalizedReason,
+        reason: reason.trim(),
       })
       setSelectedEvent({ ...result, event_type: 'room_block' })
       showNotice('success', `Room block ${status}.`)
@@ -739,24 +565,11 @@ export default function BookingCalendar() {
     eventsByRoom.set(item.room_id, current)
   })
 
-  const historicalLayoutsByRoom = new Map()
-  eventsByRoom.forEach((roomEvents, roomId) => {
-    historicalLayoutsByRoom.set(roomId, allocateHistoricalEventLanes(roomEvents))
-  })
-
   const timelineMinWidth = Math.max(days.length * (view === 'month' ? 88 : 120), 700)
 
   return (
     <div className="booking-calendar-page">
-      {notice && (
-        <div
-          className={`calendar-toast ${notice.type}`}
-          role={notice.type === 'error' ? 'alert' : 'status'}
-          aria-live={notice.type === 'error' ? 'assertive' : 'polite'}
-        >
-          {notice.message}
-        </div>
-      )}
+      {notice && <div className={`calendar-toast ${notice.type}`}>{notice.message}</div>}
 
       <header className="calendar-page-header">
         <div>
@@ -904,18 +717,7 @@ export default function BookingCalendar() {
             {rooms.length === 0 ? (
               <div className="calendar-empty-row">No rooms match the selected filters.</div>
             ) : (
-              rooms.map((room) => {
-                const roomEvents = eventsByRoom.get(room.id) || []
-                const historicalLayout = historicalLayoutsByRoom.get(room.id) || {
-                  laneByEventKey: new Map(),
-                  laneCount: 0,
-                }
-                const historicalLaneCount = historicalLayout.laneCount
-                const trackRows = historicalLaneCount > 0
-                  ? `82px repeat(${historicalLaneCount}, 38px)`
-                  : '82px'
-
-                return (
+              rooms.map((room) => (
                 <div className="calendar-room-row" key={room.id}>
                   <div className="calendar-room-meta">
                     <strong>Room {room.room_number}</strong>
@@ -925,14 +727,8 @@ export default function BookingCalendar() {
                     </small>
                   </div>
                   <div
-                    className={`calendar-room-track ${draggingReservation ? 'dragging-active' : ''} ${historicalLaneCount > 0 ? 'has-historical-lanes' : ''}`}
-                    style={{
-                      gridTemplateColumns: `repeat(${days.length}, minmax(${view === 'month' ? 88 : 120}px, 1fr))`,
-                      gridTemplateRows: trackRows,
-                    }}
-                    onDragOver={(event) => handleTrackDragOver(event, room)}
-                    onDragLeave={(event) => handleTrackDragLeave(event, room.id)}
-                    onDrop={(event) => handleTrackDrop(event, room)}
+                    className="calendar-room-track"
+                    style={{ gridTemplateColumns: `repeat(${days.length}, minmax(${view === 'month' ? 88 : 120}px, 1fr))` }}
                   >
                     {days.map((day) => {
                       const isDragTarget =
@@ -946,9 +742,39 @@ export default function BookingCalendar() {
                           type="button"
                           className={`calendar-drop-cell ${day === dateInput(new Date()) ? 'today' : ''} ${isDragTarget ? 'drag-target' : ''} ${isDragTarget && isCurrentPosition ? 'current-target' : ''}`}
                           key={`${room.id}-${day}`}
-                          onDragEnter={(event) => handleCellDragOver(event, room, day)}
-                          onDragOver={(event) => handleCellDragOver(event, room, day)}
-                          onDrop={(event) => handleCellDrop(event, room, day)}
+                          onDragEnter={(event) => {
+                            event.preventDefault()
+                            setDragTarget({
+                              roomId: room.id,
+                              roomNumber: room.room_number,
+                              arrivalDate: day,
+                            })
+                          }}
+                          onDragOver={(event) => {
+                            event.preventDefault()
+                            event.dataTransfer.dropEffect = 'move'
+                            if (
+                              dragTarget?.roomId !== room.id ||
+                              dragTarget?.arrivalDate !== day
+                            ) {
+                              setDragTarget({
+                                roomId: room.id,
+                                roomNumber: room.room_number,
+                                arrivalDate: day,
+                              })
+                            }
+                          }}
+                          onDragLeave={(event) => {
+                            const nextTarget = event.relatedTarget
+                            if (nextTarget && event.currentTarget.contains(nextTarget)) return
+                            if (
+                              dragTarget?.roomId === room.id &&
+                              dragTarget?.arrivalDate === day
+                            ) {
+                              setDragTarget(null)
+                            }
+                          }}
+                          onDrop={(event) => handleDrop(event, room.id, day)}
                           onDoubleClick={() =>
                             setBlockModal({
                               block: null,
@@ -978,7 +804,7 @@ export default function BookingCalendar() {
                       )
                     })}
 
-                    {roomEvents.map((calendarEvent) => {
+                    {(eventsByRoom.get(room.id) || []).map((calendarEvent) => {
                       const placement = getEventPlacement(calendarEvent, rangeStart, rangeEnd)
                       const draggable =
                         calendarEvent.event_type === 'reservation' &&
@@ -989,17 +815,8 @@ export default function BookingCalendar() {
                           className={`calendar-event ${eventClass(calendarEvent)} ${calendarEvent.occupies_inventory ? '' : 'non-inventory'}`}
                           style={{
                             gridColumn: `${placement.startIndex + 1} / span ${placement.span}`,
-                            gridRow: calendarEvent.occupies_inventory
-                              ? '1'
-                              : String(
-                                  (historicalLayout.laneByEventKey.get(
-                                    `${calendarEvent.event_type}-${calendarEvent.id}`
-                                  ) || 0) + 2
-                                ),
                           }}
                           title={eventTitle(calendarEvent)}
-                          onDragOver={(event) => handleTrackDragOver(event, room)}
-                          onDrop={(event) => handleTrackDrop(event, room)}
                         >
                           <button
                             type="button"
@@ -1026,7 +843,6 @@ export default function BookingCalendar() {
                               role="button"
                               aria-label={`Drag ${calendarEvent.reservation_number}`}
                               title="Drag to move this reservation"
-                              onMouseDown={(event) => event.stopPropagation()}
                               onDragStart={(event) => handleDragStart(event, calendarEvent)}
                               onDragEnd={handleDragEnd}
                             >
@@ -1038,8 +854,7 @@ export default function BookingCalendar() {
                     })}
                   </div>
                 </div>
-                )
-              })
+              ))
             )}
           </div>
         </div>

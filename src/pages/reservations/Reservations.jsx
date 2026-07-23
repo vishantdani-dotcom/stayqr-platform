@@ -107,7 +107,10 @@ function createInitialForm(mode = 'advance') {
   }
 }
 
-export default function Reservations() {
+export default function Reservations({
+  initialReservationId = null,
+  navigationRequestId = null,
+}) {
   const [hotel, setHotel] = useState(null)
   const [roomTypes, setRoomTypes] = useState([])
   const [ratePlans, setRatePlans] = useState([])
@@ -126,6 +129,8 @@ export default function Reservations() {
   const [detailActivity, setDetailActivity] = useState([])
   const [detailLoading, setDetailLoading] = useState(false)
   const statusActionLockRef = useRef(false)
+  const handledNavigationRef = useRef(null)
+  const currentHotelId = hotel?.id || ''
 
   const showNotice = useCallback((type, message) => {
     setNotice({ type, message })
@@ -229,15 +234,17 @@ export default function Reservations() {
     setNotice(null)
   }
 
-  async function openDetails(reservationId) {
+  const openDetails = useCallback(async (reservationId) => {
+    if (!currentHotelId || !reservationId) return
+
     setDetailLoading(true)
     setDetailReservation(null)
     setDetailActivity([])
 
     try {
       const [details, activity] = await Promise.all([
-        getReservationDetails(hotel.id, reservationId),
-        getReservationActivity(hotel.id, reservationId),
+        getReservationDetails(currentHotelId, reservationId),
+        getReservationActivity(currentHotelId, reservationId),
       ])
       setDetailReservation(details)
       setDetailActivity(activity)
@@ -247,7 +254,17 @@ export default function Reservations() {
     } finally {
       setDetailLoading(false)
     }
-  }
+  }, [currentHotelId, showNotice])
+
+  useEffect(() => {
+    if (!currentHotelId || !initialReservationId) return
+
+    const navigationKey = `${navigationRequestId || 'direct'}:${initialReservationId}`
+    if (handledNavigationRef.current === navigationKey) return
+
+    handledNavigationRef.current = navigationKey
+    openDetails(initialReservationId)
+  }, [currentHotelId, initialReservationId, navigationRequestId, openDetails])
 
   async function openEdit(reservation) {
     try {

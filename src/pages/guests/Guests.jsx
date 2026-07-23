@@ -3,10 +3,14 @@ import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
 import "./Guests.css";
 
-export default function Guests() {
+export default function Guests({
+  initialGuestSessionId = null,
+  navigationRequestId = null,
+}) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentHotel, setCurrentHotel] = useState(null);
+  const [focusedSessionId, setFocusedSessionId] = useState(null);
   const [checkoutLoadingId, setCheckoutLoadingId] =
     useState(null);
 
@@ -39,6 +43,19 @@ export default function Guests() {
     initPage();
   }, []);
 
+  useEffect(() => {
+    if (!initialGuestSessionId || loading) return;
+
+    setFocusedSessionId(initialGuestSessionId);
+    const timer = window.setTimeout(() => {
+      document
+        .getElementById(`guest-session-${initialGuestSessionId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+
+    return () => window.clearTimeout(timer);
+  }, [initialGuestSessionId, navigationRequestId, loading, sessions.length]);
+
   async function initPage() {
     const hotel = await getCurrentHotel();
 
@@ -59,21 +76,23 @@ export default function Guests() {
 
     setLoading(true);
 
+    const sessionSelect = `
+      *,
+      guests (
+        id,
+        full_name,
+        phone
+      ),
+      rooms (
+        id,
+        room_number,
+        room_type
+      )
+    `;
+
     const { data, error } = await supabase
       .from("guest_sessions")
-      .select(`
-        *,
-        guests (
-          id,
-          full_name,
-          phone
-        ),
-        rooms (
-          id,
-          room_number,
-          room_type
-        )
-      `)
+      .select(sessionSelect)
       .eq("hotel_id", hotelId)
       .eq("status", "active")
       .order("checkin_time", {
@@ -87,7 +106,27 @@ export default function Guests() {
       return;
     }
 
-    setSessions(data || []);
+    let visibleSessions = data || [];
+
+    if (
+      initialGuestSessionId &&
+      !visibleSessions.some((session) => session.id === initialGuestSessionId)
+    ) {
+      const { data: requestedSession, error: requestedSessionError } = await supabase
+        .from("guest_sessions")
+        .select(sessionSelect)
+        .eq("hotel_id", hotelId)
+        .eq("id", initialGuestSessionId)
+        .maybeSingle();
+
+      if (requestedSessionError) {
+        console.error("Focused guest stay error:", requestedSessionError);
+      } else if (requestedSession) {
+        visibleSessions = [requestedSession, ...visibleSessions];
+      }
+    }
+
+    setSessions(visibleSessions);
     setLoading(false);
   }
 
@@ -1198,6 +1237,7 @@ export default function Guests() {
                 <th>Phone</th>
                 <th>Check-In Time</th>
                 <th>Checkout Time</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -1209,7 +1249,15 @@ export default function Guests() {
                   session.id;
 
                 return (
-                  <tr key={session.id}>
+                  <tr
+                    key={session.id}
+                    id={`guest-session-${session.id}`}
+                    className={
+                      focusedSessionId === session.id
+                        ? "guest-session-focused"
+                        : ""
+                    }
+                  >
                     <td>
                       {session.guests
                         ?.full_name || "-"}
@@ -1256,6 +1304,14 @@ export default function Guests() {
                               "en-IN"
                             )
                           : "-"}
+                    </td>
+
+                    <td>
+                      <span className={`guest-session-status ${session.status || "unknown"}`}>
+                        {String(session.status || "unknown")
+                          .replace(/_/g, " ")
+                          .replace(/\b\w/g, (character) => character.toUpperCase())}
+                      </span>
                     </td>
 
                     <td>

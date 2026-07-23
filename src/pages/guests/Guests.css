@@ -61,3 +61,30 @@
 .checkout-btn:hover {
   opacity: 0.9;
 }
+.guest-session-focused {
+  background: rgba(212, 175, 55, 0.16) !important;
+  outline: 2px solid rgba(212, 175, 55, 0.7);
+  outline-offset: -2px;
+}
+
+.guest-session-status {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #202020;
+  color: #c7c7c7;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.guest-session-status.active {
+  background: rgba(41, 163, 91, 0.15);
+  color: #8de0ad;
+}
+
+.guest-session-status.completed,
+.guest-session-status.checked_out,
+.guest-session-status.expired {
+  background: rgba(126, 126, 126, 0.18);
+  color: #c8c8c8;
+}

@@ -7,15 +7,6 @@ function throwIfError(error) {
   if (error) throw error
 }
 
-function throwIfRejected(data, fallbackMessage) {
-  if (!data || typeof data !== 'object') return
-  if (data.success !== false && data.ok !== false) return
-
-  throw new Error(
-    data.reason || data.message || data.error || fallbackMessage
-  )
-}
-
 export function notifyCalendarInvalidated(detail = {}) {
   window.dispatchEvent(
     new CustomEvent(CALENDAR_INVALIDATION_EVENT, { detail })
@@ -90,10 +81,6 @@ export async function moveReservationOnCalendar({
   )
 
   throwIfError(error)
-  throwIfRejected(
-    data,
-    'The reservation could not be moved because the selected room or dates are unavailable.'
-  )
   notifyCalendarInvalidated({
     reason: 'reservation_moved',
     reservationId,
@@ -142,32 +129,19 @@ export async function changeCalendarRoomBlockStatus({
   status,
   reason,
 }) {
-  const normalizedStatus = String(status || '').trim().toLowerCase()
-  const normalizedReason = String(reason || '').trim()
-
-  if (!['released', 'cancelled'].includes(normalizedStatus)) {
-    throw new Error('Unsupported room-block status change.')
-  }
-
-  if (!normalizedReason) {
-    const actionLabel = normalizedStatus === 'released' ? 'release' : 'cancel'
-    throw new Error(`A reason is required to ${actionLabel} this room block.`)
-  }
-
   const { data, error } = await supabase.rpc(
     'change_calendar_room_block_status',
     {
       target_hotel_id: hotelId,
       target_room_block_id: roomBlockId,
-      target_status: normalizedStatus,
-      reason: normalizedReason,
+      target_status: status,
+      reason,
     }
   )
 
   throwIfError(error)
-  throwIfRejected(data, 'Unable to change room-block status.')
   notifyCalendarInvalidated({
-    reason: `room_block_${normalizedStatus}`,
+    reason: `room_block_${status}`,
   })
   return data
 }

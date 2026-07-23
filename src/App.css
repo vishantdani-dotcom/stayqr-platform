@@ -182,3 +182,92 @@
     border-right-color: var(--border);
   }
 }
+
+.tenant-switch-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.tenant-switch-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 280px;
+  padding: 18px 20px;
+  border: 1px solid var(--gold-border);
+  border-radius: 14px;
+  background: #111;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
+}
+
+.tenant-switch-card > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tenant-switch-card strong {
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.tenant-switch-card span {
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 11px;
+}
+
+.tenant-switch-spinner {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border: 3px solid rgba(212, 175, 55, 0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: tenant-switch-spin 0.85s linear infinite;
+}
+
+.tenant-switch-error {
+  position: fixed;
+  top: calc(var(--navbar-h) + 14px);
+  right: 18px;
+  z-index: 99999;
+  max-width: min(420px, calc(100vw - 36px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  color: #ffb0b0;
+  background: #1a1010;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+.tenant-switch-error span {
+  flex: 1;
+}
+
+.tenant-switch-error button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+@keyframes tenant-switch-spin {
+  to { transform: rotate(360deg); }
+}

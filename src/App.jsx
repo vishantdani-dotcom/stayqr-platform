@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import {
+  clearSelectedTenantHotel,
   clearTenantContextCache,
   loadTenantContext,
+  selectTenantHotel,
 } from './lib/tenantContext'
 import { canAccessSection } from './lib/currentStaff'
 
@@ -40,6 +42,7 @@ import './App.css'
 
 export default function App() {
   const [session, setSession] = useState(null)
+  const [tenantContext, setTenantContext] = useState(null)
   const [currentStaff, setCurrentStaff] = useState(null)
   const [currentRole, setCurrentRole] = useState('')
   const [authLoading, setAuthLoading] = useState(true)
@@ -48,6 +51,8 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [navigationRequest, setNavigationRequest] = useState(null)
+  const [switchingHotelId, setSwitchingHotelId] = useState(null)
+  const [hotelSwitchError, setHotelSwitchError] = useState('')
 
   const loadUserContext = useCallback(async () => {
     setAuthError('')
@@ -56,6 +61,7 @@ export default function App() {
       const context = await loadTenantContext({ force: true })
 
       if (!context) {
+        setTenantContext(null)
         setCurrentStaff(null)
         setCurrentRole('')
         setAuthError('Your StayQR session could not be resolved.')
@@ -63,6 +69,7 @@ export default function App() {
       }
 
       if (!context.selectedHotel && !context.isPlatformAdmin) {
+        setTenantContext(context)
         setCurrentStaff(null)
         setCurrentRole('')
         setAuthError(
@@ -71,6 +78,7 @@ export default function App() {
         return
       }
 
+      setTenantContext(context)
       setCurrentStaff(context.currentStaff)
       setCurrentRole(context.currentRole)
       setActiveSection((currentSection) =>
@@ -82,6 +90,7 @@ export default function App() {
       )
     } catch (error) {
       console.error('StayQR tenant context error:', error)
+      setTenantContext(null)
       setCurrentStaff(null)
       setCurrentRole('')
       setAuthError(
@@ -123,6 +132,7 @@ export default function App() {
       if (newSession) {
         loadUserContext().finally(() => setAuthLoading(false))
       } else {
+        setTenantContext(null)
         setCurrentStaff(null)
         setCurrentRole('')
         setAuthError('')
@@ -183,6 +193,47 @@ export default function App() {
     return <TenantAccessError message={authError} />
   }
 
+  const handleHotelChange = async (hotelId) => {
+    if (
+      !hotelId ||
+      hotelId === tenantContext?.selectedHotelId ||
+      switchingHotelId
+    ) {
+      return
+    }
+
+    setSwitchingHotelId(hotelId)
+    setHotelSwitchError('')
+
+    try {
+      const nextContext = await selectTenantHotel(hotelId)
+
+      if (!nextContext?.selectedHotel) {
+        throw new Error('StayQR could not resolve the selected hotel.')
+      }
+
+      setTenantContext(nextContext)
+      setCurrentStaff(nextContext.currentStaff)
+      setCurrentRole(nextContext.currentRole)
+      setNavigationRequest(null)
+      setMobileMenuOpen(false)
+      setActiveSection((currentSection) =>
+        canAccessSection(nextContext.currentRole, currentSection)
+          ? currentSection
+          : nextContext.isPlatformAdmin
+            ? 'superadmin'
+            : 'dashboard'
+      )
+    } catch (error) {
+      console.error('Hotel switch failed:', error)
+      setHotelSwitchError(
+        error?.message || 'StayQR could not switch the active hotel.'
+      )
+    } finally {
+      setSwitchingHotelId(null)
+    }
+  }
+
   const handleNavigate = (section) => {
     if (!canAccessSection(currentRole, section)) {
       alert('You do not have access to this section.')
@@ -209,7 +260,7 @@ export default function App() {
 
     switch (activeSection) {
       case 'dashboard':
-        return <Dashboard />
+        return <Dashboard hotel={tenantContext?.selectedHotel || null} />
       case 'rooms':
         return <Rooms />
       case 'reservations':
@@ -271,6 +322,10 @@ export default function App() {
         mobileOpen={mobileMenuOpen}
         currentStaff={currentStaff}
         currentRole={currentRole}
+        tenantContext={tenantContext}
+        onHotelChange={handleHotelChange}
+        switchingHotelId={switchingHotelId}
+        hotelSwitchError={hotelSwitchError}
       />
 
       {mobileMenuOpen && (
@@ -292,16 +347,47 @@ export default function App() {
           activeSection={activeSection}
           currentStaff={currentStaff}
           currentRole={currentRole}
+          tenantContext={tenantContext}
+          onHotelChange={handleHotelChange}
+          switchingHotelId={switchingHotelId}
+          hotelSwitchError={hotelSwitchError}
         />
 
-        <main className="app-content">{renderPage()}</main>
+        <main
+          className="app-content"
+          key={tenantContext?.selectedHotelId || 'no-selected-hotel'}
+        >
+          {renderPage()}
+        </main>
       </div>
+
+      {switchingHotelId && (
+        <div className="tenant-switch-overlay" role="status" aria-live="polite">
+          <div className="tenant-switch-card">
+            <span className="tenant-switch-spinner" />
+            <div>
+              <strong>Switching property</strong>
+              <span>Reloading authoritative hotel data…</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hotelSwitchError && !switchingHotelId && (
+        <div className="tenant-switch-error" role="alert">
+          <span>{hotelSwitchError}</span>
+          <button type="button" onClick={() => setHotelSwitchError('')}>
+            ×
+          </button>
+        </div>
+      )}
     </div>
   )
 }
 
 function TenantAccessError({ message }) {
   const handleLogout = async () => {
+    clearSelectedTenantHotel()
     clearTenantContextCache()
     await supabase.auth.signOut()
     window.location.reload()

@@ -1,6 +1,7 @@
 // src/components/sidebar/Sidebar.jsx
 import './Sidebar.css'
 import { normalizeRole, canAccessSection } from '../../lib/currentStaff'
+import HotelSwitcher from '../hotel/HotelSwitcher'
 
 const NAV_ITEMS = [
   {
@@ -48,14 +49,12 @@ export default function Sidebar({
   mobileOpen,
   currentStaff,
   currentRole,
+  tenantContext,
+  onHotelChange,
+  switchingHotelId,
+  hotelSwitchError,
 }) {
   const role = normalizeRole(currentRole || currentStaff?.role || 'manager')
-
-  const hotelName =
-    currentStaff?.hotels?.hotel_name ||
-    currentStaff?.hotel_name ||
-    'StayQR Hotel'
-
   const userName = currentStaff?.full_name || 'Admin'
   const userRole = currentStaff?.role || role
 
@@ -86,15 +85,21 @@ export default function Sidebar({
           className="sidebar-toggle"
           onClick={onToggle}
           title={collapsed ? 'Expand' : 'Collapse'}
+          type="button"
         >
           <ChevronIcon direction={collapsed ? 'right' : 'left'} />
         </button>
       </div>
 
       {!collapsed && (
-        <div className="sidebar-hotel-badge">
-          <div className="hotel-badge-dot" />
-          <span>{hotelName}</span>
+        <div className="sidebar-hotel-switcher-wrap">
+          <HotelSwitcher
+            tenantContext={tenantContext}
+            onHotelChange={onHotelChange}
+            switchingHotelId={switchingHotelId}
+            error={hotelSwitchError}
+            variant="sidebar"
+          />
         </div>
       )}
 
@@ -114,6 +119,7 @@ export default function Sidebar({
                   className={`nav-item ${isActive ? 'active' : ''}`}
                   onClick={() => onNavigate(item.id)}
                   title={collapsed ? item.label : undefined}
+                  type="button"
                 >
                   <span className="nav-item-icon">
                     {isEmojiIcon ? <span>{Icon}</span> : <Icon />}

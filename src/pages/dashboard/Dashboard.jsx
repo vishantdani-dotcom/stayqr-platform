@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getCurrentHotel } from '../../lib/currentHotel'
 import HotelOverviewCard from '../../components/cards/HotelOverviewCard'
@@ -8,125 +8,153 @@ import PlaceholderCards from '../../components/cards/PlaceholderCards'
 import AddRoomModal from '../../components/modals/AddRoomModal'
 import './Dashboard.css'
 
-export default function Dashboard() {
+const EMPTY_ANALYTICS = {
+  totalRooms: 0,
+  availableRooms: 0,
+  occupiedRooms: 0,
+  cleaningRooms: 0,
+  totalGuests: 0,
+  activeGuests: 0,
+  pendingRequests: 0,
+  todayOrders: 0,
+  todayRevenue: 0,
+  checkInsToday: 0,
+  checkOutsDue: 0,
+}
+
+export default function Dashboard({ hotel = null }) {
   const [rooms, setRooms] = useState([])
-  const [currentHotel, setCurrentHotel] = useState(null)
-
-  const [analytics, setAnalytics] = useState({
-    totalRooms: 0,
-    availableRooms: 0,
-    occupiedRooms: 0,
-    cleaningRooms: 0,
-    totalGuests: 0,
-    activeGuests: 0,
-    pendingRequests: 0,
-    todayOrders: 0,
-    todayRevenue: 0,
-  })
-
+  const [currentHotel, setCurrentHotel] = useState(hotel)
+  const [analytics, setAnalytics] = useState(EMPTY_ANALYTICS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastFetch, setLastFetch] = useState(null)
   const [showAddRoomModal, setShowAddRoomModal] = useState(false)
+  const requestSequence = useRef(0)
 
   const fetchDashboardData = useCallback(async () => {
+    const requestId = requestSequence.current + 1
+    requestSequence.current = requestId
+
     setLoading(true)
     setError(null)
 
     try {
-      const hotel = await getCurrentHotel()
+      const resolvedHotel = hotel || (await getCurrentHotel())
 
-      if (!hotel) {
+      if (!resolvedHotel?.id) {
         throw new Error('No hotel assigned to current user')
       }
 
-      setCurrentHotel(hotel)
+      const hotelId = resolvedHotel.id
 
-      const { data: roomsData, error: roomsError } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('hotel_id', hotel.id)
-        .order('room_number', { ascending: true })
-
-      if (roomsError) throw roomsError
-
-      const { count: guestsCount, error: guestsError } = await supabase
-        .from('guests')
-        .select('*', { count: 'exact', head: true })
-        .eq('hotel_id', hotel.id)
-
-      if (guestsError) throw guestsError
-
-      const { count: activeGuestsCount, error: activeGuestsError } =
-        await supabase
-          .from('guest_sessions')
+      const [
+        roomsResult,
+        guestsResult,
+        guestSessionsResult,
+        requestsResult,
+        foodOrdersResult,
+      ] = await Promise.all([
+        supabase
+          .from('rooms')
+          .select('*')
+          .eq('hotel_id', hotelId)
+          .order('room_number', { ascending: true }),
+        supabase
+          .from('guests')
           .select('*', { count: 'exact', head: true })
-          .eq('hotel_id', hotel.id)
-          .eq('status', 'active')
-
-      if (activeGuestsError) throw activeGuestsError
-
-      const { count: pendingRequestsCount, error: requestsError } =
-        await supabase
+          .eq('hotel_id', hotelId),
+        supabase
+          .from('guest_sessions')
+          .select('id, status, checkin_time, checkout_time, extended_until')
+          .eq('hotel_id', hotelId),
+        supabase
           .from('service_requests')
           .select('*', { count: 'exact', head: true })
-          .eq('hotel_id', hotel.id)
-          .eq('status', 'pending')
+          .eq('hotel_id', hotelId)
+          .eq('status', 'pending'),
+        supabase
+          .from('food_orders')
+          .select('total_amount, created_at, order_status')
+          .eq('hotel_id', hotelId),
+      ])
 
-      if (requestsError) throw requestsError
+      const firstError = [
+        roomsResult.error,
+        guestsResult.error,
+        guestSessionsResult.error,
+        requestsResult.error,
+        foodOrdersResult.error,
+      ].find(Boolean)
 
-      const { data: foodOrdersData, error: foodOrdersError } = await supabase
-        .from('food_orders')
-        .select('total_amount, created_at, order_status')
-        .eq('hotel_id', hotel.id)
+      if (firstError) throw firstError
+      if (requestSequence.current !== requestId) return
 
-      if (foodOrdersError) throw foodOrdersError
+      const roomsData = roomsResult.data || []
+      const guestSessions = guestSessionsResult.data || []
+      const foodOrders = foodOrdersResult.data || []
+      const todayKey = toLocalDateKey(new Date())
 
-      const today = new Date().toISOString().split('T')[0]
+      const todayOrders = foodOrders.filter(
+        (order) => toLocalDateKey(order.created_at) === todayKey
+      )
 
-      const todayOrders =
-        foodOrdersData?.filter(order =>
-          order.created_at?.split('T')[0] === today
-        ) || []
+      const todayRevenue = todayOrders.reduce(
+        (sum, order) => sum + Number(order.total_amount || 0),
+        0
+      )
 
-      const todayRevenue = todayOrders.reduce((sum, order) => {
-        return sum + Number(order.total_amount || 0)
-      }, 0)
+      const activeSessions = guestSessions.filter(
+        (session) => session.status === 'active'
+      )
 
-      const totalRooms = roomsData?.length || 0
-      const availableRooms =
-        roomsData?.filter(room => room.status === 'available').length || 0
-      const occupiedRooms =
-        roomsData?.filter(room => room.status === 'occupied').length || 0
-      const cleaningRooms =
-        roomsData?.filter(room => room.status === 'cleaning').length || 0
+      const checkInsToday = guestSessions.filter(
+        (session) => toLocalDateKey(session.checkin_time) === todayKey
+      ).length
 
-      setRooms(roomsData || [])
+      const checkOutsDue = activeSessions.filter((session) => {
+        const effectiveCheckout = session.extended_until || session.checkout_time
+        return toLocalDateKey(effectiveCheckout) === todayKey
+      }).length
 
-      setAnalytics({
-        totalRooms,
-        availableRooms,
-        occupiedRooms,
-        cleaningRooms,
-        totalGuests: guestsCount || 0,
-        activeGuests: activeGuestsCount || 0,
-        pendingRequests: pendingRequestsCount || 0,
+      const nextAnalytics = {
+        totalRooms: roomsData.length,
+        availableRooms: roomsData.filter((room) => room.status === 'available').length,
+        occupiedRooms: roomsData.filter((room) => room.status === 'occupied').length,
+        cleaningRooms: roomsData.filter((room) => room.status === 'cleaning').length,
+        totalGuests: guestsResult.count || 0,
+        activeGuests: activeSessions.length,
+        pendingRequests: requestsResult.count || 0,
         todayOrders: todayOrders.length,
         todayRevenue,
-      })
+        checkInsToday,
+        checkOutsDue,
+      }
 
+      setCurrentHotel(resolvedHotel)
+      setRooms(roomsData)
+      setAnalytics(nextAnalytics)
       setLastFetch(new Date())
-    } catch (err) {
-      console.error('[Dashboard] Fetch error:', err)
-      setError(err?.message || 'Failed to fetch dashboard data')
+    } catch (fetchError) {
+      if (requestSequence.current !== requestId) return
+      console.error('[Dashboard] Fetch error:', fetchError)
+      setRooms([])
+      setAnalytics(EMPTY_ANALYTICS)
+      setError(fetchError?.message || 'Failed to fetch dashboard data')
     } finally {
-      setLoading(false)
+      if (requestSequence.current === requestId) {
+        setLoading(false)
+      }
     }
-  }, [])
+  }, [hotel])
 
   useEffect(() => {
+    setCurrentHotel(hotel)
+    setRooms([])
+    setAnalytics(EMPTY_ANALYTICS)
+    setLastFetch(null)
     fetchDashboardData()
-  }, [fetchDashboardData])
+  }, [hotel, fetchDashboardData])
 
   const handleAction = (actionId) => {
     if (actionId === 'addroom') {
@@ -164,10 +192,10 @@ export default function Dashboard() {
           </h1>
 
           <p className="dash-page-sub">
-            Here's what's happening at {currentHotel?.hotel_name || 'your hotel'} today
+            Here&apos;s what&apos;s happening at {currentHotel?.hotel_name || 'your hotel'} today
             {lastFetch && (
               <span className="last-fetch">
-                · Last updated {formatTime(lastFetch)}
+                {' '}· Last updated {formatTime(lastFetch)}
               </span>
             )}
           </p>
@@ -178,6 +206,7 @@ export default function Dashboard() {
             className="dash-refresh-btn"
             onClick={fetchDashboardData}
             disabled={loading}
+            type="button"
           >
             <RefreshIcon spinning={loading} />
             {loading ? 'Syncing...' : 'Refresh'}
@@ -186,7 +215,11 @@ export default function Dashboard() {
       </div>
 
       <section className="dash-section">
-        <HotelOverviewCard />
+        <HotelOverviewCard
+          hotel={currentHotel}
+          analytics={analytics}
+          loading={loading}
+        />
       </section>
 
       <section className="dash-section">
@@ -201,7 +234,7 @@ export default function Dashboard() {
           <AnalyticsCard title="Food Orders Today" value={analytics.todayOrders} icon="🍽️" />
           <AnalyticsCard
             title="Revenue Today"
-            value={`₹${analytics.todayRevenue}`}
+            value={formatCurrency(analytics.todayRevenue, currentHotel?.currency_code)}
             icon="💰"
           />
         </div>
@@ -242,9 +275,9 @@ function AnalyticsCard({ title, value, icon }) {
 }
 
 function getTimeOfDay() {
-  const h = new Date().getHours()
-  if (h < 12) return 'morning'
-  if (h < 17) return 'afternoon'
+  const hour = new Date().getHours()
+  if (hour < 12) return 'morning'
+  if (hour < 17) return 'afternoon'
   return 'evening'
 }
 
@@ -253,6 +286,29 @@ function formatTime(date) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function toLocalDateKey(value) {
+  if (!value) return ''
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatCurrency(value, currencyCode = 'INR') {
+  try {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: currencyCode || 'INR',
+      maximumFractionDigits: 0,
+    }).format(Number(value || 0))
+  } catch {
+    return `₹${Number(value || 0).toLocaleString('en-IN')}`
+  }
 }
 
 function RefreshIcon({ spinning }) {
@@ -266,6 +322,7 @@ function RefreshIcon({ spinning }) {
       strokeWidth="2.5"
       strokeLinecap="round"
       style={spinning ? { animation: 'spin 0.8s linear infinite' } : {}}
+      aria-hidden="true"
     >
       <polyline points="23 4 23 10 17 10" />
       <polyline points="1 20 1 14 7 14" />

@@ -268,3 +268,13 @@
   }
   .sidebar.mobile-open { transform: translateX(0); }
 }
+.sidebar-hotel-switcher-wrap {
+  position: relative;
+  z-index: 12;
+  margin: 12px 12px 6px;
+  flex-shrink: 0;
+}
+
+.sidebar-hotel-switcher-wrap .hotel-switcher-panel {
+  max-height: 330px;
+}

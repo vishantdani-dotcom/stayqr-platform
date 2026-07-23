@@ -1,8 +1,10 @@
 // src/components/navbar/Navbar.jsx
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { normalizeRole } from '../../lib/currentStaff'
+import { clearSelectedTenantHotel } from '../../lib/tenantContext'
+import HotelSwitcher from '../hotel/HotelSwitcher'
 import {
   getNotifications,
   getUnreadCount,
@@ -17,25 +19,32 @@ export default function Navbar({
   activeSection,
   currentStaff,
   currentRole,
+  tenantContext,
+  onHotelChange,
+  switchingHotelId,
+  hotelSwitchError,
 }) {
   const [notifOpen, setNotifOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
+  const userMenuRef = useRef(null)
+  const notificationRef = useRef(null)
+  const notificationRequestRef = useRef(0)
+  const activeHotelIdRef = useRef(null)
 
-  const hotelId = currentStaff?.hotel_id || currentStaff?.hotels?.id
-
+  const hotelId = tenantContext?.selectedHotelId || currentStaff?.hotel_id || currentStaff?.hotels?.id
   const userName = currentStaff?.full_name || 'Admin'
-
-  const hotelName =
-    currentStaff?.hotels?.hotel_name ||
-    currentStaff?.hotel_name ||
-    'StayQR Hotel'
-
+  const hotelName = tenantContext?.selectedHotel?.hotel_name || currentStaff?.hotels?.hotel_name || currentStaff?.hotel_name || 'StayQR Hotel'
   const roleName = formatRole(normalizeRole(currentRole || currentStaff?.role || 'manager'))
-
   const unreadCount = getUnreadCount(notifications)
+  activeHotelIdRef.current = hotelId || null
 
   useEffect(() => {
-    if (!hotelId) return
+    notificationRequestRef.current += 1
+    setNotifications([])
+    setNotifOpen(false)
+
+    if (!hotelId) return undefined
 
     loadNotifications(hotelId)
 
@@ -58,12 +67,52 @@ export default function Navbar({
     }
   }, [hotelId])
 
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false)
+      }
+
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setNotifOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setUserMenuOpen(false)
+        setNotifOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
   async function loadNotifications(id) {
+    if (!id) return
+
+    const requestId = notificationRequestRef.current + 1
+    notificationRequestRef.current = requestId
     const data = await getNotifications(id)
+
+    if (
+      notificationRequestRef.current !== requestId ||
+      activeHotelIdRef.current !== id
+    ) {
+      return
+    }
+
     setNotifications(data || [])
   }
 
-  async function handleOpenNotifications() {
+  function handleOpenNotifications() {
+    setUserMenuOpen(false)
     setNotifOpen((prev) => !prev)
   }
 
@@ -83,6 +132,7 @@ export default function Navbar({
     const confirmLogout = window.confirm('Logout from StayQR?')
     if (!confirmLogout) return
 
+    clearSelectedTenantHotel()
     await supabase.auth.signOut()
     window.location.reload()
   }
@@ -123,7 +173,7 @@ export default function Navbar({
       style={{ left: sidebarCollapsed ? 64 : 'var(--sidebar-w)' }}
     >
       <div className="navbar-left">
-        <button className="navbar-menu-btn" onClick={onMobileMenuToggle}>
+        <button className="navbar-menu-btn" onClick={onMobileMenuToggle} type="button">
           <MenuIcon />
         </button>
 
@@ -141,15 +191,16 @@ export default function Navbar({
       </div>
 
       <div className="navbar-right">
-        <button className="navbar-icon-btn" title="Search">
+        <button className="navbar-icon-btn" title="Search" type="button">
           <SearchIcon />
         </button>
 
-        <div className="notif-wrapper">
+        <div className="notif-wrapper" ref={notificationRef}>
           <button
             className="navbar-icon-btn notif-btn"
             onClick={handleOpenNotifications}
             title="Notifications"
+            type="button"
           >
             <BellIcon />
             {unreadCount > 0 && (
@@ -165,15 +216,10 @@ export default function Navbar({
                 <span>Notifications</span>
 
                 <div className="notif-header-actions">
-                  <span className="notif-count">
-                    {unreadCount} new
-                  </span>
+                  <span className="notif-count">{unreadCount} new</span>
 
                   {unreadCount > 0 && (
-                    <button
-                      className="notif-mark-read"
-                      onClick={handleMarkAllRead}
-                    >
+                    <button className="notif-mark-read" onClick={handleMarkAllRead} type="button">
                       Mark all read
                     </button>
                   )}
@@ -187,25 +233,24 @@ export default function Navbar({
                   <span>Live hotel updates will appear here.</span>
                 </div>
               ) : (
-                notifications.map((n) => (
+                notifications.map((notification) => (
                   <button
-                    key={n.id}
-                    className={`notif-item ${n.is_read ? 'read' : 'unread'}`}
-                    onClick={() => handleNotificationClick(n)}
+                    key={notification.id}
+                    className={`notif-item ${notification.is_read ? 'read' : 'unread'}`}
+                    onClick={() => handleNotificationClick(notification)}
+                    type="button"
                   >
-                    <div className={`notif-item-icon ${n.type}`}>
-                      {getNotificationIcon(n.type)}
+                    <div className={`notif-item-icon ${notification.type}`}>
+                      {getNotificationIcon(notification.type)}
                     </div>
 
                     <div className="notif-item-body">
-                      <p className="notif-item-title">{n.title}</p>
-                      <p className="notif-item-message">{n.message}</p>
-                      <p className="notif-item-time">
-                        {timeAgo(n.created_at)}
-                      </p>
+                      <p className="notif-item-title">{notification.title}</p>
+                      <p className="notif-item-message">{notification.message}</p>
+                      <p className="notif-item-time">{timeAgo(notification.created_at)}</p>
                     </div>
 
-                    {!n.is_read && <span className="notif-unread-dot" />}
+                    {!notification.is_read && <span className="notif-unread-dot" />}
                   </button>
                 ))
               )}
@@ -215,32 +260,56 @@ export default function Navbar({
 
         <div className="navbar-divider" />
 
-        <div className="navbar-user">
-          <div className="navbar-user-info">
-            <span className="navbar-user-name">{userName}</span>
-            <span className="navbar-user-role">{roleName}</span>
-            <span className="navbar-user-hotel">{hotelName}</span>
-          </div>
-
+        <div className="navbar-profile-wrapper" ref={userMenuRef}>
           <button
-            onClick={handleLogout}
-            style={{
-              background: '#D4AF37',
-              color: '#000',
-              border: 'none',
-              padding: '8px 14px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '700',
-              marginLeft: '10px',
+            className={`navbar-user ${userMenuOpen ? 'open' : ''}`}
+            onClick={() => {
+              setNotifOpen(false)
+              setUserMenuOpen((current) => !current)
             }}
+            type="button"
+            aria-expanded={userMenuOpen}
+            aria-haspopup="menu"
           >
-            Logout
+            <div className="navbar-user-info">
+              <span className="navbar-user-name">{userName}</span>
+              <span className="navbar-user-role">{roleName}</span>
+              <span className="navbar-user-hotel">{hotelName}</span>
+            </div>
+
+            <div className="navbar-avatar">{userName.charAt(0).toUpperCase()}</div>
+            <UserChevronIcon open={userMenuOpen} />
           </button>
 
-          <div className="navbar-avatar">
-            {userName.charAt(0).toUpperCase()}
-          </div>
+          {userMenuOpen && (
+            <div className="navbar-user-menu" role="menu">
+              <div className="navbar-user-menu-header">
+                <div className="navbar-user-menu-avatar">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <strong>{userName}</strong>
+                  <span>{roleName}</span>
+                </div>
+              </div>
+
+              <div className="navbar-user-menu-section">
+                <span className="navbar-user-menu-label">Active property</span>
+                <HotelSwitcher
+                  tenantContext={tenantContext}
+                  onHotelChange={onHotelChange}
+                  switchingHotelId={switchingHotelId}
+                  error={hotelSwitchError}
+                  variant="navbar"
+                />
+              </div>
+
+              <button className="navbar-logout-btn" onClick={handleLogout} type="button">
+                <LogoutIcon />
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -311,3 +380,32 @@ function BellIcon() {
     </svg>
   )
 }
+function UserChevronIcon({ open }) {
+  return (
+    <svg
+      className={`navbar-user-chevron ${open ? 'open' : ''}`}
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
+
+function LogoutIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 17l5-5-5-5" />
+      <path d="M15 12H3" />
+      <path d="M21 19V5a2 2 0 0 0-2-2h-6" />
+    </svg>
+  )
+}
+

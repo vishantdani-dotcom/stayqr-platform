@@ -1,23 +1,52 @@
 import { supabase } from './supabase'
 
-const SELECTED_HOTEL_KEY = 'stayqr:selected-hotel-id'
+const SELECTED_HOTEL_KEY_PREFIX = 'stayqr:selected-hotel-id'
+const LEGACY_SELECTED_HOTEL_KEY = SELECTED_HOTEL_KEY_PREFIX
 
 let cachedContext = null
 let contextPromise = null
 
-function getStoredHotelId() {
-  if (typeof window === 'undefined') return null
-  return window.localStorage.getItem(SELECTED_HOTEL_KEY)
+function getStorageKey(userId) {
+  return userId
+    ? `${SELECTED_HOTEL_KEY_PREFIX}:${userId}`
+    : LEGACY_SELECTED_HOTEL_KEY
 }
 
-function storeHotelId(hotelId) {
+function getStoredHotelId(userId) {
+  if (typeof window === 'undefined') return null
+
+  // Never trust the old global key across authenticated users.
+  window.localStorage.removeItem(LEGACY_SELECTED_HOTEL_KEY)
+  return window.localStorage.getItem(getStorageKey(userId))
+}
+
+function storeHotelId(userId, hotelId) {
   if (typeof window === 'undefined') return
 
+  const key = getStorageKey(userId)
+
   if (hotelId) {
-    window.localStorage.setItem(SELECTED_HOTEL_KEY, hotelId)
+    window.localStorage.setItem(key, hotelId)
   } else {
-    window.localStorage.removeItem(SELECTED_HOTEL_KEY)
+    window.localStorage.removeItem(key)
   }
+
+  window.localStorage.removeItem(LEGACY_SELECTED_HOTEL_KEY)
+}
+
+function clearStoredHotelSelections() {
+  if (typeof window === 'undefined') return
+
+  const keysToRemove = []
+
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index)
+    if (key?.startsWith(SELECTED_HOTEL_KEY_PREFIX)) {
+      keysToRemove.push(key)
+    }
+  }
+
+  keysToRemove.forEach((key) => window.localStorage.removeItem(key))
 }
 
 function unwrapHotel(value) {
@@ -185,7 +214,7 @@ async function fetchTenantContext() {
     platformHotels,
   })
 
-  const storedHotelId = getStoredHotelId()
+  const storedHotelId = getStoredHotelId(user.id)
   const storedAccess = hotelAccess.find(
     (access) => access.hotel.id === storedHotelId
   )
@@ -197,7 +226,7 @@ async function fetchTenantContext() {
     null
 
   if (selectedAccess && selectedAccess.hotel.id !== storedHotelId) {
-    storeHotelId(selectedAccess.hotel.id)
+    storeHotelId(user.id, selectedAccess.hotel.id)
   }
 
   const isPlatformAdmin = Boolean(platformAdmin)
@@ -208,29 +237,30 @@ async function fetchTenantContext() {
         selectedAccess?.staff?.role || selectedAccess?.membership?.role
       )
 
-  const currentStaff = selectedAccess || isPlatformAdmin
-    ? {
-        id: selectedAccess?.staff?.id || null,
-        hotel_id: selectedHotel?.id || null,
-        full_name: getDisplayName({
-          staff: selectedAccess?.staff,
-          membership: selectedAccess?.membership,
-          platformAdmin,
-          user,
-        }),
-        email:
-          selectedAccess?.staff?.email ||
-          selectedAccess?.membership?.email ||
-          user.email ||
-          null,
-        phone: selectedAccess?.staff?.phone || null,
-        role: selectedRole,
-        department: selectedAccess?.staff?.department || null,
-        status: 'active',
-        auth_user_id: user.id,
-        hotels: selectedHotel,
-      }
-    : null
+  const currentStaff =
+    selectedAccess || isPlatformAdmin
+      ? {
+          id: selectedAccess?.staff?.id || null,
+          hotel_id: selectedHotel?.id || null,
+          full_name: getDisplayName({
+            staff: selectedAccess?.staff,
+            membership: selectedAccess?.membership,
+            platformAdmin,
+            user,
+          }),
+          email:
+            selectedAccess?.staff?.email ||
+            selectedAccess?.membership?.email ||
+            user.email ||
+            null,
+          phone: selectedAccess?.staff?.phone || null,
+          role: selectedRole,
+          department: selectedAccess?.staff?.department || null,
+          status: 'active',
+          auth_user_id: user.id,
+          hotels: selectedHotel,
+        }
+      : null
 
   return {
     user,
@@ -269,20 +299,43 @@ export function clearTenantContextCache() {
 
 export async function selectTenantHotel(hotelId) {
   const context = await loadTenantContext()
-  const isAuthorized = context?.hotelAccess.some(
-    (access) => access.hotel.id === hotelId
+  const access = context?.hotelAccess.find(
+    (candidate) => candidate.hotel.id === hotelId
   )
 
-  if (!isAuthorized) {
+  if (!access) {
     throw new Error('You do not have access to the selected hotel.')
   }
 
-  storeHotelId(hotelId)
+  const userId = context?.user?.id
+  const previousHotelId = getStoredHotelId(userId)
+
+  storeHotelId(userId, hotelId)
   clearTenantContextCache()
-  return loadTenantContext({ force: true })
+
+  try {
+    const nextContext = await loadTenantContext({ force: true })
+
+    if (nextContext?.selectedHotelId !== hotelId) {
+      throw new Error('StayQR could not activate the selected hotel.')
+    }
+
+    return nextContext
+  } catch (error) {
+    storeHotelId(userId, previousHotelId)
+    clearTenantContextCache()
+
+    try {
+      await loadTenantContext({ force: true })
+    } catch (rollbackError) {
+      console.error('Tenant selection rollback failed:', rollbackError)
+    }
+
+    throw error
+  }
 }
 
 export function clearSelectedTenantHotel() {
-  storeHotelId(null)
+  clearStoredHotelSelections()
   clearTenantContextCache()
 }

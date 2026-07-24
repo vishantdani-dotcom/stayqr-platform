@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
+import { checkoutGuestSession } from "../../lib/day5Reservations";
+import { notifyCalendarInvalidated } from "../../lib/bookingCalendar";
 import "./Guests.css";
 
 export default function Guests({
@@ -34,6 +36,9 @@ export default function Guests({
   const [discountValue, setDiscountValue] =
     useState("0");
   const [invoiceNotes, setInvoiceNotes] = useState("");
+  const [settlementPaymentMethod, setSettlementPaymentMethod] = useState("cash");
+  const [settlementTransactionReference, setSettlementTransactionReference] = useState("");
+  const [notice, setNotice] = useState(null);
   const [
     remainingPaymentCollected,
     setRemainingPaymentCollected,
@@ -205,12 +210,23 @@ export default function Guests({
     setDiscountType("fixed");
     setDiscountValue("0");
     setInvoiceNotes("");
+    setSettlementPaymentMethod("cash");
+    setSettlementTransactionReference("");
     setRemainingPaymentCollected(false);
   }
 
   function closeSettlementModal() {
     if (settlementLoading) return;
     resetSettlementState();
+  }
+
+  function showNotice(type, message) {
+    setNotice({ type, message });
+    window.setTimeout(() => {
+      setNotice((current) =>
+        current?.message === message ? null : current
+      );
+    }, 6500);
   }
 
   async function openSettlementModal(session) {
@@ -270,6 +286,7 @@ export default function Guests({
         .select("id, order_status")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id)
+        .eq("room_id", room.id)
         .gte("created_at", stayStart)
         .in("order_status", [
           "pending",
@@ -321,6 +338,7 @@ export default function Guests({
         .select("*")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id)
+        .eq("room_id", room.id)
         .gte("created_at", stayStart);
 
       if (paymentError) throw paymentError;
@@ -420,6 +438,7 @@ export default function Guests({
         `)
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id)
+        .eq("room_id", room.id)
         .eq("order_status", "delivered")
         .gte("created_at", stayStart);
 
@@ -463,6 +482,7 @@ export default function Guests({
         .select("*")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id)
+        .eq("room_id", room.id)
         .gte("created_at", stayStart);
 
       if (chargeError) throw chargeError;
@@ -487,6 +507,7 @@ export default function Guests({
         .select("*")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id)
+        .eq("room_id", room.id)
         .eq("status", "completed")
         .gte("created_at", stayStart);
 
@@ -650,52 +671,21 @@ export default function Guests({
   async function completeFinalSettlement() {
     if (!settlementData) return;
 
+    const { session } = settlementData;
     const {
-      session,
-      guest,
-      room,
-      stayStart,
-      stayEnd,
-      stayHours,
-      stayNights,
-      paymentIds,
-      roomAmount,
-      foodAmount,
-      manualAmount,
-      serviceAmount,
-      foodOrders,
-      foodOrderCount,
-      totalFoodItems,
-      manualCharges,
-      chargeableServices,
-    } = settlementData;
-
-    const {
-      subtotal,
       taxPercent: finalTaxPercent,
-      taxAmount,
       discountValue: finalDiscountValue,
-      discountAmount,
-      grandTotal,
-      previouslyPaid,
       amountToCollect,
       excessPaid,
     } = settlementCalculation;
 
-    if (
-      Number(taxPercent || 0) < 0 ||
-      Number(taxPercent || 0) > 100
-    ) {
-      alert(
-        "Tax percentage must be between 0 and 100."
-      );
+    if (Number(taxPercent || 0) < 0 || Number(taxPercent || 0) > 100) {
+      showNotice("error", "Tax percentage must be between 0 and 100.");
       return;
     }
 
     if (Number(discountValue || 0) < 0) {
-      alert(
-        "Discount value cannot be negative."
-      );
+      showNotice("error", "Discount value cannot be negative.");
       return;
     }
 
@@ -703,497 +693,85 @@ export default function Guests({
       discountType === "percentage" &&
       Number(discountValue || 0) > 100
     ) {
-      alert(
-        "Discount percentage cannot exceed 100%."
-      );
+      showNotice("error", "Discount percentage cannot exceed 100%.");
       return;
     }
 
     if (
-      amountToCollect > 0 &&
-      !remainingPaymentCollected
+      ["upi", "card", "bank_transfer"].includes(
+        settlementPaymentMethod
+      ) &&
+      !settlementTransactionReference.trim()
     ) {
-      alert(
-        `Please confirm that the remaining ₹${formatMoney(
-          amountToCollect
-        )} has been collected before checkout.`
+      showNotice(
+        "error",
+        "Enter the transaction/reference number for the selected payment method."
       );
       return;
     }
 
-    if (excessPaid > 0) {
-      const proceedWithExcess =
-        window.confirm(
-          `Previous payments exceed the final bill by ₹${formatMoney(
-            excessPaid
-          )}.\n\nPlease verify whether a refund or adjustment is required. Continue checkout?`
-        );
+    if (amountToCollect > 0 && !remainingPaymentCollected) {
+      showNotice(
+        "error",
+        `Confirm collection of the remaining ₹${formatMoney(
+          amountToCollect
+        )} before checkout.`
+      );
+      return;
+    }
 
-      if (!proceedWithExcess) return;
+    let allowExcessPaid = false;
+
+    if (excessPaid > 0) {
+      allowExcessPaid = window.confirm(
+        `Previous payments exceed the final bill by ₹${formatMoney(
+          excessPaid
+        )}.\n\nPlease verify whether a refund or adjustment is required. Continue checkout?`
+      );
+
+      if (!allowExcessPaid) return;
     }
 
     setSettlementLoading(true);
     setCheckoutLoadingId(session.id);
 
     try {
-      const invoiceNumber =
-        generateInvoiceNumber();
-
-      /*
-       * Settlement confirmation means the final invoice
-       * is fully paid before checkout.
-       */
-      const finalPaidAmount = grandTotal;
-      const pendingAmount = 0;
-
-      const {
-        data: createdInvoice,
-        error: invoiceError,
-      } = await supabase
-        .from("invoices")
-        .insert([
-          {
-            hotel_id: session.hotel_id,
-            guest_session_id: session.id,
-            room_id: room.id,
-            guest_id: guest.id,
-
-            invoice_number: invoiceNumber,
-
-            room_amount: roomAmount,
-            food_amount: foodAmount,
-            manual_amount: manualAmount,
-            service_amount: serviceAmount,
-
-            subtotal_amount: subtotal,
-
-            tax_percent: finalTaxPercent,
-            tax_amount: taxAmount,
-
-            discount_type: discountType,
-            discount_value:
-              finalDiscountValue,
-            discount_amount: discountAmount,
-
-            previous_paid_amount:
-              previouslyPaid,
-            amount_to_collect:
-              amountToCollect,
-
-            total_amount: grandTotal,
-
-            payment_status: "paid",
-            invoice_status: "paid",
-
-            paid_amount: finalPaidAmount,
-            pending_amount: pendingAmount,
-            settled_at: stayEnd,
-
-            checkin_time: stayStart,
-            checkout_time: stayEnd,
-            stay_hours: stayHours,
-            stay_nights: stayNights,
-
-            food_order_count:
-              foodOrderCount,
-            food_item_count:
-              totalFoodItems,
-
-            invoice_notes:
-              invoiceNotes.trim() || null,
-          },
-        ])
-        .select()
-        .single();
-
-      if (invoiceError) throw invoiceError;
-
-      /*
-       * Create detailed invoice line items.
-       */
-      const invoiceItems = [];
-
-      if (roomAmount > 0) {
-        invoiceItems.push({
-          invoice_id: createdInvoice.id,
-          hotel_id: session.hotel_id,
-          guest_id: guest.id,
-          room_id: room.id,
-
-          item_type: "room",
-
-          description: `${
-            room.room_type || "Hotel Room"
-          } · ${stayNights} night(s)`,
-
-          quantity: stayNights,
-
-          unit_price:
-            stayNights > 0
-              ? roomAmount / stayNights
-              : roomAmount,
-
-          amount: roomAmount,
-
-          source_id: session.id,
-        });
-      }
-
-      foodOrders.forEach((order) => {
-        (
-          order.food_order_items || []
-        ).forEach((item) => {
-          const quantity = Number(
-            item.quantity || 0
-          );
-
-          const unitPrice = Number(
-            item.price || 0
-          );
-
-          const amount =
-            quantity * unitPrice;
-
-          if (
-            quantity <= 0 ||
-            amount <= 0
-          ) {
-            return;
-          }
-
-          invoiceItems.push({
-            invoice_id:
-              createdInvoice.id,
-            hotel_id: session.hotel_id,
-            guest_id: guest.id,
-            room_id: room.id,
-
-            item_type: "food",
-
-            description:
-              item.menu_items?.item_name ||
-              "Food Item",
-
-            quantity,
-            unit_price: unitPrice,
-            amount,
-
-            source_id: order.id,
-          });
-        });
+      const result = await checkoutGuestSession({
+        hotelId: session.hotel_id,
+        guestSessionId: session.id,
+        taxPercent: finalTaxPercent,
+        discountType,
+        discountValue: finalDiscountValue,
+        remainingPaymentCollected,
+        settlementPaymentMethod,
+        settlementTransactionReference,
+        invoiceNotes,
+        allowExcessPaid,
       });
 
-      manualCharges.forEach((charge) => {
-        const amount = Number(
-          charge.charge_amount || 0
-        );
-
-        if (amount <= 0) return;
-
-        invoiceItems.push({
-          invoice_id: createdInvoice.id,
-          hotel_id: session.hotel_id,
-          guest_id: guest.id,
-          room_id: room.id,
-
-          item_type: "manual_charge",
-
-          description:
-            charge.charge_name ||
-            "Additional Charge",
-
-          quantity: 1,
-          unit_price: amount,
-          amount,
-
-          source_id: charge.id,
-        });
+      notifyCalendarInvalidated({
+        reason: "reservation_checked_out",
+        reservationId: result.reservation_id || session.reservation_id,
       });
 
-      chargeableServices.forEach(
-        (service) => {
-          const amount = Number(
-            service.service_amount ||
-              service.charge_amount ||
-              service.amount ||
-              0
-          );
-
-          if (amount <= 0) return;
-
-          invoiceItems.push({
-            invoice_id:
-              createdInvoice.id,
-            hotel_id:
-              session.hotel_id,
-            guest_id: guest.id,
-            room_id: room.id,
-
-            item_type: "service",
-
-            description:
-              service.request_type ||
-              "Hotel Service",
-
-            quantity: 1,
-            unit_price: amount,
-            amount,
-
-            source_id: service.id,
-          });
-        }
-      );
-
-      if (taxAmount > 0) {
-        invoiceItems.push({
-          invoice_id: createdInvoice.id,
-          hotel_id: session.hotel_id,
-          guest_id: guest.id,
-          room_id: room.id,
-
-          item_type: "tax",
-
-          description: `Tax ${formatMoney(
-            finalTaxPercent
-          )}%`,
-
-          quantity: 1,
-          unit_price: taxAmount,
-          amount: taxAmount,
-
-          source_id: null,
-        });
-      }
-
-      if (discountAmount > 0) {
-        invoiceItems.push({
-          invoice_id: createdInvoice.id,
-          hotel_id: session.hotel_id,
-          guest_id: guest.id,
-          room_id: room.id,
-
-          item_type: "discount",
-
-          description:
-            discountType === "percentage"
-              ? `Discount ${formatMoney(
-                  finalDiscountValue
-                )}%`
-              : "Fixed Discount",
-
-          quantity: 1,
-          unit_price: -discountAmount,
-          amount: -discountAmount,
-
-          source_id: null,
-        });
-      }
-
-      if (invoiceItems.length > 0) {
-        const {
-          error: invoiceItemsError,
-        } = await supabase
-          .from("invoice_items")
-          .insert(invoiceItems);
-
-        if (invoiceItemsError) {
-          /*
-           * Prevent incomplete invoices.
-           */
-          await supabase
-            .from("invoices")
-            .delete()
-            .eq("id", createdInvoice.id)
-            .eq(
-              "hotel_id",
-              session.hotel_id
-            );
-
-          throw invoiceItemsError;
-        }
-      }
-
-      /*
-       * Link payment records to invoice.
-       */
-      if (paymentIds.length > 0) {
-        const {
-          error: paymentUpdateError,
-        } = await supabase
-          .from("payments")
-          .update({
-            payment_status: "paid",
-            invoice_id: createdInvoice.id,
-            paid_at: stayEnd,
-          })
-          .eq("hotel_id", session.hotel_id)
-          .in("id", paymentIds);
-
-        if (paymentUpdateError) {
-          throw paymentUpdateError;
-        }
-
-        const {
-          error: collectionUpdateError,
-        } = await supabase
-          .from("payment_collections")
-          .update({
-            invoice_id: createdInvoice.id,
-          })
-          .eq("hotel_id", session.hotel_id)
-          .in("payment_id", paymentIds);
-
-        if (collectionUpdateError) {
-          throw collectionUpdateError;
-        }
-      }
-
-      /*
-       * Mark delivered food orders paid.
-       */
-      const { error: foodUpdateError } =
-        await supabase
-          .from("food_orders")
-          .update({
-            payment_status: "paid",
-          })
-          .eq("hotel_id", session.hotel_id)
-          .eq("guest_id", guest.id)
-          .eq("order_status", "delivered")
-          .gte("created_at", stayStart);
-
-      if (foodUpdateError) {
-        throw foodUpdateError;
-      }
-
-      /*
-       * Mark manual charges paid.
-       */
-      const {
-        error: chargeUpdateError,
-      } = await supabase
-        .from("manual_charges")
-        .update({
-          payment_status: "paid",
-        })
-        .eq("hotel_id", session.hotel_id)
-        .eq("guest_id", guest.id)
-        .gte("created_at", stayStart);
-
-      if (chargeUpdateError) {
-        throw chargeUpdateError;
-      }
-
-      /*
-       * Complete guest session and expire QR.
-       */
-      const { error: sessionError } =
-        await supabase
-          .from("guest_sessions")
-          .update({
-            status: "completed",
-            expired_at: stayEnd,
-          })
-          .eq("id", session.id)
-          .eq(
-            "hotel_id",
-            session.hotel_id
-          )
-          .eq("status", "active");
-
-      if (sessionError) {
-        throw sessionError;
-      }
-
-      /*
-       * Send room to cleaning.
-       */
-      const { error: roomError } =
-        await supabase
-          .from("rooms")
-          .update({
-            status: "cleaning",
-          })
-          .eq("id", room.id)
-          .eq(
-            "hotel_id",
-            session.hotel_id
-          );
-
-      if (roomError) throw roomError;
-
-      /*
-       * Avoid duplicate room-cleaning tasks.
-       */
-      const {
-        data: existingCleaningTask,
-        error: cleaningTaskCheckError,
-      } = await supabase
-        .from("housekeeping_tasks")
-        .select("id")
-        .eq("hotel_id", session.hotel_id)
-        .eq("room_id", room.id)
-        .eq(
-          "task_type",
-          "room_cleaning"
-        )
-        .in("status", [
-          "pending",
-          "in_progress",
-        ])
-        .limit(1)
-        .maybeSingle();
-
-      if (cleaningTaskCheckError) {
-        throw cleaningTaskCheckError;
-      }
-
-      if (!existingCleaningTask) {
-        const {
-          error: housekeepingError,
-        } = await supabase
-          .from("housekeeping_tasks")
-          .insert([
-            {
-              hotel_id:
-                session.hotel_id,
-              room_id: room.id,
-              room_number:
-                room.room_number,
-              task_type:
-                "room_cleaning",
-              status: "pending",
-            },
-          ]);
-
-        if (housekeepingError) {
-          throw housekeepingError;
-        }
-      }
-
-      alert(
-        `Checkout completed successfully.\n\nInvoice: ${invoiceNumber}\nGrand Total: ₹${formatMoney(
-          grandTotal
-        )}\nTax: ₹${formatMoney(
-          taxAmount
-        )}\nDiscount: ₹${formatMoney(
-          discountAmount
-        )}`
+      showNotice(
+        "success",
+        `Checkout completed. Invoice ${result.invoice_number}. Final total ₹${formatMoney(
+          result.grand_total
+        )}; collected at checkout ₹${formatMoney(
+          result.amount_collected_at_checkout
+        )}. Room ${result.room_number} is now queued for cleaning.`
       );
 
       resetSettlementState();
-
       await fetchGuests(currentHotel?.id);
     } catch (error) {
-      console.error(
-        "Final settlement error:",
-        error
+      console.error("Final settlement error:", error);
+      showNotice(
+        "error",
+        error.message || "Final checkout failed"
       );
-
-      alert(
-        error.message ||
-          "Final checkout failed"
-      );
+      await fetchGuests(currentHotel?.id);
     } finally {
       setSettlementLoading(false);
       setCheckoutLoadingId(null);
@@ -1202,6 +780,11 @@ export default function Guests({
 
   return (
     <div className="rooms-page">
+      {notice && (
+        <div className={`guests-toast ${notice.type}`} role="status">
+          {notice.message}
+        </div>
+      )}
       <div className="rooms-header">
         <div>
           <h1>Guests</h1>
@@ -1679,6 +1262,43 @@ export default function Guests({
 
               {settlementCalculation.amountToCollect >
                 0 && (
+                <div style={settlementCollectionBox}>
+                  <label style={label}>Final Payment Method</label>
+                  <select
+                    style={input}
+                    value={settlementPaymentMethod}
+                    onChange={(event) =>
+                      setSettlementPaymentMethod(event.target.value)
+                    }
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="card">Card</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="other">Other</option>
+                  </select>
+
+                  {["upi", "card", "bank_transfer"].includes(
+                    settlementPaymentMethod
+                  ) && (
+                    <>
+                      <label style={label}>Transaction / Reference Number</label>
+                      <input
+                        style={input}
+                        type="text"
+                        value={settlementTransactionReference}
+                        onChange={(event) =>
+                          setSettlementTransactionReference(event.target.value)
+                        }
+                        placeholder="Required for this payment method"
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+
+              {settlementCalculation.amountToCollect >
+                0 && (
                 <label style={confirmationBox}>
                   <input
                     type="checkbox"
@@ -1777,21 +1397,6 @@ function SettlementRow({
       </strong>
     </div>
   );
-}
-
-function generateInvoiceNumber() {
-  const now = new Date();
-
-  const datePart = now
-    .toISOString()
-    .slice(0, 10)
-    .replace(/-/g, "");
-
-  const timePart = String(
-    now.getTime()
-  ).slice(-6);
-
-  return `INV-${datePart}-${timePart}`;
 }
 
 function formatMoney(value) {
@@ -1994,6 +1599,14 @@ const paidConfirmationBox = {
   background: "rgba(46,204,113,.1)",
   color: "#2ecc71",
   fontWeight: 800,
+};
+
+const settlementCollectionBox = {
+  marginTop: "16px",
+  padding: "16px",
+  border: "1px solid #333",
+  borderRadius: "14px",
+  background: "rgba(255,255,255,.025)",
 };
 
 const settlementActions = {

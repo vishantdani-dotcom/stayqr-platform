@@ -100,3 +100,34 @@ export async function removeReservationRoom({
   throwIfRejected(data, 'StayQR could not remove the reservation room.')
   return data
 }
+
+export async function checkoutGuestSession({
+  hotelId,
+  guestSessionId,
+  taxPercent = 0,
+  discountType = 'fixed',
+  discountValue = 0,
+  remainingPaymentCollected = false,
+  settlementPaymentMethod = 'cash',
+  settlementTransactionReference = null,
+  invoiceNotes = null,
+  allowExcessPaid = false,
+}) {
+  const { data, error } = await supabase.rpc('checkout_guest_session', {
+    target_hotel_id: hotelId,
+    target_guest_session_id: guestSessionId,
+    tax_percent: Number(taxPercent) || 0,
+    discount_type: discountType || 'fixed',
+    discount_value: Number(discountValue) || 0,
+    remaining_payment_collected: Boolean(remainingPaymentCollected),
+    settlement_payment_method: settlementPaymentMethod || 'cash',
+    settlement_transaction_reference:
+      settlementTransactionReference?.trim() || null,
+    invoice_notes: invoiceNotes?.trim() || null,
+    allow_excess_paid: Boolean(allowExcessPaid),
+  })
+
+  throwIfError(error)
+  throwIfRejected(data, 'StayQR could not complete the final checkout.')
+  return data
+}

@@ -10,6 +10,7 @@ const NAV_ITEMS = [
       { id: 'dashboard', label: 'Dashboard', icon: GridIcon, badge: null },
       { id: 'reservations', label: 'Reservations', icon: CalendarIcon, badge: null },
       { id: 'calendar', label: 'Booking Calendar', icon: CalendarIcon, badge: null },
+      { id: 'operations', label: 'Arrivals & Departures', icon: KeyIcon, badge: null },
       { id: 'rooms', label: 'Rooms', icon: DoorIcon, badge: null },
       { id: 'guests', label: 'Guests', icon: UsersIcon, badge: '3' },
       { id: 'checkin', label: 'Check-In/Out', icon: KeyIcon, badge: null },

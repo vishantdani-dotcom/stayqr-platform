@@ -35,6 +35,7 @@ import MenuManagement from './pages/menumanagement/MenuManagement'
 import StaffManagement from './pages/staff/StaffManagement'
 import Reservations from './pages/reservations/Reservations'
 import BookingCalendar from './pages/calendar/BookingCalendar'
+import ReservationOperations from './pages/operations/ReservationOperations'
 import { NAVIGATE_EVENT } from './lib/bookingCalendar'
 
 import './styles/globals.css'
@@ -272,6 +273,8 @@ export default function App() {
         )
       case 'calendar':
         return <BookingCalendar />
+      case 'operations':
+        return <ReservationOperations />
       case 'checkin':
         return <CheckIn />
       case 'guests':

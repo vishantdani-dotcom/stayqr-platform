@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
+import { navigateToSection } from "../../lib/bookingCalendar";
 import "./CheckIn.css";
 
 export default function CheckIn() {
@@ -207,12 +208,23 @@ export default function CheckIn() {
   return (
     <div className="checkin-page">
       <div className="checkin-card">
-        <h1>Guest Check-In</h1>
+        <div className="checkin-reservation-banner">
+          <div>
+            <span>Reservation arrivals</span>
+            <strong>Use the atomic reservation check-in workflow</strong>
+            <small>Validated room, guest stay, deposit transfer and room status in one server transaction.</small>
+          </div>
+          <button type="button" onClick={() => navigateToSection('operations')}>
+            Open arrivals
+          </button>
+        </div>
+
+        <h1>Direct Guest Check-In</h1>
 
         <p>
           {currentHotel?.hotel_name
             ? `${currentHotel.hotel_name} — register guest, assign room, activate QR session and create payment.`
-            : "Register guest, assign room, activate QR session and create payment."}
+            : "For guests without a reservation, register the stay, assign a room, activate QR and create the room charge."}
         </p>
 
         <input

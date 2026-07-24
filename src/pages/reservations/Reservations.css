@@ -164,6 +164,7 @@
 .reservation-status.tentative { background: rgba(225, 165, 45, 0.12); border-color: rgba(225, 165, 45, 0.3); color: #f1bd58; }
 .reservation-status.draft { background: rgba(140, 140, 140, 0.12); border-color: rgba(140, 140, 140, 0.3); color: #bbb; }
 .reservation-status.checked_in { background: rgba(80, 145, 245, 0.13); border-color: rgba(80, 145, 245, 0.3); color: #89b6ff; }
+.reservation-status.partially_checked_in { background: rgba(45, 180, 190, 0.13); border-color: rgba(45, 180, 190, 0.32); color: #7edce3; }
 .reservation-status.checked_out { background: rgba(130, 95, 215, 0.13); border-color: rgba(130, 95, 215, 0.3); color: #b6a0f4; }
 .reservation-status.cancelled,
 .reservation-status.no_show { background: rgba(220, 70, 70, 0.11); border-color: rgba(220, 70, 70, 0.28); color: #ff9292; }
@@ -366,4 +367,45 @@
 .reservation-modal-close:disabled,
 .reservation-btn:disabled {
   cursor: not-allowed;
+}
+
+/* Day 5 — multi-room, atomic check-in and confirmation actions */
+.reservation-detail-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.reservation-detail-section-heading h3 { margin-bottom: 4px; }
+.reservation-detail-section-heading p { margin: 0; color: var(--text-muted); font-size: 10px; line-height: 1.45; max-width: 340px; }
+.reservation-room-list { display: grid; gap: 9px; }
+.reservation-room-card { border: 1px solid var(--glass-border); background: #151515; border-radius: 11px; padding: 12px; }
+.reservation-room-card-main { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.reservation-room-card-main h4 { margin: 8px 0 3px; color: var(--text-primary); font-size: 13px; }
+.reservation-room-card-main p { margin: 0; color: var(--text-muted); font-size: 10px; }
+.reservation-room-card-main > strong { color: var(--gold-light); font-size: 14px; white-space: nowrap; }
+.reservation-room-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 10px; color: var(--text-secondary); font-size: 10px; }
+.reservation-room-note { margin: 10px 0 0; padding: 8px 9px; border-radius: 8px; background: rgba(255,255,255,.025); color: var(--text-secondary); font-size: 10px; line-height: 1.45; }
+.reservation-room-actions { margin-top: 10px; display: flex; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
+.reservation-status.held { background: rgba(225,165,45,.12); border-color: rgba(225,165,45,.3); color: #f1bd58; }
+.reservation-status.released { background: rgba(140,140,140,.12); border-color: rgba(140,140,140,.3); color: #bbb; }
+.reservation-drawer-footer-wrap { flex-direction: column; align-items: stretch; }
+.reservation-confirmation-actions,
+.reservation-primary-actions { display: flex; gap: 7px; justify-content: flex-end; flex-wrap: wrap; }
+.reservation-confirmation-actions { justify-content: flex-start; }
+.reservation-room-modal { width: min(720px, 96vw); height: 100vh; overflow-y: auto; background: #0d0d0d; border-left: 1px solid var(--glass-border); box-shadow: -24px 0 80px rgba(0,0,0,.55); }
+.reservation-room-form { padding: 0 24px 26px; }
+.reservation-room-stay-summary { margin-top: 17px; padding: 14px; border: 1px solid var(--gold-border); background: var(--gold-subtle); border-radius: 11px; display: flex; flex-direction: column; gap: 5px; }
+.reservation-room-stay-summary span { color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.reservation-room-stay-summary strong { color: var(--text-primary); }
+.reservation-room-stay-summary small { color: var(--text-muted); }
+.reservation-room-modal-footer { position: sticky; bottom: 0; margin: 20px -24px -26px; padding: 14px 24px; background: rgba(13,13,13,.97); border-top: 1px solid var(--glass-border); display: flex; justify-content: flex-end; gap: 9px; }
+@media (max-width: 620px) {
+  .reservation-detail-section-heading { flex-direction: column; }
+  .reservation-detail-section-heading .reservation-btn { width: 100%; }
+  .reservation-room-form { padding-left: 14px; padding-right: 14px; }
+  .reservation-room-modal-footer { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; }
+  .reservation-confirmation-actions .reservation-btn,
+  .reservation-primary-actions .reservation-btn { flex: 1; }
 }

@@ -1,0 +1,18 @@
+StayQR Day 5 Partial Group Calendar Status Fix
+
+Added:
+- supabase/migrations/202607240009_day5_partial_group_calendar_status.sql
+- supabase/audit/025_verify_day5_partial_group_calendar_status.sql
+- docs/day-05-partial-group-calendar-status-fix.md
+
+Updated:
+- src/lib/bookingCalendar.js
+- src/pages/calendar/BookingCalendar.jsx
+- src/pages/reservations/Reservations.jsx
+- src/pages/reservations/Reservations.css
+
+Purpose:
+- Preserve room-level status after a partial group check-in.
+- Prevent the remaining confirmed room from rendering as Checked In.
+- Make calendar status filters operate per reservation room.
+- Show Partially Checked In for mixed-status group reservations.

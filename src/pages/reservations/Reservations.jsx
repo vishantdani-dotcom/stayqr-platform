@@ -15,6 +15,17 @@ import {
 import {
   notifyCalendarInvalidated,
 } from '../../lib/bookingCalendar'
+import {
+  addReservationRoom,
+  checkInReservationRoom,
+  getReservationConfirmation,
+  removeReservationRoom,
+} from '../../lib/day5Reservations'
+import {
+  downloadReservationConfirmation,
+  printReservationConfirmation,
+  shareReservationConfirmationOnWhatsApp,
+} from '../../lib/reservationConfirmation'
 import './Reservations.css'
 
 const ACTIVE_STATUSES = ['draft', 'tentative', 'confirmed']
@@ -128,6 +139,9 @@ export default function Reservations({
   const [detailReservation, setDetailReservation] = useState(null)
   const [detailActivity, setDetailActivity] = useState([])
   const [detailLoading, setDetailLoading] = useState(false)
+  const [roomModalOpen, setRoomModalOpen] = useState(false)
+  const [roomActionId, setRoomActionId] = useState(null)
+  const [confirmationLoading, setConfirmationLoading] = useState(false)
   const statusActionLockRef = useRef(false)
   const handledNavigationRef = useRef(null)
   const currentHotelId = hotel?.id || ''
@@ -342,6 +356,111 @@ export default function Reservations({
     await openDetails(reservation.id)
   }
 
+
+  async function handleCheckInRoom(reservation, room) {
+    if (!reservation?.id || !room?.id || roomActionId) return
+
+    const confirmed = window.confirm(
+      `Check in ${reservation.guest?.full_name || reservation.reservation_number} to Room ${room.room_number}?`
+    )
+    if (!confirmed) return
+
+    setRoomActionId(room.id)
+
+    try {
+      const result = await checkInReservationRoom({
+        hotelId: hotel.id,
+        reservationId: reservation.id,
+        reservationRoomId: room.id,
+        expectedUpdatedAt: reservation.updated_at,
+      })
+
+      notifyCalendarInvalidated({
+        reason: 'reservation_checked_in',
+        reservationId: reservation.id,
+      })
+      showNotice(
+        'success',
+        `Room ${result.room_number} checked in. ${formatMoney(
+          result.deposit_transferred,
+          reservation.currency_code || hotel.currency_code || 'INR'
+        )} deposit transferred to the stay.`
+      )
+      await loadReservations(hotel.id, filters)
+      await openDetails(reservation.id)
+    } catch (error) {
+      showNotice('error', error.message || 'Unable to check in this reservation room.')
+      await openDetails(reservation.id)
+    } finally {
+      setRoomActionId(null)
+    }
+  }
+
+  async function handleRemoveRoom(reservation, room) {
+    if (!reservation?.id || !room?.id || roomActionId) return
+    const confirmed = window.confirm(
+      `Release ${room.room_number ? `Room ${room.room_number}` : room.room_type_name} from ${reservation.reservation_number}?`
+    )
+    if (!confirmed) return
+
+    setRoomActionId(room.id)
+    try {
+      await removeReservationRoom({
+        hotelId: hotel.id,
+        reservationId: reservation.id,
+        reservationRoomId: room.id,
+        expectedUpdatedAt: reservation.updated_at,
+      })
+      notifyCalendarInvalidated({
+        reason: 'reservation_room_removed',
+        reservationId: reservation.id,
+      })
+      showNotice('success', 'Reservation room released and totals recalculated.')
+      await loadReservations(hotel.id, filters)
+      await openDetails(reservation.id)
+    } catch (error) {
+      showNotice('error', error.message || 'Unable to release the reservation room.')
+      await openDetails(reservation.id)
+    } finally {
+      setRoomActionId(null)
+    }
+  }
+
+  async function handleConfirmationAction(reservation, action) {
+    if (!reservation?.id || confirmationLoading) return
+    setConfirmationLoading(true)
+
+    try {
+      const snapshot = await getReservationConfirmation(hotel.id, reservation.id)
+      if (action === 'download') downloadReservationConfirmation(snapshot)
+      if (action === 'print') printReservationConfirmation(snapshot)
+      if (action === 'whatsapp') shareReservationConfirmationOnWhatsApp(snapshot)
+      showNotice(
+        'success',
+        action === 'download'
+          ? 'Reservation confirmation PDF generated.'
+          : action === 'print'
+            ? 'Reservation confirmation opened for printing.'
+            : 'Reservation confirmation opened in WhatsApp.'
+      )
+    } catch (error) {
+      showNotice('error', error.message || 'Unable to create the reservation confirmation.')
+    } finally {
+      setConfirmationLoading(false)
+    }
+  }
+
+  async function handleRoomAdded(reservation) {
+    setRoomModalOpen(false)
+    notifyCalendarInvalidated({
+      reason: 'reservation_room_added',
+      reservationId: reservation.id,
+    })
+    showNotice('success', 'Room added to the reservation and totals recalculated.')
+    await loadReservations(hotel.id, filters)
+    await openDetails(reservation.id)
+  }
+
   if (loading) {
     return <PageState title="Reservations" message="Loading hotel inventory…" />
   }
@@ -522,9 +641,30 @@ export default function Reservations({
           activity={detailActivity}
           loading={detailLoading}
           currencyCode={hotel.currency_code}
-          onClose={() => setDetailReservation(null)}
+          roomActionId={roomActionId}
+          confirmationLoading={confirmationLoading}
+          onClose={() => {
+            setDetailReservation(null)
+            setDetailActivity([])
+            setRoomModalOpen(false)
+          }}
           onEdit={openEdit}
           onStatusChange={handleStatusChange}
+          onAddRoom={() => setRoomModalOpen(true)}
+          onRemoveRoom={handleRemoveRoom}
+          onCheckInRoom={handleCheckInRoom}
+          onConfirmationAction={handleConfirmationAction}
+        />
+      )}
+
+      {roomModalOpen && detailReservation && (
+        <ReservationRoomModal
+          hotel={hotel}
+          reservation={detailReservation}
+          roomTypes={roomTypes}
+          ratePlans={ratePlans}
+          onClose={() => setRoomModalOpen(false)}
+          onSuccess={handleRoomAdded}
         />
       )}
     </div>
@@ -1335,6 +1475,302 @@ function ReservationFormModal({
   )
 }
 
+function ReservationRoomModal({
+  hotel,
+  reservation,
+  roomTypes,
+  ratePlans,
+  onClose,
+  onSuccess,
+}) {
+  const [form, setForm] = useState({
+    room_type_id: '',
+    rate_plan_id: '',
+    room_id: '',
+    adults: 1,
+    children: 0,
+    notes: '',
+  })
+  const [availableRooms, setAvailableRooms] = useState([])
+  const [quote, setQuote] = useState(null)
+  const [loadingRooms, setLoadingRooms] = useState(false)
+  const [loadingQuote, setLoadingQuote] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const filteredRatePlans = useMemo(
+    () => ratePlans.filter((plan) => plan.room_type_id === form.room_type_id),
+    [ratePlans, form.room_type_id]
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadRooms() {
+      setAvailableRooms([])
+      setForm((current) => ({ ...current, room_id: '' }))
+      if (!form.room_type_id) return
+
+      setLoadingRooms(true)
+      try {
+        const rooms = await getAvailableRooms({
+          hotelId: hotel.id,
+          arrivalDate: reservation.arrival_date,
+          departureDate: reservation.departure_date,
+          roomTypeId: form.room_type_id,
+          excludeReservationId: reservation.id,
+        })
+        if (!cancelled) {
+          const existingRoomIds = new Set(
+            (reservation.rooms || [])
+              .filter((room) => !['cancelled', 'released'].includes(room.status))
+              .map((room) => room.room_id)
+              .filter(Boolean)
+          )
+          setAvailableRooms(
+            (rooms || []).filter((room) => !existingRoomIds.has(room.room_id))
+          )
+        }
+      } catch (loadError) {
+        if (!cancelled) setError(loadError.message || 'Unable to load available rooms.')
+      } finally {
+        if (!cancelled) setLoadingRooms(false)
+      }
+    }
+
+    loadRooms()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    hotel.id,
+    reservation.id,
+    reservation.arrival_date,
+    reservation.departure_date,
+    reservation.rooms,
+    form.room_type_id,
+  ])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadQuote() {
+      setQuote(null)
+      if (!form.rate_plan_id || !form.room_type_id) return
+
+      setLoadingQuote(true)
+      try {
+        const result = await getRateQuote({
+          hotelId: hotel.id,
+          ratePlanId: form.rate_plan_id,
+          arrivalDate: reservation.arrival_date,
+          departureDate: reservation.departure_date,
+          adults: form.adults,
+          children: form.children,
+        })
+        if (!cancelled) setQuote(result)
+      } catch (quoteError) {
+        if (!cancelled) setError(quoteError.message || 'Unable to calculate the room rate.')
+      } finally {
+        if (!cancelled) setLoadingQuote(false)
+      }
+    }
+
+    loadQuote()
+    return () => {
+      cancelled = true
+    }
+  }, [hotel.id, reservation.arrival_date, reservation.departure_date, form.room_type_id, form.rate_plan_id, form.adults, form.children])
+
+  function updateField(field, value) {
+    setError('')
+    setForm((current) => {
+      if (field === 'room_type_id') {
+        return {
+          ...current,
+          room_type_id: value,
+          rate_plan_id: '',
+          room_id: '',
+        }
+      }
+      return { ...current, [field]: value }
+    })
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    if (submitting) return
+
+    if (!form.room_type_id || !form.rate_plan_id) {
+      setError('Select a room type and rate plan.')
+      return
+    }
+    if (reservation.status === 'confirmed' && !form.room_id) {
+      setError('Confirmed reservations require a physical room assignment.')
+      return
+    }
+
+    setSubmitting(true)
+    setError('')
+
+    try {
+      const updatedReservation = await addReservationRoom({
+        hotelId: hotel.id,
+        reservationId: reservation.id,
+        expectedUpdatedAt: reservation.updated_at,
+        payload: {
+          room_type_id: form.room_type_id,
+          rate_plan_id: form.rate_plan_id,
+          room_id: form.room_id || null,
+          adults: Number(form.adults),
+          children: Number(form.children),
+          notes: form.notes.trim() || null,
+        },
+      })
+      await onSuccess(updatedReservation)
+    } catch (submitError) {
+      setError(submitError.message || 'Unable to add the reservation room.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="reservation-modal-backdrop" role="presentation">
+      <section className="reservation-room-modal" role="dialog" aria-modal="true">
+        <header className="reservation-modal-header">
+          <div>
+            <p className="reservations-eyebrow">Group / multi-room booking</p>
+            <h2>Add room to {reservation.reservation_number}</h2>
+          </div>
+          <button
+            className="reservation-modal-close"
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            ×
+          </button>
+        </header>
+
+        <form className="reservation-room-form" onSubmit={handleSubmit}>
+          {error && <div className="reservation-form-error">{error}</div>}
+
+          <div className="reservation-room-stay-summary">
+            <span>Shared booking stay</span>
+            <strong>{formatDate(reservation.arrival_date)} → {formatDate(reservation.departure_date)}</strong>
+            <small>Each room retains its own rate, allocation, guests and check-in status.</small>
+          </div>
+
+          <div className="reservation-form-grid two">
+            <Field label="Room type" required>
+              <select
+                value={form.room_type_id}
+                onChange={(event) => updateField('room_type_id', event.target.value)}
+              >
+                <option value="">Select room type</option>
+                {roomTypes.map((roomType) => (
+                  <option key={roomType.id} value={roomType.id}>
+                    {roomType.name} · max {roomType.max_occupancy}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Rate plan" required>
+              <select
+                value={form.rate_plan_id}
+                onChange={(event) => updateField('rate_plan_id', event.target.value)}
+                disabled={!form.room_type_id}
+              >
+                <option value="">Select rate plan</option>
+                {filteredRatePlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>{plan.name}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Physical room" required={reservation.status === 'confirmed'}>
+              <select
+                value={form.room_id}
+                onChange={(event) => updateField('room_id', event.target.value)}
+                disabled={!form.room_type_id || loadingRooms}
+              >
+                <option value="">
+                  {loadingRooms ? 'Loading rooms…' : 'Leave unallocated'}
+                </option>
+                {availableRooms.map((room) => (
+                  <option key={room.room_id} value={room.room_id}>
+                    Room {room.room_number}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Adults" required>
+              <input
+                type="number"
+                min="1"
+                value={form.adults}
+                onChange={(event) => updateField('adults', event.target.value)}
+              />
+            </Field>
+
+            <Field label="Children">
+              <input
+                type="number"
+                min="0"
+                value={form.children}
+                onChange={(event) => updateField('children', event.target.value)}
+              />
+            </Field>
+
+            <Field label="Room notes" className="span-two">
+              <textarea
+                value={form.notes}
+                onChange={(event) => updateField('notes', event.target.value)}
+                placeholder="Bed preference, guest name, accessibility or room-specific notes"
+              />
+            </Field>
+          </div>
+
+          <RateQuoteCard quote={quote} loading={loadingQuote} />
+
+          <footer className="reservation-room-modal-footer">
+            <button type="button" className="reservation-btn ghost" onClick={onClose} disabled={submitting}>
+              Close
+            </button>
+            <button type="submit" className="reservation-btn primary" disabled={submitting || loadingQuote}>
+              {submitting ? 'Adding room…' : 'Add room'}
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  )
+}
+
+function reservationDisplayStatus(reservation) {
+  const activeRooms = (reservation?.rooms || []).filter(
+    (room) => !['cancelled', 'released'].includes(room.status)
+  )
+
+  if (activeRooms.length > 1) {
+    const checkedInRooms = activeRooms.filter(
+      (room) => room.status === 'checked_in'
+    ).length
+    const pendingRooms = activeRooms.filter(
+      (room) => ['draft', 'tentative', 'confirmed', 'held'].includes(room.status)
+    ).length
+
+    if (checkedInRooms > 0 && pendingRooms > 0) {
+      return 'partially_checked_in'
+    }
+  }
+
+  return reservation?.status || 'draft'
+}
+
 function ReservationTable({
   reservations,
   loading,
@@ -1409,7 +1845,7 @@ function ReservationTable({
                   <small>{room?.room_type_name || 'Room type unavailable'}</small>
                 </td>
                 <td>
-                  <StatusBadge status={reservation.status} />
+                  <StatusBadge status={reservationDisplayStatus(reservation)} />
                 </td>
                 <td>
                   <strong>{formatMoney(reservation.total_amount, currencyCode)}</strong>
@@ -1451,9 +1887,15 @@ function ReservationDetailDrawer({
   activity,
   loading,
   currencyCode,
+  roomActionId,
+  confirmationLoading,
   onClose,
   onEdit,
   onStatusChange,
+  onAddRoom,
+  onRemoveRoom,
+  onCheckInRoom,
+  onConfirmationAction,
 }) {
   const visibleActivity = useMemo(
     () => activity.filter((log) => !isNoOpReservationUpdate(log)),
@@ -1477,7 +1919,7 @@ function ReservationDetailDrawer({
           <div className="reservation-drawer-content">
             <div className="reservation-detail-hero">
               <div>
-                <StatusBadge status={reservation.status} />
+                <StatusBadge status={reservationDisplayStatus(reservation)} />
                 <h3>{reservation.guest?.full_name}</h3>
                 <p>{reservation.guest?.phone || reservation.guest?.email || 'No contact saved'}</p>
               </div>
@@ -1489,6 +1931,85 @@ function ReservationDetailDrawer({
             </div>
 
             <DetailGrid reservation={reservation} currencyCode={currencyCode} />
+
+            <section className="reservation-detail-section">
+              <div className="reservation-detail-section-heading">
+                <div>
+                  <h3>Reservation rooms</h3>
+                  <p>
+                    One booking number can hold multiple room records. Each room
+                    keeps its own allocation, rate and check-in status.
+                  </p>
+                </div>
+                {ACTIVE_STATUSES.includes(reservation.status) && (
+                  <button
+                    type="button"
+                    className="reservation-btn secondary compact"
+                    onClick={onAddRoom}
+                  >
+                    ＋ Add room
+                  </button>
+                )}
+              </div>
+
+              <div className="reservation-room-list">
+                {(reservation.rooms || [])
+                  .filter((room) => !['cancelled', 'released'].includes(room.status))
+                  .map((room) => (
+                    <article className="reservation-room-card" key={room.id}>
+                      <div className="reservation-room-card-main">
+                        <div>
+                          <span className={`reservation-status ${room.status}`}>
+                            {formatSource(room.status)}
+                          </span>
+                          <h4>
+                            {room.room_number
+                              ? `Room ${room.room_number}`
+                              : 'Unallocated room'}
+                          </h4>
+                          <p>
+                            {room.room_type_name} · {room.rate_plan_name || 'No rate plan'}
+                          </p>
+                        </div>
+                        <strong>{formatMoney(room.total_amount, currencyCode)}</strong>
+                      </div>
+                      <div className="reservation-room-meta">
+                        <span>{room.adults} adult(s), {room.children} child(ren)</span>
+                        <span>{formatMoney(room.nightly_rate, currencyCode)} average nightly</span>
+                      </div>
+                      {room.notes && <p className="reservation-room-note">{room.notes}</p>}
+                      <div className="reservation-room-actions">
+                        {['confirmed', 'checked_in'].includes(reservation.status) &&
+                          room.status === 'confirmed' &&
+                          room.room_id && (
+                            <button
+                              type="button"
+                              className="reservation-btn primary compact"
+                              onClick={() => onCheckInRoom(reservation, room)}
+                              disabled={roomActionId === room.id}
+                            >
+                              {roomActionId === room.id ? 'Checking in…' : 'Check in room'}
+                            </button>
+                          )}
+                        {ACTIVE_STATUSES.includes(reservation.status) &&
+                          reservation.rooms.filter(
+                            (item) => !['cancelled', 'released'].includes(item.status)
+                          ).length > 1 &&
+                          !['checked_in', 'checked_out'].includes(room.status) && (
+                            <button
+                              type="button"
+                              className="reservation-btn danger compact"
+                              onClick={() => onRemoveRoom(reservation, room)}
+                              disabled={roomActionId === room.id}
+                            >
+                              {roomActionId === room.id ? 'Updating…' : 'Remove room'}
+                            </button>
+                          )}
+                      </div>
+                    </article>
+                  ))}
+              </div>
+            </section>
 
             {reservation.status === 'cancelled' && (
               <section className="reservation-detail-section">
@@ -1580,22 +2101,50 @@ function ReservationDetailDrawer({
         )}
 
         {reservation && (
-          <footer className="reservation-drawer-footer">
-            {ACTIVE_STATUSES.includes(reservation.status) && (
-              <button className="reservation-btn secondary" type="button" onClick={() => onEdit(reservation)}>
-                Edit
+          <footer className="reservation-drawer-footer reservation-drawer-footer-wrap">
+            <div className="reservation-confirmation-actions">
+              <button
+                className="reservation-btn ghost"
+                type="button"
+                disabled={confirmationLoading}
+                onClick={() => onConfirmationAction(reservation, 'download')}
+              >
+                {confirmationLoading ? 'Preparing…' : 'PDF'}
               </button>
-            )}
-            {ACTIVE_STATUSES.includes(reservation.status) && (
-              <button className="reservation-btn danger" type="button" onClick={() => onStatusChange(reservation, 'cancelled')}>
-                Cancel
+              <button
+                className="reservation-btn ghost"
+                type="button"
+                disabled={confirmationLoading}
+                onClick={() => onConfirmationAction(reservation, 'print')}
+              >
+                Print
               </button>
-            )}
-            {['tentative', 'confirmed'].includes(reservation.status) && (
-              <button className="reservation-btn ghost" type="button" onClick={() => onStatusChange(reservation, 'no_show')}>
-                Mark No-Show
+              <button
+                className="reservation-btn ghost"
+                type="button"
+                disabled={confirmationLoading}
+                onClick={() => onConfirmationAction(reservation, 'whatsapp')}
+              >
+                WhatsApp
               </button>
-            )}
+            </div>
+            <div className="reservation-primary-actions">
+              {ACTIVE_STATUSES.includes(reservation.status) && (
+                <button className="reservation-btn secondary" type="button" onClick={() => onEdit(reservation)}>
+                  Edit
+                </button>
+              )}
+              {ACTIVE_STATUSES.includes(reservation.status) && (
+                <button className="reservation-btn danger" type="button" onClick={() => onStatusChange(reservation, 'cancelled')}>
+                  Cancel
+                </button>
+              )}
+              {['tentative', 'confirmed'].includes(reservation.status) && (
+                <button className="reservation-btn ghost" type="button" onClick={() => onStatusChange(reservation, 'no_show')}>
+                  Mark No-Show
+                </button>
+              )}
+            </div>
           </footer>
         )}
       </aside>

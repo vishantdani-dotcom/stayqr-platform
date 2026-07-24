@@ -40,7 +40,7 @@ export async function getBookingCalendar({
   limit = 24,
   offset = 0,
 }) {
-  const { data, error } = await supabase.rpc('get_booking_calendar', {
+  const { data, error } = await supabase.rpc('get_booking_calendar_room_status', {
     target_hotel_id: hotelId,
     range_start: rangeStart,
     range_end: rangeEnd,

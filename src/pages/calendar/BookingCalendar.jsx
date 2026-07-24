@@ -200,6 +200,27 @@ function eventClass(event) {
   return normalizeStatus(event.status)
 }
 
+function bookingStatusLabel(event) {
+  const bookingStatus = normalizeStatus(event.booking_status || event.status)
+  const roomStatus = normalizeStatus(event.status)
+
+  if (bookingStatus === 'checked_in' && roomStatus === 'confirmed') {
+    return 'Partially Checked In'
+  }
+
+  return labelize(bookingStatus)
+}
+
+function canMoveReservationEvent(event) {
+  const roomStatus = normalizeStatus(event.status)
+  const bookingStatus = normalizeStatus(event.booking_status || event.status)
+
+  return (
+    ['tentative', 'confirmed'].includes(roomStatus) &&
+    ['tentative', 'confirmed'].includes(bookingStatus)
+  )
+}
+
 function eventTitle(event) {
   if (event.event_type === 'room_block') return event.reason || labelize(event.block_type)
   if (event.event_type === 'direct_stay') return event.guest_name || 'Direct stay'
@@ -550,7 +571,7 @@ export default function BookingCalendar() {
   function handleDragStart(event, calendarEvent) {
     if (
       calendarEvent.event_type !== 'reservation' ||
-      !['tentative', 'confirmed'].includes(calendarEvent.status)
+      !canMoveReservationEvent(calendarEvent)
     ) {
       event.preventDefault()
       return
@@ -982,7 +1003,7 @@ export default function BookingCalendar() {
                       const placement = getEventPlacement(calendarEvent, rangeStart, rangeEnd)
                       const draggable =
                         calendarEvent.event_type === 'reservation' &&
-                        ['tentative', 'confirmed'].includes(calendarEvent.status)
+                        canMoveReservationEvent(calendarEvent)
                       return (
                         <div
                           key={`${calendarEvent.event_type}-${calendarEvent.id}`}
@@ -1179,7 +1200,7 @@ function EventDetailsDrawer({
 }) {
   const isReservation = event.event_type === 'reservation'
   const isBlock = event.event_type === 'room_block'
-  const canMove = isReservation && ['tentative', 'confirmed'].includes(event.status)
+  const canMove = isReservation && canMoveReservationEvent(event)
 
   return (
     <div className="calendar-drawer-backdrop" role="presentation">
@@ -1212,6 +1233,13 @@ function EventDetailsDrawer({
             {!isBlock && <Detail label="Phone" value={event.guest_phone || '—'} />}
             <Detail label="Stay" value={`${formatDate(event.start_date, { year: true })} – ${formatDate(event.end_date, { year: true })}`} />
             <Detail label="Room" value={`Room ${event.room_number} · ${event.room_type_name}`} />
+            {isReservation && <Detail label="Room status" value={labelize(event.status)} />}
+            {isReservation && (
+              <Detail
+                label="Booking status"
+                value={bookingStatusLabel(event)}
+              />
+            )}
             {!isReservation && !isBlock && (
               <Detail label="Status" value={labelize(event.status || 'checked_in')} wide />
             )}

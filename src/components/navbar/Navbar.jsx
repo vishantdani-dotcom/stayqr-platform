@@ -141,6 +141,7 @@ export default function Navbar({
     dashboard: 'Dashboard',
     reservations: 'Reservations',
     calendar: 'Booking Calendar',
+    operations: 'Arrivals & Departures',
     rooms: 'Rooms',
     guests: 'Guests',
     checkin: 'Check-In / Out',

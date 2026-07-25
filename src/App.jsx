@@ -26,6 +26,7 @@ import Amenities from './pages/amenities/Amenities'
 import Charges from './pages/charges/Charges'
 import Housekeeping from './pages/housekeeping/Housekeeping'
 import Login from './pages/auth/Login'
+import AuthAction from './pages/auth/AuthAction'
 import HotelProfile from './pages/hotel/HotelProfile'
 import Reports from './pages/reports/Reports'
 import Invoices from './pages/invoices/Invoices'
@@ -83,7 +84,7 @@ export default function App() {
       setCurrentStaff(context.currentStaff)
       setCurrentRole(context.currentRole)
       setActiveSection((currentSection) =>
-        canAccessSection(context.currentRole, currentSection)
+        canAccessSection(context.currentRole, currentSection, context.permissions)
           ? currentSection
           : context.isPlatformAdmin
             ? 'superadmin'
@@ -147,7 +148,7 @@ export default function App() {
   useEffect(() => {
     const handleExternalNavigation = (event) => {
       const section = event.detail?.section
-      if (!section || !canAccessSection(currentRole, section)) return
+      if (!section || !canAccessSection(currentRole, section, tenantContext?.permissions || [])) return
       setNavigationRequest({
         ...event.detail,
         requestId: `${Date.now()}-${Math.random()}`,
@@ -158,7 +159,7 @@ export default function App() {
 
     window.addEventListener(NAVIGATE_EVENT, handleExternalNavigation)
     return () => window.removeEventListener(NAVIGATE_EVENT, handleExternalNavigation)
-  }, [currentRole])
+  }, [currentRole, tenantContext?.permissions])
 
   if (window.location.pathname.startsWith('/guest/')) {
     return <GuestGuide />
@@ -184,6 +185,16 @@ export default function App() {
         Loading StayQR...
       </div>
     )
+  }
+
+  const authPath = window.location.pathname
+
+  if (authPath === '/auth/complete-invite') {
+    return <AuthAction mode="invite" session={session} />
+  }
+
+  if (authPath === '/auth/reset-password') {
+    return <AuthAction mode="recovery" session={session} />
   }
 
   if (!session) {
@@ -219,7 +230,7 @@ export default function App() {
       setNavigationRequest(null)
       setMobileMenuOpen(false)
       setActiveSection((currentSection) =>
-        canAccessSection(nextContext.currentRole, currentSection)
+        canAccessSection(nextContext.currentRole, currentSection, nextContext.permissions)
           ? currentSection
           : nextContext.isPlatformAdmin
             ? 'superadmin'
@@ -236,7 +247,7 @@ export default function App() {
   }
 
   const handleNavigate = (section) => {
-    if (!canAccessSection(currentRole, section)) {
+    if (!canAccessSection(currentRole, section, tenantContext?.permissions || [])) {
       alert('You do not have access to this section.')
       return
     }
@@ -255,13 +266,18 @@ export default function App() {
   }
 
   const renderPage = () => {
-    if (!canAccessSection(currentRole, activeSection)) {
+    if (!canAccessSection(currentRole, activeSection, tenantContext?.permissions || [])) {
       return <AccessDenied section={activeSection} />
     }
 
     switch (activeSection) {
       case 'dashboard':
-        return <Dashboard hotel={tenantContext?.selectedHotel || null} />
+        return (
+          <Dashboard
+            hotel={tenantContext?.selectedHotel || null}
+            staff={currentStaff}
+          />
+        )
       case 'rooms':
         return <Rooms />
       case 'reservations':
@@ -325,6 +341,7 @@ export default function App() {
         mobileOpen={mobileMenuOpen}
         currentStaff={currentStaff}
         currentRole={currentRole}
+        permissions={tenantContext?.permissions || []}
         tenantContext={tenantContext}
         onHotelChange={handleHotelChange}
         switchingHotelId={switchingHotelId}

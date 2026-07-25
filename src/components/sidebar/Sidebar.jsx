@@ -50,18 +50,19 @@ export default function Sidebar({
   mobileOpen,
   currentStaff,
   currentRole,
+  permissions = [],
   tenantContext,
   onHotelChange,
   switchingHotelId,
   hotelSwitchError,
 }) {
-  const role = normalizeRole(currentRole || currentStaff?.role || 'manager')
+  const role = normalizeRole(currentRole || currentStaff?.role)
   const userName = currentStaff?.full_name || 'Admin'
   const userRole = currentStaff?.role || role
 
   const visibleGroups = NAV_ITEMS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => canAccessSection(role, item.id)),
+    items: group.items.filter((item) => canAccessSection(role, item.id, permissions)),
   })).filter((group) => group.items.length > 0)
 
   return (

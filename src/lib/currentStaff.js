@@ -49,7 +49,6 @@ const HOTEL_ADMIN_ACCESS = [
 export const ROLE_ACCESS = {
   owner: HOTEL_ADMIN_ACCESS,
   manager: HOTEL_ADMIN_ACCESS,
-
   reception: [
     'dashboard',
     'reservations',
@@ -62,7 +61,6 @@ export const ROLE_ACCESS = {
     'services',
     'invoices',
   ],
-
   front_desk: [
     'dashboard',
     'reservations',
@@ -75,7 +73,6 @@ export const ROLE_ACCESS = {
     'services',
     'invoices',
   ],
-
   frontdesk: [
     'dashboard',
     'reservations',
@@ -88,29 +85,61 @@ export const ROLE_ACCESS = {
     'services',
     'invoices',
   ],
-
   housekeeping: ['dashboard', 'rooms', 'housekeeping', 'services'],
-
   restaurant: ['dashboard', 'menu', 'foodorders'],
-
   accounts: ['dashboard', 'payments', 'charges', 'reports', 'invoices'],
-
   platform_admin: ['superadmin', ...HOTEL_ADMIN_ACCESS],
-
-  // Compatibility only. New platform administrators use platform_admins and
-  // resolve to `platform_admin`, not a hotel-level super_admin membership.
   super_admin: ['superadmin', ...HOTEL_ADMIN_ACCESS],
 }
 
-export function canAccessSection(role, section) {
-  const normalizedRole = normalizeRole(role)
-  const allowed = ROLE_ACCESS[normalizedRole] || []
-  return allowed.includes(section)
+const SECTION_PERMISSION = {
+  dashboard: 'dashboard.view',
+  reservations: 'reservations.view',
+  calendar: 'calendar.view',
+  operations: 'reservations.view',
+  rooms: 'rooms.view',
+  guests: 'guests.view',
+  checkin: 'checkin.manage',
+  menu: 'menu.manage',
+  staff: 'staff.view',
+  qr: 'hotel.manage',
+  payments: 'payments.view',
+  services: 'services.view',
+  foodorders: 'foodorders.view',
+  charges: 'payments.manage',
+  housekeeping: 'housekeeping.view',
+  amenities: 'hotel.manage',
+  hotel: 'hotel.manage',
+  reports: 'reports.view',
+  invoices: 'invoices.view',
+  settings: 'hotel.manage',
+  superadmin: 'superadmin.manage',
 }
 
-export function canManageStaff(role) {
+export function hasPermission(permissions, permissionKey) {
+  if (!permissionKey) return false
+  return Array.isArray(permissions) && permissions.includes(permissionKey)
+}
+
+export function canAccessSection(role, section, permissions = []) {
   const normalizedRole = normalizeRole(role)
-  return ['owner', 'manager', 'platform_admin', 'super_admin'].includes(
-    normalizedRole
-  )
+
+  if (['platform_admin', 'super_admin'].includes(normalizedRole)) {
+    return (ROLE_ACCESS[normalizedRole] || []).includes(section)
+  }
+
+  if (Array.isArray(permissions) && permissions.length > 0) {
+    return hasPermission(permissions, SECTION_PERMISSION[section])
+  }
+
+  return (ROLE_ACCESS[normalizedRole] || []).includes(section)
+}
+
+export function canManageStaff(role, permissions = []) {
+  const normalizedRole = normalizeRole(role)
+
+  if (['platform_admin', 'super_admin'].includes(normalizedRole)) return true
+  if (permissions.length > 0) return hasPermission(permissions, 'staff.manage')
+
+  return ['owner', 'manager'].includes(normalizedRole)
 }

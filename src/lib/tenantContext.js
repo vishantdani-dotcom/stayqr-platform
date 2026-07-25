@@ -237,6 +237,23 @@ async function fetchTenantContext() {
         selectedAccess?.staff?.role || selectedAccess?.membership?.role
       )
 
+  let permissions = []
+
+  if (selectedHotel?.id) {
+    const { data: permissionRows, error: permissionError } = await supabase.rpc(
+      'get_my_hotel_permissions',
+      { target_hotel_id: selectedHotel.id }
+    )
+
+    if (permissionError && !['42883', 'PGRST202'].includes(permissionError.code)) {
+      throw permissionError
+    }
+
+    permissions = (permissionRows || [])
+      .map((row) => row.permission_key)
+      .filter(Boolean)
+  }
+
   const currentStaff =
     selectedAccess || isPlatformAdmin
       ? {
@@ -272,6 +289,7 @@ async function fetchTenantContext() {
     selectedHotelId: selectedHotel?.id || null,
     currentStaff,
     currentRole: selectedRole,
+    permissions,
     requiresHotelSelection: hotelAccess.length > 1 && !storedAccess,
   }
 }

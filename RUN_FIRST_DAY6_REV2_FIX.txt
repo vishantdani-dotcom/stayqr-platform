@@ -1,0 +1,15 @@
+StayQR Day 6 REV2 migration correction
+
+Why the first run failed:
+- PostgreSQL does not provide min(uuid).
+- Because the migration was wrapped in BEGIN/COMMIT, the error rolled back the whole migration.
+- Audit 032 then correctly failed because identity_reconciliation_status had not been created.
+
+Run order:
+1. Replace your project files with this REV2 package (or replace only the corrected migration file).
+2. Run supabase/migrations/202607250012_day6_identity_reconciliation_and_authorization_hardening.sql in Supabase SQL Editor as postgres.
+3. A blank pg_advisory_xact_lock row is expected.
+4. Run supabase/audit/032_verify_day6_identity_reconciliation_and_authorization.sql.
+5. Expected: 16 rows and every passed value = true.
+
+No cleanup or rollback SQL is required before rerunning because the failed transaction committed nothing.

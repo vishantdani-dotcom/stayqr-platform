@@ -1,0 +1,28 @@
+StayQR Day 6 Final Identity & Authorization Closure
+
+ADDED
+- supabase/config.toml
+- supabase/migrations/202607250012_day6_identity_reconciliation_and_authorization_hardening.sql
+- supabase/audit/032_verify_day6_identity_reconciliation_and_authorization.sql
+- supabase/audit/033_seed_day6_final_acceptance_context.sql
+- supabase/audit/034_day6_final_acceptance_gate.sql
+- supabase/audit/035_cleanup_day6_browser_acceptance.sql
+- supabase/audit/036_verify_day6_browser_acceptance_cleanup.sql
+- docs/day-06-final-identity-reconciliation-and-authorization.md
+- DAY6_FINAL_IDENTITY_AUTHORIZATION_CLOSURE_README.md
+
+UPDATED
+- supabase/functions/manage-staff-user/index.ts
+- src/pages/staff/StaffManagement.jsx
+- src/pages/staff/StaffManagement.css
+- src/pages/dashboard/Dashboard.jsx
+- src/App.jsx
+
+SECURITY OUTCOMES
+- ES256-compatible internally verified Edge Function
+- active/invited staff must have a real Auth identity
+- staff is the authoritative access source
+- legacy unlinked profiles are quarantined without deletion
+- permission-aware RLS for staff, reservations, finance, invoices,
+  housekeeping and hotel configuration
+- controlled Day 6 Auth test-user cleanup

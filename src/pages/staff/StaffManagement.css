@@ -449,3 +449,75 @@
     flex: 1;
   }
 }
+.staff-alert {
+  margin-bottom: 18px;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
+.staff-alert.success {
+  color: #7ef0a9;
+  border: 1px solid rgba(46, 204, 113, 0.35);
+  background: rgba(46, 204, 113, 0.1);
+}
+
+.staff-alert.error {
+  color: #ff9b9b;
+  border: 1px solid rgba(255, 77, 77, 0.38);
+  background: rgba(255, 77, 77, 0.1);
+}
+
+.staff-person small {
+  display: block;
+  margin-top: 4px;
+  color: #888;
+}
+
+.staff-identity {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.staff-identity.linked {
+  color: #7ef0a9;
+  background: rgba(46, 204, 113, 0.12);
+}
+
+.staff-identity.missing {
+  color: #ff9b9b;
+  background: rgba(255, 77, 77, 0.12);
+}
+
+.staff-status.invited {
+  color: #d4af37;
+  background: rgba(212, 175, 55, 0.14);
+}
+
+.staff-status.inactive {
+  color: #ffaa00;
+  background: rgba(255, 170, 0, 0.14);
+}
+
+.staff-status.suspended {
+  color: #ff6f6f;
+  background: rgba(255, 77, 77, 0.14);
+}
+
+.staff-identity-note {
+  display: block;
+  max-width: 260px;
+  margin-top: 6px;
+  color: #8f8f8f;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.staff-actions .staff-link-btn {
+  border-color: rgba(212, 175, 55, 0.55);
+  color: #f2cc4d;
+  white-space: nowrap;
+}

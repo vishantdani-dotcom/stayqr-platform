@@ -1,0 +1,7 @@
+# StayQR Edge Function deployment configuration.
+# Gateway JWT verification is disabled because the project uses asymmetric
+# ES256 signing keys. manage-staff-user verifies the bearer token itself with
+# Supabase Auth before any service-role operation.
+
+[functions.manage-staff-user]
+verify_jwt = false

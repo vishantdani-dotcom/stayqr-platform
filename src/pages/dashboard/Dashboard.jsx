@@ -22,7 +22,7 @@ const EMPTY_ANALYTICS = {
   checkOutsDue: 0,
 }
 
-export default function Dashboard({ hotel = null }) {
+export default function Dashboard({ hotel = null, staff = null }) {
   const [rooms, setRooms] = useState([])
   const [currentHotel, setCurrentHotel] = useState(hotel)
   const [analytics, setAnalytics] = useState(EMPTY_ANALYTICS)
@@ -188,7 +188,7 @@ export default function Dashboard({ hotel = null }) {
       <div className="dash-page-header">
         <div>
           <h1 className="dash-page-title">
-            Good {getTimeOfDay()}, <span className="gold-text">Admin</span> 👋
+            Good {getTimeOfDay()}, <span className="gold-text">{getGreetingName(staff)}</span> 👋
           </h1>
 
           <p className="dash-page-sub">
@@ -272,6 +272,13 @@ function AnalyticsCard({ title, value, icon }) {
       </div>
     </div>
   )
+}
+
+
+function getGreetingName(staff) {
+  const fullName = String(staff?.full_name || '').trim()
+  if (!fullName) return 'there'
+  return fullName.split(/\s+/)[0]
 }
 
 function getTimeOfDay() {

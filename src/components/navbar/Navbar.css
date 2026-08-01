@@ -249,3 +249,129 @@
   .navbar-center    { display: none; }
   .navbar-user-info { display: none; }
 }
+.navbar-profile-wrapper {
+  position: relative;
+}
+
+.navbar-user {
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.navbar-user.open,
+.navbar-user:hover {
+  border-color: var(--glass-border);
+  background: var(--glass-hover);
+}
+
+.navbar-user-role {
+  font-size: 10px;
+  color: var(--gold-dim);
+  font-family: var(--font-body);
+  text-transform: capitalize;
+}
+
+.navbar-user-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.navbar-user-chevron.open {
+  transform: rotate(180deg);
+}
+
+.navbar-user-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(360px, calc(100vw - 28px));
+  padding: 10px;
+  background: #101010;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.58);
+  z-index: 220;
+  animation: fadeUp 0.18s ease;
+}
+
+.navbar-user-menu-header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 8px 12px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.navbar-user-menu-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  font-family: var(--font-display);
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+}
+
+.navbar-user-menu-header > div:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.navbar-user-menu-header strong {
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+.navbar-user-menu-header span {
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 11px;
+}
+
+.navbar-user-menu-section {
+  padding: 12px 0;
+}
+
+.navbar-user-menu-label {
+  display: block;
+  margin: 0 4px 7px;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+}
+
+.navbar-logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 9px;
+  color: #ff9a9a;
+  background: rgba(239, 68, 68, 0.07);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.navbar-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.13);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+@media (max-width: 768px) {
+  .navbar-user-chevron { display: none; }
+}

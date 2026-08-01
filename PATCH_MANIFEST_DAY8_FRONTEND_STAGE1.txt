@@ -1,0 +1,56 @@
+StayQR v1.0 — Day 8 Frontend Stage 1 Manifest
+
+NEW FRONTEND FILES
+- src/lib/onboarding.js
+- src/pages/onboarding/HotelOnboarding.jsx
+- src/pages/onboarding/HotelOnboarding.css
+- scripts/day8-onboarding-source-check.mjs
+- README_FIRST_DAY8_FRONTEND_STAGE1.txt
+- PATCH_MANIFEST_DAY8_FRONTEND_STAGE1.txt
+- docs/DAY8_BACKEND_AND_FRONTEND_STAGE1_LOCK_REPORT.md
+
+UPDATED FRONTEND FILES
+- src/App.jsx
+- src/lib/currentStaff.js
+- src/components/sidebar/Sidebar.jsx
+- src/components/navbar/Navbar.jsx
+- src/pages/auth/Login.jsx
+- src/pages/auth/Login.css
+- src/pages/superadmin/SuperAdmin.jsx
+- src/pages/amenities/Amenities.jsx
+- src/pages/menumanagement/MenuManagement.jsx
+- package.json
+- package-lock.json
+
+ADDED DATABASE SOURCE HISTORY
+- supabase/migrations/202607270017_day8_onboarding_settings_floors_trial_foundation.sql
+- supabase/migrations/202607270018_day8_atomic_hotel_onboarding_and_trial_rpcs.sql
+- supabase/migrations/202607270019_day8_inventory_amenities_requests_bulk_rooms.sql
+- supabase/audit/043_day8_hotel_onboarding_configuration_preflight.sql
+- supabase/audit/044_day8_atomic_hotel_onboarding_runtime_acceptance.sql
+- supabase/audit/045_day8_configuration_schema_contract_preflight.sql
+- supabase/audit/046_day8_configuration_bulk_room_runtime_acceptance.sql
+- supabase/audit/047_day8_backend_runtime_cleanup_and_frontend_readiness.sql
+
+ADDED EVIDENCE
+- docs/evidence/day8-migration-017-12-of-12.csv
+- docs/evidence/day8-migration-018-18-of-18.csv
+- docs/evidence/day8-audit-044-rev3-24-of-24.csv
+- docs/evidence/day8-audit-045-schema-contract.csv
+- docs/evidence/day8-migration-019-24-of-24.csv
+- docs/evidence/day8-audit-046-28-of-28.csv
+- docs/evidence/day8-audit-047-18-of-18.csv
+
+SOURCE-GATE RESULTS BEFORE PACKAGING
+- Relative imports: PASS 150/150
+- Day 7 frontend security: PASS 15/15
+- Day 8 onboarding security: PASS 13/13
+- Local QR engine: PASS 5/5
+- ESLint: 0 errors, 16 existing React Hook warnings
+
+PACKAGE DOES NOT INCLUDE
+- .env
+- Supabase service-role key
+- node_modules
+- dist
+- synthetic hotel or guest data

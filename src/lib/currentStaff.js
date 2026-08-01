@@ -1,150 +1,154 @@
-import { supabase } from "./supabase";
+import { loadTenantContext } from './tenantContext'
 
 export async function getCurrentStaff() {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) return null;
-
-  const { data, error } = await supabase
-    .from("staff")
-    .select(`
-      *,
-      hotels (
-        id,
-        hotel_name,
-        location,
-        status
-      )
-    `)
-    .eq("auth_user_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (error) {
-    console.error("Current staff error:", error);
-    return null;
+  try {
+    const context = await loadTenantContext()
+    return context?.currentStaff || null
+  } catch (error) {
+    console.error('Current staff context error:', error)
+    return null
   }
-
-  return data;
 }
 
 export function normalizeRole(role) {
-  return String(role || "")
+  return String(role || '')
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, "_");
+    .replace(/\s+/g, '_')
 }
 
 export function formatRole(role) {
-  return String(role || "Staff")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return String(role || 'Staff')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
 }
+
+const HOTEL_ADMIN_ACCESS = [
+  'dashboard',
+  'reservations',
+  'calendar',
+  'operations',
+  'rooms',
+  'guests',
+  'checkin',
+  'menu',
+  'staff',
+  'qr',
+  'payments',
+  'folios',
+  'services',
+  'foodorders',
+  'charges',
+  'housekeeping',
+  'maintenance',
+  'amenities',
+  'hotel',
+  'reports',
+  'invoices',
+  'settings',
+  'onboarding',
+]
 
 export const ROLE_ACCESS = {
-  owner: [
-    "dashboard",
-    "rooms",
-    "guests",
-    "checkin",
-    "menu",
-    "staff",
-    "qr",
-    "payments",
-    "services",
-    "foodorders",
-    "charges",
-    "housekeeping",
-    "amenities",
-    "hotel",
-    "reports",
-    "invoices",
-    "settings",
-  ],
-
-  manager: [
-    "dashboard",
-    "rooms",
-    "guests",
-    "checkin",
-    "menu",
-    "staff",
-    "qr",
-    "payments",
-    "services",
-    "foodorders",
-    "charges",
-    "housekeeping",
-    "amenities",
-    "hotel",
-    "reports",
-    "invoices",
-    "settings",
-  ],
-
+  owner: HOTEL_ADMIN_ACCESS,
+  manager: HOTEL_ADMIN_ACCESS,
   reception: [
-    "dashboard",
-    "rooms",
-    "guests",
-    "checkin",
-    "payments",
-    "services",
-    "invoices",
+    'dashboard',
+    'reservations',
+    'calendar',
+    'operations',
+    'rooms',
+    'guests',
+    'checkin',
+    'payments',
+    'folios',
+    'services',
+    'invoices',
   ],
-
-  housekeeping: [
-    "dashboard",
-    "rooms",
-    "housekeeping",
-    "services",
+  front_desk: [
+    'dashboard',
+    'reservations',
+    'calendar',
+    'operations',
+    'rooms',
+    'guests',
+    'checkin',
+    'payments',
+    'folios',
+    'services',
+    'invoices',
   ],
-
-  restaurant: [
-    "dashboard",
-    "menu",
-    "foodorders",
+  frontdesk: [
+    'dashboard',
+    'reservations',
+    'calendar',
+    'operations',
+    'rooms',
+    'guests',
+    'checkin',
+    'payments',
+    'folios',
+    'services',
+    'invoices',
   ],
-
-  accounts: [
-    "dashboard",
-    "payments",
-    "charges",
-    "reports",
-    "invoices",
-  ],
-
-  super_admin: [
-    "dashboard",
-    "superadmin",
-    "rooms",
-    "guests",
-    "checkin",
-    "menu",
-    "staff",
-    "qr",
-    "payments",
-    "services",
-    "foodorders",
-    "charges",
-    "housekeeping",
-    "amenities",
-    "hotel",
-    "reports",
-    "invoices",
-    "settings",
-  ],
-};
-
-export function canAccessSection(role, section) {
-  const normalizedRole = normalizeRole(role);
-  const allowed = ROLE_ACCESS[normalizedRole] || [];
-  return allowed.includes(section);
+  housekeeping: ['dashboard', 'rooms', 'housekeeping', 'maintenance', 'services'],
+  restaurant: ['dashboard', 'menu', 'foodorders'],
+  accounts: ['dashboard', 'payments', 'folios', 'charges', 'reports', 'invoices'],
+  platform_admin: ['superadmin', ...HOTEL_ADMIN_ACCESS],
+  super_admin: ['superadmin', ...HOTEL_ADMIN_ACCESS],
 }
 
-export function canManageStaff(role) {
-  const normalizedRole = normalizeRole(role);
-  return ["owner", "manager", "super_admin"].includes(normalizedRole);
+const SECTION_PERMISSION = {
+  dashboard: 'dashboard.view',
+  reservations: 'reservations.view',
+  calendar: 'calendar.view',
+  operations: 'reservations.view',
+  rooms: 'rooms.view',
+  guests: 'guests.view',
+  checkin: 'checkin.manage',
+  menu: 'menu.manage',
+  staff: 'staff.view',
+  qr: 'hotel.manage',
+  payments: 'payments.view',
+  folios: 'payments.view',
+  services: 'services.view',
+  foodorders: 'foodorders.view',
+  charges: 'payments.manage',
+  housekeeping: 'housekeeping.view',
+  maintenance: 'rooms.view',
+  amenities: 'hotel.manage',
+  hotel: 'hotel.manage',
+  reports: 'reports.view',
+  invoices: 'invoices.view',
+  settings: 'hotel.manage',
+  superadmin: 'superadmin.manage',
+  onboarding: 'hotel.manage',
+}
+
+export function hasPermission(permissions, permissionKey) {
+  if (!permissionKey) return false
+  return Array.isArray(permissions) && permissions.includes(permissionKey)
+}
+
+export function canAccessSection(role, section, permissions = []) {
+  const normalizedRole = normalizeRole(role)
+
+  if (['platform_admin', 'super_admin'].includes(normalizedRole)) {
+    return (ROLE_ACCESS[normalizedRole] || []).includes(section)
+  }
+
+  if (Array.isArray(permissions) && permissions.length > 0) {
+    return hasPermission(permissions, SECTION_PERMISSION[section])
+  }
+
+  return (ROLE_ACCESS[normalizedRole] || []).includes(section)
+}
+
+export function canManageStaff(role, permissions = []) {
+  const normalizedRole = normalizeRole(role)
+
+  if (['platform_admin', 'super_admin'].includes(normalizedRole)) return true
+  if (permissions.length > 0) return hasPermission(permissions, 'staff.manage')
+
+  return ['owner', 'manager'].includes(normalizedRole)
 }

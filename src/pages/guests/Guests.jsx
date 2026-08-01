@@ -1,21 +1,68 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
+import { checkoutGuestSession } from "../../lib/day5Reservations";
+import { notifyCalendarInvalidated } from "../../lib/bookingCalendar";
+import GuestDirectory from "./GuestDirectory";
 import "./Guests.css";
 
-export default function Guests() {
+export default function Guests({
+  initialGuestSessionId = null,
+  navigationRequestId = null,
+}) {
   const [sessions, setSessions] = useState([]);
+  const [activeView, setActiveView] = useState("active");
   const [loading, setLoading] = useState(true);
   const [currentHotel, setCurrentHotel] = useState(null);
+  const [focusedSessionId, setFocusedSessionId] = useState(null);
   const [checkoutLoadingId, setCheckoutLoadingId] =
     useState(null);
 
+  const [moveModalOpen, setMoveModalOpen] =
+    useState(false);
+  const [moveLoading, setMoveLoading] =
+    useState(false);
+  const [moveSession, setMoveSession] =
+    useState(null);
+  const [moveRooms, setMoveRooms] =
+    useState([]);
+  const [moveTargetRoomId, setMoveTargetRoomId] =
+    useState("");
+  const [moveReason, setMoveReason] =
+    useState("");
+  const [moveRequestId, setMoveRequestId] =
+    useState("");
+  const [moveCurrentCharge, setMoveCurrentCharge] =
+    useState(0);
+  const [
+    moveConfirmRateChange,
+    setMoveConfirmRateChange,
+  ] = useState(false);
+  const [moveNewRoomCharge, setMoveNewRoomCharge] =
+    useState("");
+
   const [extendModalOpen, setExtendModalOpen] =
+    useState(false);
+  const [extendLoading, setExtendLoading] =
     useState(false);
   const [selectedSession, setSelectedSession] =
     useState(null);
+  const [extendCurrentCheckoutAt, setExtendCurrentCheckoutAt] =
+    useState("");
+  const [extendCurrentCheckoutLocal, setExtendCurrentCheckoutLocal] =
+    useState("");
   const [extendDateTime, setExtendDateTime] =
     useState("");
+  const [extendReason, setExtendReason] =
+    useState("");
+  const [extendRequestId, setExtendRequestId] =
+    useState("");
+  const [extendCurrentCharge, setExtendCurrentCharge] =
+    useState(0);
+  const [extendAdditionalCharge, setExtendAdditionalCharge] =
+    useState("");
+  const [extendConfirmCharge, setExtendConfirmCharge] =
+    useState(false);
 
   const [settlementModalOpen, setSettlementModalOpen] =
     useState(false);
@@ -30,14 +77,46 @@ export default function Guests() {
   const [discountValue, setDiscountValue] =
     useState("0");
   const [invoiceNotes, setInvoiceNotes] = useState("");
+  const [settlementPaymentMethod, setSettlementPaymentMethod] = useState("cash");
+  const [settlementTransactionReference, setSettlementTransactionReference] = useState("");
+  const [notice, setNotice] = useState(null);
   const [
     remainingPaymentCollected,
     setRemainingPaymentCollected,
   ] = useState(false);
 
+  const selectedMoveRoom = useMemo(
+    () =>
+      moveRooms.find(
+        (room) => room.id === moveTargetRoomId
+      ) || null,
+    [moveRooms, moveTargetRoomId]
+  );
+
+  const isCrossTypeRoomMove =
+    Boolean(
+      moveSession?.rooms?.room_type_id &&
+        selectedMoveRoom?.room_type_id &&
+        moveSession.rooms.room_type_id !==
+          selectedMoveRoom.room_type_id
+    );
+
   useEffect(() => {
     initPage();
   }, []);
+
+  useEffect(() => {
+    if (!initialGuestSessionId || loading) return;
+
+    setFocusedSessionId(initialGuestSessionId);
+    const timer = window.setTimeout(() => {
+      document
+        .getElementById(`guest-session-${initialGuestSessionId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+
+    return () => window.clearTimeout(timer);
+  }, [initialGuestSessionId, navigationRequestId, loading, sessions.length]);
 
   async function initPage() {
     const hotel = await getCurrentHotel();
@@ -59,21 +138,24 @@ export default function Guests() {
 
     setLoading(true);
 
+    const sessionSelect = `
+      *,
+      guests (
+        id,
+        full_name,
+        phone
+      ),
+      rooms (
+        id,
+        room_number,
+        room_type,
+        room_type_id
+      )
+    `;
+
     const { data, error } = await supabase
       .from("guest_sessions")
-      .select(`
-        *,
-        guests (
-          id,
-          full_name,
-          phone
-        ),
-        rooms (
-          id,
-          room_number,
-          room_type
-        )
-      `)
+      .select(sessionSelect)
       .eq("hotel_id", hotelId)
       .eq("status", "active")
       .order("checkin_time", {
@@ -87,73 +169,573 @@ export default function Guests() {
       return;
     }
 
-    setSessions(data || []);
+    let visibleSessions = data || [];
+
+    if (
+      initialGuestSessionId &&
+      !visibleSessions.some((session) => session.id === initialGuestSessionId)
+    ) {
+      const { data: requestedSession, error: requestedSessionError } = await supabase
+        .from("guest_sessions")
+        .select(sessionSelect)
+        .eq("hotel_id", hotelId)
+        .eq("id", initialGuestSessionId)
+        .maybeSingle();
+
+      if (requestedSessionError) {
+        console.error("Focused guest stay error:", requestedSessionError);
+      } else if (requestedSession) {
+        visibleSessions = [requestedSession, ...visibleSessions];
+      }
+    }
+
+    setSessions(visibleSessions);
     setLoading(false);
   }
 
-  function openExtendModal(session) {
-    const currentValue =
-      session.extended_until ||
-      session.checkout_time ||
-      new Date().toISOString();
+  function createStayExtensionRequestId() {
+    if (globalThis.crypto?.randomUUID) {
+      return globalThis.crypto.randomUUID();
+    }
 
-    setSelectedSession(session);
-
-    setExtendDateTime(
-      new Date(currentValue)
-        .toISOString()
-        .slice(0, 16)
-    );
-
-    setExtendModalOpen(true);
+    return `extend-${Date.now()}-${Math.random()
+      .toString(16)
+      .slice(2)}`;
   }
 
-  function closeExtendModal() {
+  function resetExtendState() {
     setExtendModalOpen(false);
+    setExtendLoading(false);
     setSelectedSession(null);
+    setExtendCurrentCheckoutAt("");
+    setExtendCurrentCheckoutLocal("");
     setExtendDateTime("");
+    setExtendReason("");
+    setExtendRequestId("");
+    setExtendCurrentCharge(0);
+    setExtendAdditionalCharge("");
+    setExtendConfirmCharge(false);
   }
 
-  async function handleExtendStay() {
-    if (!selectedSession || !extendDateTime) {
-      alert(
-        "Please select new checkout date and time"
+  async function openExtendModal(session) {
+    if (
+      session.reservation_id ||
+      session.reservation_room_id
+    ) {
+      showNotice(
+        "error",
+        "Reservation-linked stays must use the reservation modification workflow."
       );
       return;
     }
 
-    try {
-      const selectedDate = new Date(extendDateTime);
+    if (
+      session.status !== "active" ||
+      !session.room_id ||
+      !session.rooms?.id
+    ) {
+      showNotice(
+        "error",
+        "Only an active direct stay with a physical room can be extended."
+      );
+      return;
+    }
 
-      if (Number.isNaN(selectedDate.getTime())) {
-        alert(
-          "Please select a valid checkout date and time"
+    const currentCheckoutAt =
+      session.extended_until ||
+      session.checkout_time;
+
+    if (!currentCheckoutAt) {
+      showNotice(
+        "error",
+        "The active stay has no checkout time."
+      );
+      return;
+    }
+
+    const hotelTimeZone =
+      currentHotel?.timezone ||
+      Intl.DateTimeFormat().resolvedOptions()
+        .timeZone ||
+      "UTC";
+
+    setSelectedSession(session);
+    setExtendLoading(true);
+
+    try {
+      const { data: roomCharge, error: chargeError } =
+        await supabase
+          .from("payments")
+          .select("id, amount, payment_status")
+          .eq("hotel_id", session.hotel_id)
+          .eq("guest_session_id", session.id)
+          .eq("payment_type", "room_charge")
+          .limit(1)
+          .maybeSingle();
+
+      if (chargeError) throw chargeError;
+      if (!roomCharge) {
+        throw new Error(
+          "The active stay room-charge record is missing."
         );
-        return;
       }
 
-      const { error } = await supabase
-        .from("guest_sessions")
-        .update({
-          extended_until: selectedDate.toISOString(),
-          status: "active",
-        })
-        .eq("id", selectedSession.id)
-        .eq(
-          "hotel_id",
-          selectedSession.hotel_id
+      const currentCheckoutDate = new Date(
+        currentCheckoutAt
+      );
+
+      if (
+        Number.isNaN(
+          currentCheckoutDate.getTime()
+        )
+      ) {
+        throw new Error(
+          "The active stay checkout time is invalid."
         );
+      }
+
+      const defaultNewCheckoutAt = new Date(
+        currentCheckoutDate.getTime() +
+          24 * 60 * 60 * 1000
+      ).toISOString();
+
+      setExtendCurrentCheckoutAt(
+        currentCheckoutAt
+      );
+      setExtendCurrentCheckoutLocal(
+        formatDateTimeLocalInTimeZone(
+          currentCheckoutAt,
+          hotelTimeZone
+        )
+      );
+      setExtendDateTime(
+        formatDateTimeLocalInTimeZone(
+          defaultNewCheckoutAt,
+          hotelTimeZone
+        )
+      );
+      setExtendReason("");
+      setExtendRequestId(
+        createStayExtensionRequestId()
+      );
+      setExtendCurrentCharge(
+        Number(roomCharge.amount || 0)
+      );
+      setExtendAdditionalCharge("");
+      setExtendConfirmCharge(false);
+      setExtendModalOpen(true);
+    } catch (error) {
+      setSelectedSession(null);
+      console.error(
+        "Prepare stay extension error:",
+        error
+      );
+      showNotice(
+        "error",
+        error.message ||
+          "Unable to prepare the stay extension."
+      );
+    } finally {
+      setExtendLoading(false);
+    }
+  }
+
+  function closeExtendModal() {
+    if (extendLoading) return;
+    resetExtendState();
+  }
+
+  async function handleExtendStay() {
+    if (
+      !selectedSession ||
+      !extendCurrentCheckoutAt ||
+      !extendDateTime
+    ) {
+      showNotice(
+        "error",
+        "Select a valid new checkout date and time."
+      );
+      return;
+    }
+
+    if (extendReason.trim().length < 3) {
+      showNotice(
+        "error",
+        "Enter an extension reason of at least 3 characters."
+      );
+      return;
+    }
+
+    const parsedAdditionalCharge = Number(
+      extendAdditionalCharge
+    );
+
+    if (
+      !Number.isFinite(parsedAdditionalCharge) ||
+      parsedAdditionalCharge < 0
+    ) {
+      showNotice(
+        "error",
+        "Enter a valid non-negative additional room charge."
+      );
+      return;
+    }
+
+    if (!extendConfirmCharge) {
+      showNotice(
+        "error",
+        "Confirm the additional room charge before extending the stay."
+      );
+      return;
+    }
+
+    const hotelTimeZone =
+      currentHotel?.timezone ||
+      Intl.DateTimeFormat().resolvedOptions()
+        .timeZone ||
+      "UTC";
+
+    let newCheckoutAt;
+
+    try {
+      newCheckoutAt =
+        zonedDateTimeLocalToISOString(
+          extendDateTime,
+          hotelTimeZone
+        );
+    } catch (error) {
+      showNotice(
+        "error",
+        error.message ||
+          "The new checkout time is invalid for the hotel timezone."
+      );
+      return;
+    }
+
+    if (
+      new Date(newCheckoutAt).getTime() <=
+      new Date(extendCurrentCheckoutAt).getTime()
+    ) {
+      showNotice(
+        "error",
+        "The new checkout must be later than the current checkout."
+      );
+      return;
+    }
+
+    setExtendLoading(true);
+
+    try {
+      const { data, error } = await supabase.rpc(
+        "extend_active_walkin_guest_stay",
+        {
+          target_hotel_id:
+            selectedSession.hotel_id,
+          target_guest_session_id:
+            selectedSession.id,
+          payload: {
+            request_id: extendRequestId,
+            expected_checkout_at:
+              extendCurrentCheckoutAt,
+            new_checkout_at: newCheckoutAt,
+            additional_room_charge:
+              parsedAdditionalCharge,
+            confirm_room_charge:
+              extendConfirmCharge,
+            extension_reason:
+              extendReason.trim(),
+            source: "guests_active_stays",
+            workflow:
+              "day10_atomic_active_stay_extension",
+          },
+        }
+      );
 
       if (error) throw error;
 
-      alert("Stay extended successfully");
+      notifyCalendarInvalidated({
+        reason: "active_stay_extended",
+        guestSessionId: selectedSession.id,
+      });
 
-      closeExtendModal();
+      const roomNumber =
+        data?.room_number ||
+        selectedSession.rooms?.room_number ||
+        "-";
+      const finalCharge = Number(
+        data?.room_charge?.current_amount ??
+          extendCurrentCharge +
+            parsedAdditionalCharge
+      );
+      const finalCheckout =
+        data?.new_checkout_at ||
+        newCheckoutAt;
+      const wasIdempotent =
+        data?.idempotent === true;
 
+      resetExtendState();
       await fetchGuests(currentHotel?.id);
+
+      showNotice(
+        "success",
+        wasIdempotent
+          ? `Stay-extension request already applied for Room ${roomNumber}. Checkout remains ${formatDateTimeInTimeZone(
+              finalCheckout,
+              hotelTimeZone
+            )}; room charge ₹${formatMoney(
+              finalCharge
+            )}.`
+          : `Stay in Room ${roomNumber} extended to ${formatDateTimeInTimeZone(
+              finalCheckout,
+              hotelTimeZone
+            )}. Room charge is now ₹${formatMoney(
+              finalCharge
+            )}.`
+      );
     } catch (error) {
       console.error("Extend stay error:", error);
-      alert(error.message);
+      showNotice(
+        "error",
+        error.message ||
+          "The active stay could not be extended."
+      );
+
+      await fetchGuests(currentHotel?.id);
+    } finally {
+      setExtendLoading(false);
+    }
+  }
+
+  function createRoomMoveRequestId() {
+    if (globalThis.crypto?.randomUUID) {
+      return globalThis.crypto.randomUUID();
+    }
+
+    return `move-${Date.now()}-${Math.random()
+      .toString(16)
+      .slice(2)}`;
+  }
+
+  function closeMoveModal() {
+    if (moveLoading) return;
+
+    setMoveModalOpen(false);
+    setMoveSession(null);
+    setMoveRooms([]);
+    setMoveTargetRoomId("");
+    setMoveReason("");
+    setMoveRequestId("");
+    setMoveCurrentCharge(0);
+    setMoveConfirmRateChange(false);
+    setMoveNewRoomCharge("");
+  }
+
+  async function openMoveModal(session) {
+    if (
+      session.reservation_id ||
+      session.reservation_room_id
+    ) {
+      showNotice(
+        "error",
+        "Reservation-linked stays must use the reservation room workflow."
+      );
+      return;
+    }
+
+    if (
+      session.status !== "active" ||
+      !session.room_id ||
+      !session.rooms?.id
+    ) {
+      showNotice(
+        "error",
+        "Only an active stay with a physical room can be moved."
+      );
+      return;
+    }
+
+    setMoveLoading(true);
+    setMoveSession(session);
+
+    try {
+      const [
+        { data: availableRooms, error: roomsError },
+        { data: roomCharge, error: chargeError },
+      ] = await Promise.all([
+        supabase
+          .from("rooms")
+          .select(
+            "id, room_number, room_type, room_type_id, status"
+          )
+          .eq("hotel_id", session.hotel_id)
+          .eq("status", "available")
+          .neq("id", session.room_id)
+          .order("room_number"),
+        supabase
+          .from("payments")
+          .select("id, amount, payment_status")
+          .eq("hotel_id", session.hotel_id)
+          .eq("guest_session_id", session.id)
+          .eq("payment_type", "room_charge")
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      if (roomsError) throw roomsError;
+      if (chargeError) throw chargeError;
+
+      setMoveRooms(availableRooms || []);
+      setMoveTargetRoomId("");
+      setMoveReason("");
+      setMoveRequestId(createRoomMoveRequestId());
+      setMoveCurrentCharge(
+        Number(roomCharge?.amount || 0)
+      );
+      setMoveConfirmRateChange(false);
+      setMoveNewRoomCharge(
+        String(Number(roomCharge?.amount || 0))
+      );
+      setMoveModalOpen(true);
+    } catch (error) {
+      setMoveSession(null);
+      console.error("Prepare room move error:", error);
+      showNotice(
+        "error",
+        error.message ||
+          "Unable to prepare the room move."
+      );
+    } finally {
+      setMoveLoading(false);
+    }
+  }
+
+  async function handleMoveRoom() {
+    if (
+      !moveSession ||
+      !selectedMoveRoom ||
+      !moveTargetRoomId
+    ) {
+      showNotice(
+        "error",
+        "Select an available target room."
+      );
+      return;
+    }
+
+    if (moveReason.trim().length < 3) {
+      showNotice(
+        "error",
+        "Enter a room-move reason of at least 3 characters."
+      );
+      return;
+    }
+
+    if (
+      isCrossTypeRoomMove &&
+      !moveConfirmRateChange
+    ) {
+      showNotice(
+        "error",
+        "Confirm the rate change for this room-type change."
+      );
+      return;
+    }
+
+    const parsedNewCharge = Number(
+      moveNewRoomCharge
+    );
+
+    if (
+      isCrossTypeRoomMove &&
+      (!Number.isFinite(parsedNewCharge) ||
+        parsedNewCharge < 0)
+    ) {
+      showNotice(
+        "error",
+        "Enter a valid non-negative room charge."
+      );
+      return;
+    }
+
+    setMoveLoading(true);
+
+    try {
+      const { data, error } = await supabase.rpc(
+        "move_active_walkin_guest_room",
+        {
+          target_hotel_id: moveSession.hotel_id,
+          target_guest_session_id: moveSession.id,
+          target_room_id: moveTargetRoomId,
+          payload: {
+            request_id: moveRequestId,
+            expected_from_room_id:
+              moveSession.room_id,
+            move_reason: moveReason.trim(),
+            effective_at: new Date().toISOString(),
+            confirm_rate_change:
+              isCrossTypeRoomMove
+                ? moveConfirmRateChange
+                : false,
+            new_room_charge:
+              isCrossTypeRoomMove
+                ? parsedNewCharge
+                : null,
+            source: "guests_active_stays",
+            workflow:
+              "day10_atomic_active_room_move",
+          },
+        }
+      );
+
+      if (error) throw error;
+
+      notifyCalendarInvalidated({
+        reason: "active_stay_room_moved",
+        guestSessionId: moveSession.id,
+      });
+
+      const fromRoom =
+        data?.from_room?.room_number ||
+        moveSession.rooms?.room_number ||
+        "-";
+      const toRoom =
+        data?.to_room?.room_number ||
+        selectedMoveRoom.room_number ||
+        "-";
+      const finalCharge = Number(
+        data?.room_charge?.current_amount ??
+          moveCurrentCharge
+      );
+
+      setMoveModalOpen(false);
+      setMoveSession(null);
+      setMoveRooms([]);
+      setMoveTargetRoomId("");
+      setMoveReason("");
+      setMoveRequestId("");
+      setMoveCurrentCharge(0);
+      setMoveConfirmRateChange(false);
+      setMoveNewRoomCharge("");
+
+      await fetchGuests(currentHotel?.id);
+
+      showNotice(
+        "success",
+        `Stay moved from Room ${fromRoom} to Room ${toRoom}. Room charge ₹${formatMoney(
+          finalCharge
+        )}; old room queued for cleaning.`
+      );
+    } catch (error) {
+      console.error("Room move error:", error);
+      showNotice(
+        "error",
+        error.message ||
+          "The active stay could not be moved."
+      );
+
+      await fetchGuests(currentHotel?.id);
+    } finally {
+      setMoveLoading(false);
     }
   }
 
@@ -166,12 +748,23 @@ export default function Guests() {
     setDiscountType("fixed");
     setDiscountValue("0");
     setInvoiceNotes("");
+    setSettlementPaymentMethod("cash");
+    setSettlementTransactionReference("");
     setRemainingPaymentCollected(false);
   }
 
   function closeSettlementModal() {
     if (settlementLoading) return;
     resetSettlementState();
+  }
+
+  function showNotice(type, message) {
+    setNotice({ type, message });
+    window.setTimeout(() => {
+      setNotice((current) =>
+        current?.message === message ? null : current
+      );
+    }, 6500);
   }
 
   async function openSettlementModal(session) {
@@ -231,6 +824,7 @@ export default function Guests() {
         .select("id, order_status")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id)
+        .eq("room_id", room.id)
         .gte("created_at", stayStart)
         .in("order_status", [
           "pending",
@@ -282,6 +876,7 @@ export default function Guests() {
         .select("*")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id)
+        .eq("room_id", room.id)
         .gte("created_at", stayStart);
 
       if (paymentError) throw paymentError;
@@ -381,6 +976,7 @@ export default function Guests() {
         `)
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id)
+        .eq("room_id", room.id)
         .eq("order_status", "delivered")
         .gte("created_at", stayStart);
 
@@ -424,6 +1020,7 @@ export default function Guests() {
         .select("*")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id)
+        .eq("room_id", room.id)
         .gte("created_at", stayStart);
 
       if (chargeError) throw chargeError;
@@ -448,6 +1045,7 @@ export default function Guests() {
         .select("*")
         .eq("hotel_id", session.hotel_id)
         .eq("guest_id", guest.id)
+        .eq("room_id", room.id)
         .eq("status", "completed")
         .gte("created_at", stayStart);
 
@@ -557,27 +1155,18 @@ export default function Guests() {
       Number(discountValue || 0)
     );
 
-    let discountAmount = 0;
-
-    if (discountType === "percentage") {
-      const safeDiscountPercent = Math.min(
-        100,
-        safeDiscountValue
-      );
-
-      discountAmount =
-        (subtotal + taxAmount) *
-        (safeDiscountPercent / 100);
-    } else {
-      discountAmount = safeDiscountValue;
-    }
+    const rawDiscountAmount =
+      discountType === "percentage"
+        ? (subtotal + taxAmount) *
+          (Math.min(100, safeDiscountValue) / 100)
+        : safeDiscountValue;
 
     const amountBeforeDiscount =
       subtotal + taxAmount;
 
-    discountAmount = Math.min(
+    const discountAmount = Math.min(
       amountBeforeDiscount,
-      discountAmount
+      rawDiscountAmount
     );
 
     const grandTotal = Math.max(
@@ -620,54 +1209,21 @@ export default function Guests() {
   async function completeFinalSettlement() {
     if (!settlementData) return;
 
+    const { session } = settlementData;
     const {
-      session,
-      guest,
-      room,
-      stayStart,
-      stayEnd,
-      stayHours,
-      stayNights,
-      payments,
-      paymentIds,
-      paymentCollections,
-      roomAmount,
-      foodAmount,
-      manualAmount,
-      serviceAmount,
-      foodOrders,
-      foodOrderCount,
-      totalFoodItems,
-      manualCharges,
-      chargeableServices,
-    } = settlementData;
-
-    const {
-      subtotal,
       taxPercent: finalTaxPercent,
-      taxAmount,
       discountValue: finalDiscountValue,
-      discountAmount,
-      grandTotal,
-      previouslyPaid,
       amountToCollect,
       excessPaid,
     } = settlementCalculation;
 
-    if (
-      Number(taxPercent || 0) < 0 ||
-      Number(taxPercent || 0) > 100
-    ) {
-      alert(
-        "Tax percentage must be between 0 and 100."
-      );
+    if (Number(taxPercent || 0) < 0 || Number(taxPercent || 0) > 100) {
+      showNotice("error", "Tax percentage must be between 0 and 100.");
       return;
     }
 
     if (Number(discountValue || 0) < 0) {
-      alert(
-        "Discount value cannot be negative."
-      );
+      showNotice("error", "Discount value cannot be negative.");
       return;
     }
 
@@ -675,497 +1231,85 @@ export default function Guests() {
       discountType === "percentage" &&
       Number(discountValue || 0) > 100
     ) {
-      alert(
-        "Discount percentage cannot exceed 100%."
-      );
+      showNotice("error", "Discount percentage cannot exceed 100%.");
       return;
     }
 
     if (
-      amountToCollect > 0 &&
-      !remainingPaymentCollected
+      ["upi", "card", "bank_transfer"].includes(
+        settlementPaymentMethod
+      ) &&
+      !settlementTransactionReference.trim()
     ) {
-      alert(
-        `Please confirm that the remaining ₹${formatMoney(
-          amountToCollect
-        )} has been collected before checkout.`
+      showNotice(
+        "error",
+        "Enter the transaction/reference number for the selected payment method."
       );
       return;
     }
 
-    if (excessPaid > 0) {
-      const proceedWithExcess =
-        window.confirm(
-          `Previous payments exceed the final bill by ₹${formatMoney(
-            excessPaid
-          )}.\n\nPlease verify whether a refund or adjustment is required. Continue checkout?`
-        );
+    if (amountToCollect > 0 && !remainingPaymentCollected) {
+      showNotice(
+        "error",
+        `Confirm collection of the remaining ₹${formatMoney(
+          amountToCollect
+        )} before checkout.`
+      );
+      return;
+    }
 
-      if (!proceedWithExcess) return;
+    let allowExcessPaid = false;
+
+    if (excessPaid > 0) {
+      allowExcessPaid = window.confirm(
+        `Previous payments exceed the final bill by ₹${formatMoney(
+          excessPaid
+        )}.\n\nPlease verify whether a refund or adjustment is required. Continue checkout?`
+      );
+
+      if (!allowExcessPaid) return;
     }
 
     setSettlementLoading(true);
     setCheckoutLoadingId(session.id);
 
     try {
-      const invoiceNumber =
-        generateInvoiceNumber();
-
-      /*
-       * Settlement confirmation means the final invoice
-       * is fully paid before checkout.
-       */
-      const finalPaidAmount = grandTotal;
-      const pendingAmount = 0;
-
-      const {
-        data: createdInvoice,
-        error: invoiceError,
-      } = await supabase
-        .from("invoices")
-        .insert([
-          {
-            hotel_id: session.hotel_id,
-            guest_session_id: session.id,
-            room_id: room.id,
-            guest_id: guest.id,
-
-            invoice_number: invoiceNumber,
-
-            room_amount: roomAmount,
-            food_amount: foodAmount,
-            manual_amount: manualAmount,
-            service_amount: serviceAmount,
-
-            subtotal_amount: subtotal,
-
-            tax_percent: finalTaxPercent,
-            tax_amount: taxAmount,
-
-            discount_type: discountType,
-            discount_value:
-              finalDiscountValue,
-            discount_amount: discountAmount,
-
-            previous_paid_amount:
-              previouslyPaid,
-            amount_to_collect:
-              amountToCollect,
-
-            total_amount: grandTotal,
-
-            payment_status: "paid",
-            invoice_status: "paid",
-
-            paid_amount: finalPaidAmount,
-            pending_amount: pendingAmount,
-            settled_at: stayEnd,
-
-            checkin_time: stayStart,
-            checkout_time: stayEnd,
-            stay_hours: stayHours,
-            stay_nights: stayNights,
-
-            food_order_count:
-              foodOrderCount,
-            food_item_count:
-              totalFoodItems,
-
-            invoice_notes:
-              invoiceNotes.trim() || null,
-          },
-        ])
-        .select()
-        .single();
-
-      if (invoiceError) throw invoiceError;
-
-      /*
-       * Create detailed invoice line items.
-       */
-      const invoiceItems = [];
-
-      if (roomAmount > 0) {
-        invoiceItems.push({
-          invoice_id: createdInvoice.id,
-          hotel_id: session.hotel_id,
-          guest_id: guest.id,
-          room_id: room.id,
-
-          item_type: "room",
-
-          description: `${
-            room.room_type || "Hotel Room"
-          } · ${stayNights} night(s)`,
-
-          quantity: stayNights,
-
-          unit_price:
-            stayNights > 0
-              ? roomAmount / stayNights
-              : roomAmount,
-
-          amount: roomAmount,
-
-          source_id: session.id,
-        });
-      }
-
-      foodOrders.forEach((order) => {
-        (
-          order.food_order_items || []
-        ).forEach((item) => {
-          const quantity = Number(
-            item.quantity || 0
-          );
-
-          const unitPrice = Number(
-            item.price || 0
-          );
-
-          const amount =
-            quantity * unitPrice;
-
-          if (
-            quantity <= 0 ||
-            amount <= 0
-          ) {
-            return;
-          }
-
-          invoiceItems.push({
-            invoice_id:
-              createdInvoice.id,
-            hotel_id: session.hotel_id,
-            guest_id: guest.id,
-            room_id: room.id,
-
-            item_type: "food",
-
-            description:
-              item.menu_items?.item_name ||
-              "Food Item",
-
-            quantity,
-            unit_price: unitPrice,
-            amount,
-
-            source_id: order.id,
-          });
-        });
+      const result = await checkoutGuestSession({
+        hotelId: session.hotel_id,
+        guestSessionId: session.id,
+        taxPercent: finalTaxPercent,
+        discountType,
+        discountValue: finalDiscountValue,
+        remainingPaymentCollected,
+        settlementPaymentMethod,
+        settlementTransactionReference,
+        invoiceNotes,
+        allowExcessPaid,
       });
 
-      manualCharges.forEach((charge) => {
-        const amount = Number(
-          charge.charge_amount || 0
-        );
-
-        if (amount <= 0) return;
-
-        invoiceItems.push({
-          invoice_id: createdInvoice.id,
-          hotel_id: session.hotel_id,
-          guest_id: guest.id,
-          room_id: room.id,
-
-          item_type: "manual_charge",
-
-          description:
-            charge.charge_name ||
-            "Additional Charge",
-
-          quantity: 1,
-          unit_price: amount,
-          amount,
-
-          source_id: charge.id,
-        });
+      notifyCalendarInvalidated({
+        reason: "reservation_checked_out",
+        reservationId: result.reservation_id || session.reservation_id,
       });
 
-      chargeableServices.forEach(
-        (service) => {
-          const amount = Number(
-            service.service_amount ||
-              service.charge_amount ||
-              service.amount ||
-              0
-          );
-
-          if (amount <= 0) return;
-
-          invoiceItems.push({
-            invoice_id:
-              createdInvoice.id,
-            hotel_id:
-              session.hotel_id,
-            guest_id: guest.id,
-            room_id: room.id,
-
-            item_type: "service",
-
-            description:
-              service.request_type ||
-              "Hotel Service",
-
-            quantity: 1,
-            unit_price: amount,
-            amount,
-
-            source_id: service.id,
-          });
-        }
-      );
-
-      if (taxAmount > 0) {
-        invoiceItems.push({
-          invoice_id: createdInvoice.id,
-          hotel_id: session.hotel_id,
-          guest_id: guest.id,
-          room_id: room.id,
-
-          item_type: "tax",
-
-          description: `Tax ${formatMoney(
-            finalTaxPercent
-          )}%`,
-
-          quantity: 1,
-          unit_price: taxAmount,
-          amount: taxAmount,
-
-          source_id: null,
-        });
-      }
-
-      if (discountAmount > 0) {
-        invoiceItems.push({
-          invoice_id: createdInvoice.id,
-          hotel_id: session.hotel_id,
-          guest_id: guest.id,
-          room_id: room.id,
-
-          item_type: "discount",
-
-          description:
-            discountType === "percentage"
-              ? `Discount ${formatMoney(
-                  finalDiscountValue
-                )}%`
-              : "Fixed Discount",
-
-          quantity: 1,
-          unit_price: -discountAmount,
-          amount: -discountAmount,
-
-          source_id: null,
-        });
-      }
-
-      if (invoiceItems.length > 0) {
-        const {
-          error: invoiceItemsError,
-        } = await supabase
-          .from("invoice_items")
-          .insert(invoiceItems);
-
-        if (invoiceItemsError) {
-          /*
-           * Prevent incomplete invoices.
-           */
-          await supabase
-            .from("invoices")
-            .delete()
-            .eq("id", createdInvoice.id)
-            .eq(
-              "hotel_id",
-              session.hotel_id
-            );
-
-          throw invoiceItemsError;
-        }
-      }
-
-      /*
-       * Link payment records to invoice.
-       */
-      if (paymentIds.length > 0) {
-        const {
-          error: paymentUpdateError,
-        } = await supabase
-          .from("payments")
-          .update({
-            payment_status: "paid",
-            invoice_id: createdInvoice.id,
-            paid_at: stayEnd,
-          })
-          .eq("hotel_id", session.hotel_id)
-          .in("id", paymentIds);
-
-        if (paymentUpdateError) {
-          throw paymentUpdateError;
-        }
-
-        const {
-          error: collectionUpdateError,
-        } = await supabase
-          .from("payment_collections")
-          .update({
-            invoice_id: createdInvoice.id,
-          })
-          .eq("hotel_id", session.hotel_id)
-          .in("payment_id", paymentIds);
-
-        if (collectionUpdateError) {
-          throw collectionUpdateError;
-        }
-      }
-
-      /*
-       * Mark delivered food orders paid.
-       */
-      const { error: foodUpdateError } =
-        await supabase
-          .from("food_orders")
-          .update({
-            payment_status: "paid",
-          })
-          .eq("hotel_id", session.hotel_id)
-          .eq("guest_id", guest.id)
-          .eq("order_status", "delivered")
-          .gte("created_at", stayStart);
-
-      if (foodUpdateError) {
-        throw foodUpdateError;
-      }
-
-      /*
-       * Mark manual charges paid.
-       */
-      const {
-        error: chargeUpdateError,
-      } = await supabase
-        .from("manual_charges")
-        .update({
-          payment_status: "paid",
-        })
-        .eq("hotel_id", session.hotel_id)
-        .eq("guest_id", guest.id)
-        .gte("created_at", stayStart);
-
-      if (chargeUpdateError) {
-        throw chargeUpdateError;
-      }
-
-      /*
-       * Complete guest session and expire QR.
-       */
-      const { error: sessionError } =
-        await supabase
-          .from("guest_sessions")
-          .update({
-            status: "completed",
-            expired_at: stayEnd,
-          })
-          .eq("id", session.id)
-          .eq(
-            "hotel_id",
-            session.hotel_id
-          )
-          .eq("status", "active");
-
-      if (sessionError) {
-        throw sessionError;
-      }
-
-      /*
-       * Send room to cleaning.
-       */
-      const { error: roomError } =
-        await supabase
-          .from("rooms")
-          .update({
-            status: "cleaning",
-          })
-          .eq("id", room.id)
-          .eq(
-            "hotel_id",
-            session.hotel_id
-          );
-
-      if (roomError) throw roomError;
-
-      /*
-       * Avoid duplicate room-cleaning tasks.
-       */
-      const {
-        data: existingCleaningTask,
-        error: cleaningTaskCheckError,
-      } = await supabase
-        .from("housekeeping_tasks")
-        .select("id")
-        .eq("hotel_id", session.hotel_id)
-        .eq("room_id", room.id)
-        .eq(
-          "task_type",
-          "room_cleaning"
-        )
-        .in("status", [
-          "pending",
-          "in_progress",
-        ])
-        .limit(1)
-        .maybeSingle();
-
-      if (cleaningTaskCheckError) {
-        throw cleaningTaskCheckError;
-      }
-
-      if (!existingCleaningTask) {
-        const {
-          error: housekeepingError,
-        } = await supabase
-          .from("housekeeping_tasks")
-          .insert([
-            {
-              hotel_id:
-                session.hotel_id,
-              room_id: room.id,
-              room_number:
-                room.room_number,
-              task_type:
-                "room_cleaning",
-              status: "pending",
-            },
-          ]);
-
-        if (housekeepingError) {
-          throw housekeepingError;
-        }
-      }
-
-      alert(
-        `Checkout completed successfully.\n\nInvoice: ${invoiceNumber}\nGrand Total: ₹${formatMoney(
-          grandTotal
-        )}\nTax: ₹${formatMoney(
-          taxAmount
-        )}\nDiscount: ₹${formatMoney(
-          discountAmount
-        )}`
+      showNotice(
+        "success",
+        `Checkout completed. Invoice ${result.invoice_number}. Final total ₹${formatMoney(
+          result.grand_total
+        )}; collected at checkout ₹${formatMoney(
+          result.amount_collected_at_checkout
+        )}. Room ${result.room_number} is now queued for cleaning.`
       );
 
       resetSettlementState();
-
       await fetchGuests(currentHotel?.id);
     } catch (error) {
-      console.error(
-        "Final settlement error:",
-        error
+      console.error("Final settlement error:", error);
+      showNotice(
+        "error",
+        error.message || "Final checkout failed"
       );
-
-      alert(
-        error.message ||
-          "Final checkout failed"
-      );
+      await fetchGuests(currentHotel?.id);
     } finally {
       setSettlementLoading(false);
       setCheckoutLoadingId(null);
@@ -1174,27 +1318,48 @@ export default function Guests() {
 
   return (
     <div className="rooms-page">
-      <div className="rooms-header">
+      {notice && (
+        <div className={`guests-toast ${notice.type}`} role="status">
+          {notice.message}
+        </div>
+      )}
+      <div className="rooms-header guests-page-header">
         <div>
           <h1>Guests</h1>
 
           <p>
             {currentHotel?.hotel_name || "Hotel"} ·
-            Manage active guests, final billing,
-            tax, discounts, stay extension and
-            checkout.
+            Active stays, repeat-guest history, identity, notes, preferences and private KYC metadata.
           </p>
         </div>
 
+        {activeView === "active" && (
+          <button onClick={() => fetchGuests(currentHotel?.id)}>
+            Refresh active stays
+          </button>
+        )}
+      </div>
+
+      <div className="guests-view-tabs" role="tablist" aria-label="Guest views">
         <button
-          onClick={() =>
-            fetchGuests(currentHotel?.id)
-          }
+          type="button"
+          className={activeView === "active" ? "active" : ""}
+          onClick={() => setActiveView("active")}
         >
-          Refresh
+          Active stays <span>{sessions.length}</span>
+        </button>
+        <button
+          type="button"
+          className={activeView === "directory" ? "active" : ""}
+          onClick={() => setActiveView("directory")}
+        >
+          Guest directory & history
         </button>
       </div>
 
+      {activeView === "directory" ? (
+        <GuestDirectory currentHotel={currentHotel} onNotice={showNotice} />
+      ) : (
       <div className="rooms-card">
         {loading ? (
           <p>Loading guests...</p>
@@ -1209,6 +1374,7 @@ export default function Guests() {
                 <th>Phone</th>
                 <th>Check-In Time</th>
                 <th>Checkout Time</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -1220,7 +1386,15 @@ export default function Guests() {
                   session.id;
 
                 return (
-                  <tr key={session.id}>
+                  <tr
+                    key={session.id}
+                    id={`guest-session-${session.id}`}
+                    className={
+                      focusedSessionId === session.id
+                        ? "guest-session-focused"
+                        : ""
+                    }
+                  >
                     <td>
                       {session.guests
                         ?.full_name || "-"}
@@ -1270,6 +1444,14 @@ export default function Guests() {
                     </td>
 
                     <td>
+                      <span className={`guest-session-status ${session.status || "unknown"}`}>
+                        {String(session.status || "unknown")
+                          .replace(/_/g, " ")
+                          .replace(/\b\w/g, (character) => character.toUpperCase())}
+                      </span>
+                    </td>
+
+                    <td>
                       <div
                         style={{
                           display: "flex",
@@ -1293,24 +1475,53 @@ export default function Guests() {
                             : "Final Bill & Checkout"}
                         </button>
 
-                        <button
-                          className="checkout-btn"
-                          disabled={
-                            checkoutLoading
-                          }
-                          style={{
-                            background:
-                              "#d4af37",
-                            color: "#000",
-                          }}
-                          onClick={() =>
-                            openExtendModal(
-                              session
-                            )
-                          }
-                        >
-                          Extend Stay
-                        </button>
+                        {!session.reservation_id &&
+                          !session.reservation_room_id && (
+                          <button
+                            className="checkout-btn guest-move-btn"
+                            disabled={
+                              checkoutLoading ||
+                              moveLoading
+                            }
+                            onClick={() =>
+                              openMoveModal(session)
+                            }
+                          >
+                            {moveLoading &&
+                            moveSession?.id ===
+                              session.id
+                              ? "Preparing..."
+                              : "Move Room"}
+                          </button>
+                        )}
+
+                        {!session.reservation_id &&
+                          !session.reservation_room_id && (
+                          <button
+                            className="checkout-btn"
+                            disabled={
+                              checkoutLoading ||
+                              moveLoading ||
+                              extendLoading
+                            }
+                            style={{
+                              background:
+                                "#d4af37",
+                              color: "#000",
+                            }}
+                            onClick={() =>
+                              openExtendModal(
+                                session
+                              )
+                            }
+                          >
+                            {extendLoading &&
+                            selectedSession?.id ===
+                              session.id
+                              ? "Preparing..."
+                              : "Extend Stay"}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1320,47 +1531,464 @@ export default function Guests() {
           </table>
         )}
       </div>
+      )}
 
-      {extendModalOpen && (
+      {moveModalOpen && moveSession && (
         <div style={modalOverlay}>
-          <div style={smallModal}>
-            <h2 style={modalTitle}>
-              Extend Stay
-            </h2>
+          <div style={roomMoveModal}>
+            <div style={settlementHeader}>
+              <div>
+                <p style={kicker}>
+                  AUTHORITATIVE ACTIVE-STAY ACTION
+                </p>
+                <h2 style={settlementTitle}>
+                  Move Room
+                </h2>
+                <p style={modalSub}>
+                  {moveSession.guests?.full_name ||
+                    "Active guest"}{" "}
+                  · Room{" "}
+                  {moveSession.rooms?.room_number ||
+                    "-"}
+                </p>
+              </div>
 
-            <p style={modalSub}>
-              Select the new checkout date and time
-              for this guest.
-            </p>
+              <button
+                type="button"
+                style={modalCloseButton}
+                disabled={moveLoading}
+                onClick={closeMoveModal}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="guest-move-summary">
+              <div>
+                <span>Current room</span>
+                <strong>
+                  Room{" "}
+                  {moveSession.rooms?.room_number ||
+                    "-"}
+                </strong>
+                <small>
+                  {moveSession.rooms?.room_type ||
+                    "Room"}
+                </small>
+              </div>
+
+              <div>
+                <span>Current room charge</span>
+                <strong>
+                  ₹{formatMoney(moveCurrentCharge)}
+                </strong>
+                <small>
+                  Same-type moves preserve this
+                  amount.
+                </small>
+              </div>
+
+              <div>
+                <span>Effective checkout</span>
+                <strong>
+                  {new Date(
+                    moveSession.extended_until ||
+                      moveSession.checkout_time
+                  ).toLocaleString("en-IN")}
+                </strong>
+                <small>
+                  Availability is validated for the
+                  remaining stay.
+                </small>
+              </div>
+            </div>
 
             <label style={label}>
-              New Checkout Date &amp; Time
+              Available target room
             </label>
-
-            <input
-              type="datetime-local"
-              value={extendDateTime}
-              onChange={(event) =>
-                setExtendDateTime(
-                  event.target.value
-                )
-              }
+            <select
               style={input}
+              value={moveTargetRoomId}
+              onChange={(event) => {
+                setMoveTargetRoomId(
+                  event.target.value
+                );
+                setMoveConfirmRateChange(false);
+                setMoveNewRoomCharge(
+                  String(moveCurrentCharge)
+                );
+              }}
+              disabled={moveLoading}
+            >
+              <option value="">
+                Select target room
+              </option>
+              {moveRooms.map((room) => (
+                <option
+                  key={room.id}
+                  value={room.id}
+                >
+                  Room {room.room_number}
+                  {room.room_type
+                    ? ` · ${room.room_type}`
+                    : ""}
+                </option>
+              ))}
+            </select>
+
+            {moveRooms.length === 0 && (
+              <div style={warningBox}>
+                No available target rooms were found.
+                Refresh the active-stay list and try
+                again.
+              </div>
+            )}
+
+            {selectedMoveRoom && (
+              <div
+                className={`guest-move-rate-box ${
+                  isCrossTypeRoomMove
+                    ? "rate-change"
+                    : "rate-preserved"
+                }`}
+              >
+                <strong>
+                  Room{" "}
+                  {selectedMoveRoom.room_number}
+                </strong>
+                <span>
+                  {selectedMoveRoom.room_type ||
+                    "Room"}
+                </span>
+
+                {isCrossTypeRoomMove ? (
+                  <p>
+                    The selected room type differs from
+                    the current room. A confirmed new
+                    charge is required.
+                  </p>
+                ) : (
+                  <p>
+                    Same room type. The existing ₹
+                    {formatMoney(moveCurrentCharge)}{" "}
+                    room charge will be preserved.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {isCrossTypeRoomMove && (
+              <>
+                <label style={label}>
+                  Confirmed new room charge
+                </label>
+                <input
+                  style={input}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={moveNewRoomCharge}
+                  onChange={(event) =>
+                    setMoveNewRoomCharge(
+                      event.target.value
+                    )
+                  }
+                  disabled={moveLoading}
+                />
+
+                <label style={confirmationBox}>
+                  <input
+                    type="checkbox"
+                    checked={moveConfirmRateChange}
+                    onChange={(event) =>
+                      setMoveConfirmRateChange(
+                        event.target.checked
+                      )
+                    }
+                    disabled={moveLoading}
+                  />
+                  <span>
+                    I confirm the room-type and charge
+                    change for this active stay.
+                  </span>
+                </label>
+              </>
+            )}
+
+            <label style={label}>
+              Operational reason
+            </label>
+            <textarea
+              style={textarea}
+              value={moveReason}
+              onChange={(event) =>
+                setMoveReason(event.target.value)
+              }
+              placeholder="Example: Guest requested a quieter room."
+              disabled={moveLoading}
             />
+
+            <div className="guest-move-request">
+              <span>Idempotency request</span>
+              <code>{moveRequestId}</code>
+            </div>
 
             <div style={modalActions}>
               <button
-                style={saveBtn}
-                onClick={handleExtendStay}
+                type="button"
+                style={cancelBtn}
+                disabled={moveLoading}
+                onClick={closeMoveModal}
               >
-                Save Extension
+                Cancel
               </button>
 
               <button
+                type="button"
+                style={{
+                  ...saveBtn,
+                  opacity:
+                    moveLoading ||
+                    !moveTargetRoomId ||
+                    moveReason.trim().length < 3
+                      ? 0.55
+                      : 1,
+                }}
+                disabled={
+                  moveLoading ||
+                  !moveTargetRoomId ||
+                  moveReason.trim().length < 3 ||
+                  (isCrossTypeRoomMove &&
+                    !moveConfirmRateChange)
+                }
+                onClick={handleMoveRoom}
+              >
+                {moveLoading
+                  ? "Moving stay..."
+                  : "Confirm room move"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {extendModalOpen && selectedSession && (
+        <div style={modalOverlay}>
+          <div style={stayExtensionModal}>
+            <div style={settlementHeader}>
+              <div>
+                <p style={kicker}>
+                  AUTHORITATIVE ACTIVE-STAY ACTION
+                </p>
+                <h2 style={settlementTitle}>
+                  Extend Stay
+                </h2>
+                <p style={modalSub}>
+                  {selectedSession.guests?.full_name ||
+                    "Active guest"}{" "}
+                  · Room{" "}
+                  {selectedSession.rooms?.room_number ||
+                    "-"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                style={modalCloseButton}
+                disabled={extendLoading}
+                onClick={closeExtendModal}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="guest-extension-summary">
+              <div>
+                <span>Current checkout</span>
+                <strong>
+                  {formatDateTimeInTimeZone(
+                    extendCurrentCheckoutAt,
+                    currentHotel?.timezone ||
+                      Intl.DateTimeFormat()
+                        .resolvedOptions()
+                        .timeZone ||
+                      "UTC"
+                  )}
+                </strong>
+                <small>
+                  Hotel timezone:{" "}
+                  {currentHotel?.timezone ||
+                    Intl.DateTimeFormat()
+                      .resolvedOptions()
+                      .timeZone ||
+                    "UTC"}
+                </small>
+              </div>
+
+              <div>
+                <span>Current room charge</span>
+                <strong>
+                  ₹{formatMoney(extendCurrentCharge)}
+                </strong>
+                <small>
+                  Additional charge is added to the
+                  same room-charge record.
+                </small>
+              </div>
+
+              <div>
+                <span>Room protection</span>
+                <strong>
+                  Room{" "}
+                  {selectedSession.rooms?.room_number ||
+                    "-"}
+                </strong>
+                <small>
+                  Server validates availability for
+                  the requested extension period.
+                </small>
+              </div>
+            </div>
+
+            <div className="guest-extension-grid">
+              <div>
+                <label style={label}>
+                  New checkout date &amp; time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={extendDateTime}
+                  min={extendCurrentCheckoutLocal}
+                  onChange={(event) =>
+                    setExtendDateTime(
+                      event.target.value
+                    )
+                  }
+                  style={input}
+                  disabled={extendLoading}
+                />
+              </div>
+
+              <div>
+                <label style={label}>
+                  Additional room charge
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={extendAdditionalCharge}
+                  onChange={(event) =>
+                    setExtendAdditionalCharge(
+                      event.target.value
+                    )
+                  }
+                  placeholder="Enter confirmed amount"
+                  style={input}
+                  disabled={extendLoading}
+                />
+              </div>
+            </div>
+
+            <div className="guest-extension-charge-box">
+              <div>
+                <span>Current</span>
+                <strong>
+                  ₹{formatMoney(extendCurrentCharge)}
+                </strong>
+              </div>
+              <div>
+                <span>Additional</span>
+                <strong>
+                  ₹{formatMoney(
+                    Number(extendAdditionalCharge || 0)
+                  )}
+                </strong>
+              </div>
+              <div>
+                <span>Projected room charge</span>
+                <strong>
+                  ₹{formatMoney(
+                    extendCurrentCharge +
+                      Number(
+                        extendAdditionalCharge || 0
+                      )
+                  )}
+                </strong>
+              </div>
+            </div>
+
+            <label style={label}>
+              Operational reason
+            </label>
+            <textarea
+              style={textarea}
+              value={extendReason}
+              onChange={(event) =>
+                setExtendReason(event.target.value)
+              }
+              placeholder="Example: Guest requested one additional night."
+              disabled={extendLoading}
+            />
+
+            <label style={confirmationBox}>
+              <input
+                type="checkbox"
+                checked={extendConfirmCharge}
+                onChange={(event) =>
+                  setExtendConfirmCharge(
+                    event.target.checked
+                  )
+                }
+                disabled={extendLoading}
+              />
+              <span>
+                I confirm the new checkout and the
+                additional room charge for this active
+                stay.
+              </span>
+            </label>
+
+            <div className="guest-extension-request">
+              <span>Idempotency request</span>
+              <code>{extendRequestId}</code>
+            </div>
+
+            <div style={modalActions}>
+              <button
+                type="button"
                 style={cancelBtn}
+                disabled={extendLoading}
                 onClick={closeExtendModal}
               >
                 Cancel
+              </button>
+
+              <button
+                type="button"
+                style={{
+                  ...saveBtn,
+                  opacity:
+                    extendLoading ||
+                    !extendDateTime ||
+                    extendReason.trim().length < 3 ||
+                    !extendConfirmCharge ||
+                    extendAdditionalCharge === ""
+                      ? 0.55
+                      : 1,
+                }}
+                disabled={
+                  extendLoading ||
+                  !extendDateTime ||
+                  extendReason.trim().length < 3 ||
+                  !extendConfirmCharge ||
+                  extendAdditionalCharge === ""
+                }
+                onClick={handleExtendStay}
+              >
+                {extendLoading
+                  ? "Extending stay..."
+                  : "Confirm stay extension"}
               </button>
             </div>
           </div>
@@ -1634,6 +2262,43 @@ export default function Guests() {
 
               {settlementCalculation.amountToCollect >
                 0 && (
+                <div style={settlementCollectionBox}>
+                  <label style={label}>Final Payment Method</label>
+                  <select
+                    style={input}
+                    value={settlementPaymentMethod}
+                    onChange={(event) =>
+                      setSettlementPaymentMethod(event.target.value)
+                    }
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="card">Card</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="other">Other</option>
+                  </select>
+
+                  {["upi", "card", "bank_transfer"].includes(
+                    settlementPaymentMethod
+                  ) && (
+                    <>
+                      <label style={label}>Transaction / Reference Number</label>
+                      <input
+                        style={input}
+                        type="text"
+                        value={settlementTransactionReference}
+                        onChange={(event) =>
+                          setSettlementTransactionReference(event.target.value)
+                        }
+                        placeholder="Required for this payment method"
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+
+              {settlementCalculation.amountToCollect >
+                0 && (
                 <label style={confirmationBox}>
                   <input
                     type="checkbox"
@@ -1734,19 +2399,137 @@ function SettlementRow({
   );
 }
 
-function generateInvoiceNumber() {
-  const now = new Date();
+function getTimeZoneDateParts(value, timeZone) {
+  const date = new Date(value);
 
-  const datePart = now
-    .toISOString()
-    .slice(0, 10)
-    .replace(/-/g, "");
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Invalid date value.");
+  }
 
-  const timePart = String(
-    now.getTime()
-  ).slice(-6);
+  const parts = new Intl.DateTimeFormat(
+    "en-CA",
+    {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }
+  ).formatToParts(date);
 
-  return `INV-${datePart}-${timePart}`;
+  return Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value])
+  );
+}
+
+function formatDateTimeLocalInTimeZone(
+  value,
+  timeZone
+) {
+  const parts = getTimeZoneDateParts(
+    value,
+    timeZone
+  );
+
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
+function formatDateTimeInTimeZone(
+  value,
+  timeZone
+) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone,
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+}
+
+function zonedDateTimeLocalToISOString(
+  localValue,
+  timeZone
+) {
+  const match = String(localValue).match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/
+  );
+
+  if (!match) {
+    throw new Error(
+      "Select a complete checkout date and time."
+    );
+  }
+
+  const [
+    ,
+    year,
+    month,
+    day,
+    hour,
+    minute,
+  ] = match.map(Number);
+
+  const requestedWallClock = Date.UTC(
+    year,
+    month - 1,
+    day,
+    hour,
+    minute,
+    0,
+    0
+  );
+
+  let candidate = requestedWallClock;
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const parts = getTimeZoneDateParts(
+      new Date(candidate),
+      timeZone
+    );
+    const renderedWallClock = Date.UTC(
+      Number(parts.year),
+      Number(parts.month) - 1,
+      Number(parts.day),
+      Number(parts.hour),
+      Number(parts.minute),
+      0,
+      0
+    );
+
+    candidate +=
+      requestedWallClock - renderedWallClock;
+  }
+
+  const result = new Date(candidate).toISOString();
+
+  if (
+    formatDateTimeLocalInTimeZone(
+      result,
+      timeZone
+    ) !== localValue
+  ) {
+    throw new Error(
+      "The selected checkout time does not exist in the hotel timezone."
+    );
+  }
+
+  return result;
 }
 
 function formatMoney(value) {
@@ -1771,14 +2554,26 @@ const modalOverlay = {
   background: "rgba(0,0,0,0.82)",
 };
 
-const smallModal = {
-  width: "90%",
-  maxWidth: "460px",
+const stayExtensionModal = {
+  width: "100%",
+  maxWidth: "820px",
   padding: "28px",
   border: "1px solid #333",
-  borderRadius: "18px",
+  borderRadius: "20px",
   background: "#0f0f0f",
   color: "#fff",
+  boxShadow: "0 30px 90px rgba(0,0,0,.6)",
+};
+
+const roomMoveModal = {
+  width: "100%",
+  maxWidth: "760px",
+  padding: "28px",
+  border: "1px solid #333",
+  borderRadius: "20px",
+  background: "#0f0f0f",
+  color: "#fff",
+  boxShadow: "0 30px 90px rgba(0,0,0,.6)",
 };
 
 const settlementModal = {
@@ -1811,12 +2606,6 @@ const kicker = {
 const settlementTitle = {
   margin: "0 0 7px",
   fontSize: "31px",
-};
-
-const modalTitle = {
-  color: "#d4af37",
-  fontSize: "28px",
-  marginBottom: "8px",
 };
 
 const modalSub = {
@@ -1949,6 +2738,14 @@ const paidConfirmationBox = {
   background: "rgba(46,204,113,.1)",
   color: "#2ecc71",
   fontWeight: 800,
+};
+
+const settlementCollectionBox = {
+  marginTop: "16px",
+  padding: "16px",
+  border: "1px solid #333",
+  borderRadius: "14px",
+  background: "rgba(255,255,255,.025)",
 };
 
 const settlementActions = {

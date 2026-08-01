@@ -1,0 +1,30 @@
+StayQR Day 10 Atomic Walk-In Frontend REV1 — Validation
+
+DATABASE PRECONDITION
+- Migration 026 execution: Success, no rows returned.
+- Migration 026 acceptance: 40/40 passed.
+
+SOURCE VALIDATION
+- ESLint: 0 errors; 16 pre-existing warnings outside this patch.
+- Relative imports: 152/152 resolved.
+- Day 7 security source gate: 15/15.
+- Day 8 onboarding source gate: 14/14.
+- Day 9 commercial source gate: passed (20 required; 7 blocked).
+- Day 10 front-office source gate: passed (16 required; 6 blocked).
+- Local QR test: 5/5.
+
+DAY 10 SECURITY/ATOMICITY
+- Uses public.check_in_walk_in_guest(uuid,jsonb).
+- No browser inserts into guests, guest_sessions or payments.
+- No browser room-occupancy update.
+- Canonical currentHotel.id is passed to the server.
+- Stable request_id is retained across failed retries.
+- Existing guest ambiguity can be resolved by explicit guest selection.
+- Companion and foreign-guest/Form C payloads are supported.
+
+BUILD NOTE
+The production build could not execute inside the Linux artifact environment
+because the available cached Vite installation was created without its optional
+Linux Rolldown native binding. This is an environment-only dependency issue, not
+a source/lint failure. Run `npm run check` on the user's Windows installation;
+its locally installed Windows binding previously built the same locked frontend.

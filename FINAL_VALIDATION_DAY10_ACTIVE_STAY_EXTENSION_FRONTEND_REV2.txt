@@ -1,0 +1,12 @@
+StayQR Day 10 — Active Stay Extension Frontend REV2 Validation
+
+Targeted source correction completed:
+- Removed the only two top-level declarations that were defined but never used:
+  smallModal and modalTitle.
+- Atomic extension RPC contract remains present.
+- Direct guest_sessions extended_until update remains blocked.
+- UTC datetime-local slicing remains blocked.
+- Hotel-timezone renderer and inverse converter remain present.
+- Existing room-move, checkout, guest directory and KYC source remains preserved.
+
+The user must run npm run check in the complete local Frontend directory.

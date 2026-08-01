@@ -1,0 +1,22 @@
+StayQR v1.0 — Day 9 Super Admin Commercial Frontend Validation
+===============================================================
+
+PASSED IN PACKAGE WORKSPACE
+- Relative import resolution: 152 imports resolved.
+- Day 7 frontend security source gate: 15/15.
+- Day 8 onboarding source gate: 14/14.
+- Day 9 commercial frontend source gate: 18 required contracts present; 7 unsafe patterns blocked.
+- Local QR engine test: 5/5.
+- Babel syntax parse: all 57 JS/JSX/MJS/CJS source and script files parsed successfully.
+- Critical Day 9 files parsed and regenerated successfully by Babel.
+- Imported bindings in SuperAdmin.jsx and commercialControl.js: no unused imports detected.
+- Local binding scan in both new Day 9 source files: no unused non-parameter bindings detected.
+
+FULL NPM LINT/BUILD NOTE
+The uploaded large source archive had a damaged ZIP directory and contained an incomplete Windows node_modules set. The execution environment also could not reach npm to restore missing packages such as Vite and uri-js. Therefore npm run lint and npm run build could not be completed in this temporary workspace. This is an environment/dependency-recovery limitation, not a reported source parse/import failure.
+
+The final package intentionally excludes node_modules, dist and .env. On the user's normal connected machine, run:
+  npm install
+  npm run check
+
+Do not mark integrated Day 9 frontend browser acceptance complete until that command and the documented Platform Admin browser checklist pass against the accepted Supabase backend.

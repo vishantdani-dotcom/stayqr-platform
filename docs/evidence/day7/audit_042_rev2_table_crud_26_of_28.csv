@@ -1,0 +1,30 @@
+test_name,passed,details
+01_two_active_hotels_resolved,true,Hotel A: VD Stay Inn; Hotel B: Hotel Apex Stay Inn.
+02_reversible_owner_actor_fixture,true,Temporarily tested admin@vdstayinn.com as Hotel A Owner; fixture changes were rolled back.
+03_actor_hotel_scope_control,true,Actor had Hotel A access and no Hotel B access.
+04_actor_permission_positive_control,true,Actor had Hotel A management permissions and no equivalent Hotel B permissions.
+05_tenant_table_inventory,true,40 tenant table(s) carrying hotel_id were inventoried.
+06_select_policy_matrix_complete,true,40/40 tables have explicit SELECT policies; 0 are protected by RLS deny-by-default.
+07_insert_policy_matrix_complete,true,"31/40 tables have explicit INSERT policies; 9 append-only/RPC-owned tables deny direct INSERT by default. Deny-by-default: activity_logs, reservation_checkin_events, reservation_checkout_events, reservation_number_sequences, reservation_payment_transfers, reservation_payments, reservation_status_history, room_inventory_allocations, staff_identity_events"
+08_update_policy_matrix_complete,true,"31/40 tables have explicit UPDATE policies; 9 append-only/RPC-owned tables deny direct UPDATE by default. Deny-by-default: activity_logs, reservation_checkin_events, reservation_checkout_events, reservation_number_sequences, reservation_payment_transfers, reservation_payments, reservation_status_history, room_inventory_allocations, staff_identity_events"
+09_delete_policy_matrix_complete,true,"31/40 tables have explicit DELETE policies; 9 append-only/RPC-owned tables deny direct DELETE by default. Deny-by-default: activity_logs, reservation_checkin_events, reservation_checkout_events, reservation_number_sequences, reservation_payment_transfers, reservation_payments, reservation_status_history, room_inventory_allocations, staff_identity_events"
+10_insert_probe_coverage,true,40/40 cross-tenant INSERT probes executed.
+11_all_cross_tenant_inserts_blocked,true,40/40 INSERT probes were blocked.
+12_delete_probe_coverage,true,40/40 cross-tenant DELETE probes executed.
+13_all_cross_tenant_deletes_blocked,true,40/40 DELETE probes were blocked.
+14_delete_probes_included_real_hotel_b_rows,true,Hotel B had real physical rows in 11 tenant table(s); all-table DELETE statements were still executed.
+15_storage_fixture_created_and_rolled_back,true,"hotel-assets positive control [42501] Direct deletion from storage tables is not allowed. Use the Storage API instead.
+guest-documents positive control [42501] Direct deletion from storage tables is not allowed. Use the Storage API instead."
+16_hotel_assets_cross_tenant_select_blocked,true,Hotel A could not read the Hotel B hotel-assets object.
+17_hotel_assets_cross_tenant_insert_blocked,true,Hotel A could not insert into the Hotel B hotel-assets folder.
+18_hotel_assets_cross_tenant_update_blocked,true,Hotel A could not update the Hotel B hotel-assets object.
+19_hotel_assets_cross_tenant_delete_blocked,true,Hotel A could not delete the Hotel B hotel-assets object.
+20_hotel_assets_positive_control,false,"Hotel A could insert, update and delete an object in its own hotel-assets folder."
+21_guest_documents_cross_tenant_select_blocked,true,Hotel A could not read the Hotel B guest-documents object.
+22_guest_documents_cross_tenant_insert_blocked,true,Hotel A could not insert into the Hotel B guest-documents folder.
+23_guest_documents_cross_tenant_update_blocked,true,Hotel A could not update the Hotel B guest-documents object.
+24_guest_documents_cross_tenant_delete_blocked,true,Hotel A could not delete the Hotel B guest-documents object.
+25_guest_documents_positive_control,false,"Hotel A could insert, update and delete an object in its own guest-documents folder."
+26_no_cross_tenant_table_write_succeeded,true,No Hotel A INSERT or DELETE operation succeeded against Hotel B tenant data.
+27_no_cross_tenant_storage_crud_succeeded,true,Hotel A was blocked from SELECT/INSERT/UPDATE/DELETE against both Hotel B Storage folders.
+28_fixture_rollback_verified,true,Platform Admin access was restored and no Day 7 synthetic Storage object remains.

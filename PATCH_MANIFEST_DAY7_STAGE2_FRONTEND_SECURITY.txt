@@ -1,0 +1,41 @@
+STAYQR DAY 7 STAGE 2 — PATCH MANIFEST
+
+NEW
+- src/vendor/qrCodeEngine.js
+- src/lib/localQr.js
+- src/components/qr/LocalQrCode.jsx
+- src/pages/qr/QRGenerator.css
+- scripts/day7-security-source-check.mjs
+- scripts/check-relative-imports.mjs
+- scripts/test-local-qr.mjs
+- supabase/migrations/202607260014_day7_guest_access_revocation_and_local_qr_hardening.sql
+- supabase/audit/038_verify_day7_guest_access_revocation_hardening.sql
+- supabase/audit/039_diagnose_relation_guest_error.sql
+- docs/day-07-stage-2-frontend-security-integration.md
+- docs/evidence/day7-audit-038-24-of-24.csv
+- docs/evidence/day7-diagnostic-039-rev2-10-of-10.csv
+- .env.example
+- THIRD_PARTY_NOTICES.md
+- licenses/APACHE-2.0.txt
+- README_FIRST_DAY7_STAGE2_FRONTEND.txt
+
+UPDATED
+- src/pages/qr/QRGenerator.jsx
+- src/lib/guestPortal.js
+- src/pages/food/FoodMenu.jsx
+- package.json
+
+SECURITY RESULTS
+- Database Audit 038: 24/24 passed.
+- Diagnostic 039 REV2: 10/10 passed.
+- Relative frontend imports: 141/141 resolved.
+- Frontend source security gate: 12/12 passed.
+- Local QR engine unit test: 5/5 passed.
+- ESLint: 0 errors, 20 pre-existing React Hook warnings.
+
+NOT INCLUDED
+- .env
+- node_modules
+- dist
+- .git
+- Supabase local temporary/link files

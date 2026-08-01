@@ -67,27 +67,21 @@ export default function HotelProfile() {
 
     const payload = {
       hotel_id: currentHotel.id,
-      hotel_name: info.hotel_name || currentHotel.hotel_name || "StayQR Hotel",
-      address: info.address || currentHotel.location || "Hotel Address",
-      reception_phone: info.reception_phone || "+919503893141",
-      emergency_phone: info.emergency_phone || "+919503893141",
-      checkin_time: info.checkin_time || "2:00 PM",
-      checkout_time: info.checkout_time || "11:00 AM",
-      breakfast_time: info.breakfast_time || "8:00 AM - 10:30 AM",
-      wifi_name: info.wifi_name || "Hotel_Guest_WiFi",
-      wifi_password: info.wifi_password || "Ask Reception",
-      hotel_rules:
-        info.hotel_rules ||
-        "Please maintain silence, avoid smoking inside rooms, and contact reception for assistance.",
-      about:
-        info.about ||
-        `${currentHotel.hotel_name || "This hotel"} offers a smart and comfortable hospitality experience powered by StayQR.`,
-      google_review_url: info.google_review_url || "",
-      reward_title: info.reward_title || "Thank You Reward",
-      reward_description:
-        info.reward_description ||
-        "Show this screen at reception to know if any offer is available.",
-      reward_enabled: info.reward_enabled ?? true,
+      hotel_name: cleanText(info.hotel_name) || currentHotel.hotel_name,
+      address: cleanText(info.address) || cleanText(currentHotel.location),
+      reception_phone: cleanText(info.reception_phone),
+      emergency_phone: cleanText(info.emergency_phone),
+      checkin_time: cleanText(info.checkin_time),
+      checkout_time: cleanText(info.checkout_time),
+      breakfast_time: cleanText(info.breakfast_time),
+      wifi_name: cleanText(info.wifi_name),
+      wifi_password: cleanText(info.wifi_password),
+      hotel_rules: cleanText(info.hotel_rules),
+      about: cleanText(info.about),
+      google_review_url: cleanText(info.google_review_url),
+      reward_title: cleanText(info.reward_title),
+      reward_description: cleanText(info.reward_description),
+      reward_enabled: info.reward_enabled ?? false,
     };
 
     let error;
@@ -162,7 +156,7 @@ export default function HotelProfile() {
           <select
             style={input}
             name="reward_enabled"
-            value={String(info?.reward_enabled ?? true)}
+            value={String(info?.reward_enabled ?? false)}
             onChange={(e) =>
               setInfo({
                 ...info,
@@ -184,25 +178,27 @@ export default function HotelProfile() {
 }
 
 const defaultHotelInfo = {
-  hotel_name: "StayQR Hotel",
-  address: "Hotel Address",
-  reception_phone: "+919503893141",
-  emergency_phone: "+919503893141",
-  checkin_time: "2:00 PM",
-  checkout_time: "11:00 AM",
-  breakfast_time: "8:00 AM - 10:30 AM",
-  wifi_name: "Hotel_Guest_WiFi",
-  wifi_password: "Ask Reception",
-  hotel_rules:
-    "Please maintain silence, avoid smoking inside rooms, and contact reception for assistance.",
-  about:
-    "This hotel offers a smart and comfortable hospitality experience powered by StayQR.",
+  hotel_name: "",
+  address: "",
+  reception_phone: "",
+  emergency_phone: "",
+  checkin_time: "",
+  checkout_time: "",
+  breakfast_time: "",
+  wifi_name: "",
+  wifi_password: "",
+  hotel_rules: "",
+  about: "",
   google_review_url: "",
-  reward_title: "Thank You Reward",
-  reward_description:
-    "Show this screen at reception to know if any offer is available.",
-  reward_enabled: true,
+  reward_title: "",
+  reward_description: "",
+  reward_enabled: false,
 };
+
+function cleanText(value) {
+  const text = String(value || "").trim();
+  return text || null;
+}
 
 function Input({ label, name, value, onChange }) {
   return (

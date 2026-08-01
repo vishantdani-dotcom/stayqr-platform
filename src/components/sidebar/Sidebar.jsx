@@ -1,12 +1,16 @@
 // src/components/sidebar/Sidebar.jsx
 import './Sidebar.css'
 import { normalizeRole, canAccessSection } from '../../lib/currentStaff'
+import HotelSwitcher from '../hotel/HotelSwitcher'
 
 const NAV_ITEMS = [
   {
     group: 'Main',
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: GridIcon, badge: null },
+      { id: 'reservations', label: 'Reservations', icon: CalendarIcon, badge: null },
+      { id: 'calendar', label: 'Booking Calendar', icon: CalendarIcon, badge: null },
+      { id: 'operations', label: 'Arrivals & Departures', icon: KeyIcon, badge: null },
       { id: 'rooms', label: 'Rooms', icon: DoorIcon, badge: null },
       { id: 'guests', label: 'Guests', icon: UsersIcon, badge: '3' },
       { id: 'checkin', label: 'Check-In/Out', icon: KeyIcon, badge: null },
@@ -19,10 +23,12 @@ const NAV_ITEMS = [
     items: [
       { id: 'qr', label: 'QR Guides', icon: QrIcon, badge: null },
       { id: 'payments', label: 'Payments', icon: CardIcon, badge: null },
+      { id: 'folios', label: 'Folio & Settlement', icon: DollarIcon, badge: null },
       { id: 'services', label: 'Service Requests', icon: BellIcon, badge: '5' },
       { id: 'foodorders', label: 'Food Orders', icon: CardIcon, badge: null },
       { id: 'charges', label: 'Charges', icon: DollarIcon, badge: null },
       { id: 'housekeeping', label: 'Housekeeping', icon: BellIcon, badge: null },
+      { id: 'maintenance', label: 'Maintenance', icon: SettingsIcon, badge: null },
       { id: 'amenities', label: 'Amenities', icon: StarIcon, badge: null },
     ],
   },
@@ -30,9 +36,10 @@ const NAV_ITEMS = [
     group: 'Settings',
     items: [
       { id: 'superadmin', label: 'Super Admin', icon: BuildingIcon, badge: null },
+      { id: 'onboarding', label: 'Hotel Setup', icon: SettingsIcon, badge: null },
       { id: 'hotel', label: 'Hotel Profile', icon: BuildingIcon, badge: null },
       { id: 'reports', label: 'Reports', icon: ChartIcon, badge: null },
-      { id: 'invoices', label: 'Invoices', icon: CardIcon, badge: null },
+      { id: 'invoices', label: 'Invoices & Audit', icon: CardIcon, badge: null },
       { id: 'settings', label: 'Settings', icon: SettingsIcon, badge: null },
     ],
   },
@@ -46,20 +53,19 @@ export default function Sidebar({
   mobileOpen,
   currentStaff,
   currentRole,
+  permissions = [],
+  tenantContext,
+  onHotelChange,
+  switchingHotelId,
+  hotelSwitchError,
 }) {
-  const role = normalizeRole(currentRole || currentStaff?.role || 'manager')
-
-  const hotelName =
-    currentStaff?.hotels?.hotel_name ||
-    currentStaff?.hotel_name ||
-    'StayQR Hotel'
-
+  const role = normalizeRole(currentRole || currentStaff?.role)
   const userName = currentStaff?.full_name || 'Admin'
   const userRole = currentStaff?.role || role
 
   const visibleGroups = NAV_ITEMS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => canAccessSection(role, item.id)),
+    items: group.items.filter((item) => canAccessSection(role, item.id, permissions)),
   })).filter((group) => group.items.length > 0)
 
   return (
@@ -84,15 +90,21 @@ export default function Sidebar({
           className="sidebar-toggle"
           onClick={onToggle}
           title={collapsed ? 'Expand' : 'Collapse'}
+          type="button"
         >
           <ChevronIcon direction={collapsed ? 'right' : 'left'} />
         </button>
       </div>
 
       {!collapsed && (
-        <div className="sidebar-hotel-badge">
-          <div className="hotel-badge-dot" />
-          <span>{hotelName}</span>
+        <div className="sidebar-hotel-switcher-wrap">
+          <HotelSwitcher
+            tenantContext={tenantContext}
+            onHotelChange={onHotelChange}
+            switchingHotelId={switchingHotelId}
+            error={hotelSwitchError}
+            variant="sidebar"
+          />
         </div>
       )}
 
@@ -112,6 +124,7 @@ export default function Sidebar({
                   className={`nav-item ${isActive ? 'active' : ''}`}
                   onClick={() => onNavigate(item.id)}
                   title={collapsed ? item.label : undefined}
+                  type="button"
                 >
                   <span className="nav-item-icon">
                     {isEmojiIcon ? <span>{Icon}</span> : <Icon />}
@@ -158,6 +171,18 @@ function GridIcon() {
       <rect x="14" y="3" width="7" height="7" />
       <rect x="3" y="14" width="7" height="7" />
       <rect x="14" y="14" width="7" height="7" />
+    </svg>
+  )
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
     </svg>
   )
 }

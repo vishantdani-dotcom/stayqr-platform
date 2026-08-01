@@ -214,3 +214,10 @@
   .hotel-card-right    { flex-direction: column; align-items: stretch; }
   .hotel-quick-stats   { justify-content: space-around; }
 }
+.hotel-status-pill.status-suspended,
+.hotel-status-pill.status-inactive,
+.hotel-status-pill.status-archived {
+  background: var(--orange-dim);
+  border-color: rgba(249, 115, 22, 0.3);
+  color: var(--orange);
+}

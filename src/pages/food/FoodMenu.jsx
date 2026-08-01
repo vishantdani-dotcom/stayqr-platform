@@ -1,7 +1,13 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
-import { createNotification } from "../../lib/notifications";
+import { useCallback, useEffect, useState } from "react";
+import {
+  getGuestFoodOrders,
+  getGuestMenu,
+  placeGuestFoodOrder,
+  resolveGuestPortal,
+} from "../../lib/guestPortal";
 import "./FoodMenu.css";
+
+const ACCESS_RECHECK_INTERVAL_MS = 15000;
 
 export default function FoodMenu() {
   const [items, setItems] = useState([]);
@@ -10,168 +16,117 @@ export default function FoodMenu() {
   const [activeSession, setActiveSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [ordering, setOrdering] = useState(false);
-  const [, forceTick] = useState(0);
+  const [nowMs, setNowMs] = useState(0);
 
-  useEffect(() => {
-    initFoodPage();
+  const clearFoodAccess = useCallback(() => {
+    setActiveSession(null);
+    setItems([]);
+    setMyOrders([]);
+    setCart([]);
   }, []);
 
-  useEffect(() => {
-    if (!activeSession?.guest_id || !activeSession?.hotel_id) {
-      return undefined;
+  const validateFoodAccess = useCallback(async () => {
+    try {
+      const portal = await resolveGuestPortal("food");
+
+      if (!portal?.session) {
+        throw new Error("This guest access link is invalid or expired.");
+      }
+
+      setActiveSession(portal.session);
+      return portal;
+    } catch (error) {
+      console.error("Food portal access error:", error);
+      clearFoodAccess();
+      return null;
+    }
+  }, [clearFoodAccess]);
+
+  const fetchMenu = useCallback(async () => {
+    try {
+      const data = await getGuestMenu();
+      setItems(data);
+    } catch (error) {
+      console.error("Menu fetch error:", error);
+      setItems([]);
+    }
+  }, []);
+
+  const fetchMyOrders = useCallback(async () => {
+    try {
+      const data = await getGuestFoodOrders();
+      setMyOrders(data);
+    } catch (error) {
+      console.error("My orders error:", error);
+      setMyOrders([]);
+    }
+  }, []);
+
+  const initFoodPage = useCallback(async () => {
+    setLoading(true);
+
+    const portal = await validateFoodAccess();
+    if (portal) {
+      await Promise.all([fetchMenu(), fetchMyOrders()]);
     }
 
-    fetchMyOrders(
-      activeSession.guest_id,
-      activeSession.hotel_id,
-      activeSession.room_id
+    setLoading(false);
+  }, [fetchMenu, fetchMyOrders, validateFoodAccess]);
+
+  useEffect(() => {
+    void initFoodPage();
+  }, [initFoodPage]);
+
+  const hasActiveSession = Boolean(activeSession);
+
+  useEffect(() => {
+    if (!hasActiveSession) return undefined;
+
+    const revalidateAccess = () => {
+      void validateFoodAccess();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        revalidateAccess();
+      }
+    };
+
+    window.addEventListener("focus", revalidateAccess);
+    window.addEventListener("pageshow", revalidateAccess);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    const accessInterval = window.setInterval(
+      revalidateAccess,
+      ACCESS_RECHECK_INTERVAL_MS
     );
 
-    const channel = supabase
-      .channel(`guest_food_orders_${activeSession.guest_id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "food_orders",
-          filter: `guest_id=eq.${activeSession.guest_id}`,
-        },
-        () => {
-          fetchMyOrders(
-            activeSession.guest_id,
-            activeSession.hotel_id,
-            activeSession.room_id
-          );
-        }
-      )
-      .subscribe((status) => {
-        console.log("Guest food realtime status:", status);
-      });
-
     return () => {
-      supabase.removeChannel(channel);
+      window.removeEventListener("focus", revalidateAccess);
+      window.removeEventListener("pageshow", revalidateAccess);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.clearInterval(accessInterval);
     };
-  }, [
-    activeSession?.guest_id,
-    activeSession?.hotel_id,
-    activeSession?.room_id,
-  ]);
+  }, [hasActiveSession, validateFoodAccess]);
+
+  useEffect(() => {
+    if (!hasActiveSession) return undefined;
+
+    void fetchMyOrders();
+
+    const orderInterval = window.setInterval(() => {
+      void fetchMyOrders();
+    }, 15000);
+
+    return () => window.clearInterval(orderInterval);
+  }, [fetchMyOrders, hasActiveSession]);
   useEffect(() => {
   const interval = setInterval(() => {
-    forceTick((v) => v + 1);
+    setNowMs(new Date().getTime());
   }, 1000);
 
   return () => clearInterval(interval);
 }, []);
-
-  async function initFoodPage() {
-    setLoading(true);
-
-    try {
-      const roomNumber = decodeURIComponent(
-        window.location.pathname.split("/").filter(Boolean).pop() || ""
-      );
-
-      if (!roomNumber) {
-        throw new Error("Room number is missing from the food menu URL.");
-      }
-
-      const { data: room, error: roomError } = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("room_number", roomNumber)
-        .maybeSingle();
-
-      if (roomError) throw roomError;
-
-      if (!room) {
-        throw new Error("Room not found.");
-      }
-
-      await fetchMenu(room.hotel_id);
-
-      const { data: session, error: sessionError } = await supabase
-        .from("guest_sessions")
-        .select("*")
-        .eq("room_id", room.id)
-        .eq("hotel_id", room.hotel_id)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (sessionError) throw sessionError;
-
-      if (!session) {
-        setActiveSession(null);
-        return;
-      }
-
-      setActiveSession(session);
-
-      await fetchMyOrders(
-        session.guest_id,
-        session.hotel_id,
-        session.room_id
-      );
-    } catch (error) {
-      console.error("Food page initialization error:", error);
-      setActiveSession(null);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchMenu(hotelId) {
-    if (!hotelId) return;
-
-    const { data, error } = await supabase
-      .from("menu_items")
-      .select("*")
-      .eq("hotel_id", hotelId)
-      .eq("is_available", true)
-      .order("item_name", { ascending: true });
-
-    if (error) {
-      console.error("Menu fetch error:", error);
-      alert(error.message);
-      return;
-    }
-
-    setItems(data || []);
-  }
-
-  async function fetchMyOrders(guestId, hotelId, roomId) {
-    if (!guestId || !hotelId) return;
-
-    let query = supabase
-      .from("food_orders")
-      .select(`
-        *,
-        food_order_items (
-          quantity,
-          price,
-          menu_items (
-            item_name
-          )
-        )
-      `)
-      .eq("hotel_id", hotelId)
-      .eq("guest_id", guestId)
-      .order("created_at", { ascending: false });
-
-    if (roomId) {
-      query = query.eq("room_id", roomId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("My orders error:", error);
-      return;
-    }
-
-    setMyOrders(data || []);
-  }
 
   function addToCart(item) {
     setCart((previousCart) => {
@@ -234,10 +189,6 @@ export default function FoodMenu() {
     0
   );
 
-  const totalCartQuantity = cart.reduce(
-    (total, item) => total + Number(item.quantity || 0),
-    0
-  );
 
   async function placeOrder() {
     if (cart.length === 0) {
@@ -246,65 +197,32 @@ export default function FoodMenu() {
     }
 
     if (!activeSession) {
-      alert("No active guest session found.");
+      alert("This guest access link is invalid or expired.");
       return;
     }
 
     try {
       setOrdering(true);
 
-      const { data: order, error: orderError } = await supabase
-        .from("food_orders")
-        .insert([
-          {
-            hotel_id: activeSession.hotel_id,
-            room_id: activeSession.room_id,
-            guest_id: activeSession.guest_id,
-            total_amount: cartTotal,
-            payment_status: "pending",
-            order_status: "pending",
-            estimated_minutes: null,
-            estimated_delivery_time: null,
-          },
-        ])
-        .select()
-        .single();
+      const portal = await validateFoodAccess();
+      if (!portal) {
+        alert("Guest access has expired or been revoked.");
+        return;
+      }
 
-      if (orderError) throw orderError;
-
-      const orderItems = cart.map((item) => ({
-        order_id: order.id,
-        menu_item_id: item.id,
-        quantity: Number(item.quantity || 0),
-        price: Number(item.price || 0),
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("food_order_items")
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      await createNotification({
-        hotelId: activeSession.hotel_id,
-        roomId: activeSession.room_id,
-        guestId: activeSession.guest_id,
-        type: "food_order",
-        title: "New Food Order",
-        message: `Room order placed · ₹${cartTotal} · ${totalCartQuantity} item(s)`,
-      });
+      await placeGuestFoodOrder(
+        cart.map((item) => ({
+          menu_item_id: item.id,
+          quantity: Number(item.quantity || 0),
+        }))
+      );
 
       alert("Food order placed successfully.");
-
       setCart([]);
-
-      await fetchMyOrders(
-        activeSession.guest_id,
-        activeSession.hotel_id,
-        activeSession.room_id
-      );
+      await fetchMyOrders();
     } catch (error) {
       console.error("Food order error:", error);
+      await validateFoodAccess();
       alert(error.message || "Unable to place food order.");
     } finally {
       setOrdering(false);
@@ -380,7 +298,7 @@ export default function FoodMenu() {
     return range.min;
   }
 
-  const elapsedTime = Date.now() - etaSetTime;
+  const elapsedTime = nowMs - etaSetTime;
 
   const elapsedRatio = Math.min(
     1,
@@ -397,7 +315,7 @@ export default function FoodMenu() {
   if (!deliveryTime) return null;
 
   const remaining =
-    new Date(deliveryTime).getTime() - Date.now();
+    new Date(deliveryTime).getTime() - nowMs;
 
   if (remaining <= 0) {
     return "Arriving shortly";
@@ -422,7 +340,7 @@ export default function FoodMenu() {
       <div className="food-page">
         <div className="my-orders-box">
           <h2>Food Menu Not Active</h2>
-          <p>No active guest session was found for this room.</p>
+          <p>This signed StayQR link is invalid, expired or has been revoked. Please contact the hotel reception.</p>
         </div>
       </div>
     );

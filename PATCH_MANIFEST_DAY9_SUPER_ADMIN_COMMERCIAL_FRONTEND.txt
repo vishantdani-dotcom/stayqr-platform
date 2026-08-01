@@ -1,0 +1,32 @@
+StayQR v1.0 — Day 9 Super Admin Commercial Frontend
+===================================================
+
+NEW FILES
+- src/lib/commercialControl.js
+  Controlled Day 9 RPC and Cashfree Edge Function client layer.
+- src/pages/superadmin/SuperAdmin.css
+  Responsive commercial control-centre design.
+- scripts/day9-commercial-source-check.mjs
+  Day 9 source/security contract gate.
+- docs/day-09-super-admin-commercial-frontend.md
+  Installation and browser acceptance guide.
+- README_FIRST_DAY9_SUPER_ADMIN_COMMERCIAL_FRONTEND.txt
+  Paste-and-run instructions.
+- VALIDATION_NOTES_DAY9_SUPER_ADMIN_COMMERCIAL_FRONTEND.txt
+  Package validation evidence and environment limitation.
+
+REPLACED
+- src/pages/superadmin/SuperAdmin.jsx
+  Replaced primitive direct-table admin page with the complete controlled Day 9 platform commercial interface.
+
+UPDATED
+- package.json
+  Added security:day9 and included it in npm run check.
+
+UNCHANGED SECURITY BOUNDARIES
+- No service-role key in frontend.
+- No Cashfree secret/client credential in frontend.
+- No direct browser lifecycle mutation of hotel_subscriptions.
+- No direct browser writes to subscription_payment_links, subscription_events or webhook_events.
+- Cashfree HTTP/provider calls remain in Edge Functions.
+- Webhook payload and header bodies remain excluded from the controlled frontend projection.

@@ -1,0 +1,351 @@
+{
+  "generated_at": "2026-07-20T09:59:04.137939+00:00",
+  "helper_functions": {
+    "is_platform_admin": true,
+    "user_has_hotel_access": true,
+    "user_has_hotel_role": true
+  },
+  "hotel_info_orphan_count": 0,
+  "hotel_info_rows": [
+    {
+      "hotel_id": "77d850d0-016d-4155-bc44-a6207d30e7b9",
+      "hotel_name": "VD Stay Inn",
+      "id": "e6e8d28f-1570-43e2-96ba-5476e95da0ea"
+    }
+  ],
+  "hotels": [
+    {
+      "currency_code": "INR",
+      "hotel_id": "9e105be7-0d93-4dc9-84c6-f729b53f1368",
+      "hotel_name": "Hotel Apex Stay Inn",
+      "slug": "hotel-apex-stay-inn",
+      "status": "active",
+      "subscription_status": "trial",
+      "timezone": "Asia/Kolkata"
+    },
+    {
+      "currency_code": "INR",
+      "hotel_id": "77d850d0-016d-4155-bc44-a6207d30e7b9",
+      "hotel_name": "VD Stay Inn",
+      "slug": "vd-stay-inn",
+      "status": "active",
+      "subscription_status": "active",
+      "timezone": "Asia/Kolkata"
+    }
+  ],
+  "internal_rls_state": [
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "analytics_events"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "hotel_subscriptions"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "hotel_users"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "hotels"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "housekeeping_requests"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "housekeeping_tasks"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "invoice_items"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "invoices"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "manual_charges"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "payment_collections"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "payments"
+    },
+    {
+      "policy_count": 1,
+      "rls_enabled": true,
+      "table_name": "platform_admins"
+    },
+    {
+      "policy_count": 2,
+      "rls_enabled": true,
+      "table_name": "role_permissions"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "room_sessions"
+    },
+    {
+      "policy_count": 4,
+      "rls_enabled": true,
+      "table_name": "staff"
+    },
+    {
+      "policy_count": 2,
+      "rls_enabled": true,
+      "table_name": "staff_roles"
+    },
+    {
+      "policy_count": 2,
+      "rls_enabled": true,
+      "table_name": "subscription_plans"
+    }
+  ],
+  "known_deferred_issues": {
+    "active_staff_without_auth": 1,
+    "guest_facing_rls_hardening": "Deferred until secure QR access tokens replace public room-number URLs",
+    "invoice_balance_mismatches": 15,
+    "vd_stay_inn_subscription": "Legacy active entitlement remains without hotel_subscriptions row; subscription lifecycle is Day 9"
+  },
+  "migration": "202607200001_tenant_foundation_and_guarded_repairs",
+  "platform_admin": [
+    {
+      "display_name": "Vishant Dani",
+      "status": "active",
+      "user_id": "a3d5f5a6-6fff-40fe-8fe0-b0b6c436effd"
+    }
+  ],
+  "remaining_anon_or_public_policies": [
+    {
+      "cmd": "INSERT",
+      "policyname": "Allow public insert food order items",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "tablename": "food_order_items",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Allow public read food order items",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "food_order_items",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Allow public insert food orders",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "tablename": "food_orders",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Allow public read food orders",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "food_orders",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Allow public update food orders",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "food_orders",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Allow public read menu categories",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "menu_categories",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Allow public read menu items",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "menu_items",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Allow guest create notifications",
+      "qual": null,
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "notifications",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Allow hotel users read notifications",
+      "qual": "true",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "notifications",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Allow hotel users update notifications",
+      "qual": "true",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "notifications",
+      "with_check": "true"
+    }
+  ],
+  "required_indexes": {
+    "current_subscription_per_hotel": true,
+    "hotel_info_per_hotel": true,
+    "hotel_slug": true,
+    "invoice_number_per_hotel": true,
+    "membership_per_hotel_user": true,
+    "room_number_per_hotel": true,
+    "staff_per_hotel_auth_user": true
+  },
+  "room_102_state": [
+    {
+      "active_session_count": 1,
+      "hotel_id": "77d850d0-016d-4155-bc44-a6207d30e7b9",
+      "room_id": "9137c934-1cae-4e99-ae71-8e99d145244e",
+      "room_number": "102",
+      "room_status": "occupied"
+    }
+  ],
+  "same_hotel_membership_count": 1,
+  "tenant_columns_not_null": [
+    {
+      "is_nullable": "NO",
+      "table_name": "analytics_events"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "feedback"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "food_orders"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "guest_sessions"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "guests"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "hotel_info"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "hotel_subscriptions"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "hotel_users"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "housekeeping_requests"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "housekeeping_tasks"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "invoice_items"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "invoices"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "manual_charges"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "menu_categories"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "menu_items"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "notifications"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "payment_collections"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "payments"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "room_sessions"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "rooms"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "service_requests"
+    },
+    {
+      "is_nullable": "NO",
+      "table_name": "staff"
+    }
+  ]
+}

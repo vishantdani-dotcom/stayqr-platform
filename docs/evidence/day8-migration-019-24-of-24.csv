@@ -1,0 +1,25 @@
+test_name,passed,details
+01_amenities_table_created,true,Normalized hotel-owned amenities table exists.
+02_service_request_types_created,true,Normalized hotel-owned service-request category table exists.
+03_menu_category_metadata_complete,true,"Menu categories have stable code, description, ordering, active state and update timestamp."
+04_existing_menu_items_normalized,true,Every existing text menu category is linked to a normalized category.
+05_existing_requests_normalized,true,Every existing text request type is linked to a normalized request category.
+06_menu_category_fk_validated,true,Menu category ownership is protected by a validated hotel-scoped foreign key.
+07_request_type_fk_validated,true,Service-request category ownership is protected by a validated hotel-scoped foreign key.
+08_inventory_unique_indexes,true,"Room numbers, room-type codes and rate-plan codes are unique within a hotel."
+09_amenities_rls_enabled,true,Amenities is protected by RLS.
+10_request_types_rls_enabled,true,Service request types is protected by RLS.
+11_new_table_policy_matrix,true,Both new tenant tables have SELECT/INSERT/UPDATE/DELETE policies.
+12_existing_hotels_have_amenity_defaults,true,Every existing hotel has active editable amenity defaults.
+13_existing_hotels_have_request_defaults,true,Every existing hotel has active editable request-category defaults.
+14_existing_hotels_have_menu_defaults,true,Every existing hotel has active menu-category defaults.
+15_future_hotel_seed_trigger,true,Every future hotel automatically receives configuration defaults.
+16_configuration_defaults_rpc,true,Idempotent hotel amenity/request/menu default RPC exists.
+17_menu_defaults_rpc,true,Idempotent menu-category default RPC exists.
+18_inventory_configuration_rpc,true,Atomic room-type/floor/rate configuration RPC exists.
+19_bulk_room_import_rpc,true,Validated bulk room import/upsert RPC exists.
+20_authenticated_configuration_execute,true,Authenticated hotel managers can execute the approved configuration RPCs.
+21_anonymous_configuration_blocked,true,Anonymous users cannot configure inventory or defaults.
+22_existing_room_integrity_preserved,true,Existing rooms remain fully normalized and valid.
+23_readiness_snapshots_refreshed,true,Every onboarding record has refreshed amenity and request-category readiness.
+24_day8_configuration_backend_ready,true,Day 8 backend configuration foundation is ready for runtime acceptance and frontend wizard integration.

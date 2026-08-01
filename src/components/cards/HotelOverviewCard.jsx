@@ -1,48 +1,63 @@
 // src/components/cards/HotelOverviewCard.jsx
 import './HotelOverviewCard.css'
 
-export default function HotelOverviewCard() {
-  const occupancyRate = 72
+export default function HotelOverviewCard({ hotel, analytics, loading = false }) {
+  const totalRooms = Number(analytics?.totalRooms || 0)
+  const occupiedRooms = Number(analytics?.occupiedRooms || 0)
+  const occupancyRate = totalRooms > 0
+    ? Math.round((occupiedRooms / totalRooms) * 100)
+    : 0
+
+  const status = String(hotel?.status || 'active').toLowerCase()
+  const statusLabel = formatLabel(status)
+  const subscriptionLabel = hotel?.subscription_status
+    ? formatLabel(hotel.subscription_status)
+    : 'Subscription not set'
 
   return (
     <div className="hotel-overview-card glass-card gold-border">
-      {/* Decorative top bar */}
       <div className="hotel-card-top-bar" />
 
       <div className="hotel-card-inner">
-        {/* Left: Hotel info */}
         <div className="hotel-card-left">
           <div className="hotel-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="4" y="2" width="16" height="20" rx="2"/>
-              <path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01"/>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="4" y="2" width="16" height="20" rx="2" />
+              <path d="M9 22v-4h6v4" />
+              <path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01" />
             </svg>
           </div>
+
           <div className="hotel-info">
             <div className="hotel-tag">PROPERTY OVERVIEW</div>
-            <h2 className="hotel-name gold-text">VD Stay Inn</h2>
+            <h2 className="hotel-name gold-text">
+              {hotel?.hotel_name || (loading ? 'Loading property…' : 'Hotel not selected')}
+            </h2>
+
             <div className="hotel-meta-row">
               <div className="hotel-meta-item">
                 <span className="hotel-meta-icon">📍</span>
-                <span>Nagpur, Maharashtra</span>
+                <span>{hotel?.location || 'Location not set'}</span>
               </div>
               <div className="hotel-meta-item">
-                <span className="hotel-meta-icon">⭐</span>
-                <span>4.8 · 124 reviews</span>
+                <span className="hotel-meta-icon">🌐</span>
+                <span>{hotel?.timezone || 'Timezone not set'}</span>
               </div>
             </div>
+
             <div className="hotel-tags">
-              <span className="hotel-tag-pill">Luxury Smart Hospitality</span>
+              <span className="hotel-tag-pill">{subscriptionLabel}</span>
               <span className="hotel-tag-pill">QR Powered</span>
-              <span className="hotel-tag-pill active-pill">● Live</span>
+              <span className={`hotel-tag-pill hotel-status-pill status-${status}`}>
+                ● {statusLabel}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Right: Stats */}
         <div className="hotel-card-right">
           <div className="occupancy-block">
-            <div className="occupancy-label">Today's Occupancy</div>
+            <div className="occupancy-label">Today&apos;s Occupancy</div>
             <div className="occupancy-ring-wrapper">
               <OccupancyRing value={occupancyRate} />
               <div className="occupancy-center">
@@ -51,21 +66,21 @@ export default function HotelOverviewCard() {
               </div>
             </div>
           </div>
+
           <div className="hotel-quick-stats">
-            <div className="hqs-item">
-              <span className="hqs-value">12</span>
-              <span className="hqs-label">Total Rooms</span>
-            </div>
+            <QuickStat value={totalRooms} label="Total Rooms" />
             <div className="hqs-divider" />
-            <div className="hqs-item">
-              <span className="hqs-value green-val">3</span>
-              <span className="hqs-label">Check-ins Today</span>
-            </div>
+            <QuickStat
+              value={analytics?.checkInsToday || 0}
+              label="Check-ins Today"
+              className="green-val"
+            />
             <div className="hqs-divider" />
-            <div className="hqs-item">
-              <span className="hqs-value orange-val">2</span>
-              <span className="hqs-label">Check-outs Due</span>
-            </div>
+            <QuickStat
+              value={analytics?.checkOutsDue || 0}
+              label="Check-outs Due"
+              className="orange-val"
+            />
           </div>
         </div>
       </div>
@@ -73,18 +88,28 @@ export default function HotelOverviewCard() {
   )
 }
 
+function QuickStat({ value, label, className = '' }) {
+  return (
+    <div className="hqs-item">
+      <span className={`hqs-value ${className}`}>{value}</span>
+      <span className="hqs-label">{label}</span>
+    </div>
+  )
+}
+
 function OccupancyRing({ value }) {
-  const r = 42
-  const circumference = 2 * Math.PI * r
-  const offset = circumference - (value / 100) * circumference
+  const radius = 42
+  const circumference = 2 * Math.PI * radius
+  const safeValue = Math.min(100, Math.max(0, Number(value || 0)))
+  const offset = circumference - (safeValue / 100) * circumference
 
   return (
-    <svg className="occupancy-svg" viewBox="0 0 100 100" width="100" height="100">
-      {/* Track */}
-      <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
-      {/* Progress */}
+    <svg className="occupancy-svg" viewBox="0 0 100 100" width="100" height="100" aria-hidden="true">
+      <circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
       <circle
-        cx="50" cy="50" r={r}
+        cx="50"
+        cy="50"
+        r={radius}
         fill="none"
         stroke="url(#goldGrad)"
         strokeWidth="8"
@@ -102,4 +127,10 @@ function OccupancyRing({ value }) {
       </defs>
     </svg>
   )
+}
+
+function formatLabel(value) {
+  return String(value || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase())
 }

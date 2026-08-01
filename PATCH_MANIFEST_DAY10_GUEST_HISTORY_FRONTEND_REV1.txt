@@ -1,0 +1,19 @@
+StayQR v1.0 — Day 10 Guest History Frontend REV1
+
+Changed:
+- src/pages/guests/Guests.jsx
+- src/pages/guests/Guests.css
+- scripts/day10-front-office-source-check.mjs
+
+Added:
+- src/pages/guests/GuestDirectory.jsx
+- src/pages/guests/GuestDirectory.css
+- README_FIRST_DAY10_GUEST_HISTORY_FRONTEND_REV1.txt
+
+Purpose:
+- Preserve the accepted active-stay checkout interface.
+- Add a tenant-scoped canonical guest directory.
+- Add search by name, phone, email, identity and room.
+- Add guest profile, repeat-guest detection and complete stay history.
+- Add companion history, stay route information, private notes and preferences.
+- Display authorized private KYC document metadata without exposing storage paths or files.

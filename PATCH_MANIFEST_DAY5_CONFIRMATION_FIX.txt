@@ -1,0 +1,12 @@
+StayQR Day 5 - reservation confirmation status and PDF currency correction
+
+Modified:
+- src/lib/reservationConfirmation.js
+
+Added:
+- docs/day-05-confirmation-status-and-pdf-currency-fix.md
+- PATCH_MANIFEST_DAY5_CONFIRMATION_FIX.txt
+
+No migration required.
+Do not rerun audit 022.
+Do not run cleanup audit 023 until corrected PDF, Print and WhatsApp outputs pass browser verification.

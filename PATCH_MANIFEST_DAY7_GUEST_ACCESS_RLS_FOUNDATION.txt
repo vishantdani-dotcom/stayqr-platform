@@ -1,0 +1,31 @@
+DAY 7 STAGE 1 — GUEST ACCESS AND RLS FOUNDATION
+
+ADDED
+- src/lib/guestPortal.js
+- supabase/migrations/202607260013_day7_guest_access_and_rls_foundation.sql
+- supabase/audit/037_verify_day7_guest_access_and_rls_foundation.sql
+- docs/day-07-exact-source-audit.md
+- DAY7_GUEST_ACCESS_RLS_FOUNDATION_README.md
+
+UPDATED
+- index.html
+- src/pages/guestguide/GuestGuide.jsx
+- src/pages/food/FoodMenu.jsx
+- src/pages/qr/QRGenerator.jsx
+- src/pages/hotel/HotelProfile.jsx
+
+SECURITY CONTRACT
+- No anonymous direct table access.
+- No room-number guest authorization.
+- No raw token or signing key in public tables.
+- Guest access requires hotel slug + valid signed stay token.
+- Guest writes occur only through validated RPCs.
+- Token rotation/revocation/checkout invalidates prior access.
+- Storage buckets are private and hotel-folder scoped.
+
+REV3 CORRECTIONS
+- Adds and backfills public.food_order_items.hotel_id from the authoritative parent food order.
+- Validates line-item hotel ownership against both food_orders and menu_items.
+- Adds a non-ambiguous tenant-enforcement trigger for future line-item writes.
+- Fixes all composite record/scalar INTO assignments from the original migration.
+- Audit 037 now returns 22 tests, including food-order line-item tenant checks.

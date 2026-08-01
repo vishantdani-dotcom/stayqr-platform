@@ -1,0 +1,33 @@
+StayQR Day 4 Final Acceptance Patch Manifest
+Generated: 2026-07-22
+Source audited: StayQR_Day4_Final_Acceptance_Source.zip
+
+Files:
+- DAY4_FINAL_ACCEPTANCE_PATCH_README.md
+- docs/day-04-final-acceptance-execution.md
+- docs/day-04-final-acceptance-source-audit.md
+- src/App.jsx
+- src/pages/calendar/BookingCalendar.jsx
+- src/pages/guests/Guests.css
+- src/pages/guests/Guests.jsx
+- src/pages/reservations/Reservations.jsx
+- supabase/migrations/202607230006_day4_acceptance_hardening.sql
+- supabase/audit/016_day4_final_acceptance_gate.sql
+- supabase/audit/017_seed_day4_browser_acceptance.sql
+- supabase/audit/018_cleanup_day4_browser_acceptance.sql
+- supabase/audit/019_verify_day4_browser_acceptance_cleanup.sql
+
+SHA-256:
+0d72897ca7b8a52b2c0bc77306e872331d271cc16cda68d88308a44fafd2f904  DAY4_FINAL_ACCEPTANCE_PATCH_README.md
+8413af75dc33c8f2dcc89c03436e8ac998676132407361983a504478d5bd16c3  docs/day-04-final-acceptance-execution.md
+8aed72054a07e28ff932873f36b1154282c66eaf99a9b042b47ce4e42a9d634e  docs/day-04-final-acceptance-source-audit.md
+54bb2c95da90ee1d994f666a72d8d9d9aa48ddcfc7c92430cc4005b7d8af1f83  src/App.jsx
+02df6f48b167c5833120324dc440e4c0796dbdfa5580f02f500db4374c617f3b  src/pages/calendar/BookingCalendar.jsx
+bf7cef9ec321034ef606f23fd9b48f98f8502f41f1d0058d587d09dfbbf9d37b  src/pages/guests/Guests.css
+c43c628c2dbb2d5d779cbdcddcf07d77de4b4c1a2c6114c5107ba04e25b2c11e  src/pages/guests/Guests.jsx
+f3b3d45f69b1f58f36edcff4f50521e2da52effe57b628241639827797a0c5e7  src/pages/reservations/Reservations.jsx
+c32f960ca6f3df6946844352de275d578725e215124850418def2deef7f08b58  supabase/migrations/202607230006_day4_acceptance_hardening.sql
+101b6a62b8f35c8b8797c730532cd955955ef9789257d21de00f7ed376fbff6f  supabase/audit/016_day4_final_acceptance_gate.sql
+21ef8808fe808640c6c09f45fa75dece4a5a21f487b93e2e02771f499a4b4838  supabase/audit/017_seed_day4_browser_acceptance.sql
+e874b67d5416473934230d04e3646d868f726d92cde0d0b4edc0d14a10dad951  supabase/audit/018_cleanup_day4_browser_acceptance.sql
+82d1547c37b4b767cbea2d95fa269daf2a2344c0386031d4fbe6487fa8e5b624  supabase/audit/019_verify_day4_browser_acceptance_cleanup.sql

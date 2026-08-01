@@ -1,0 +1,17 @@
+DAY 12 FRONTEND PATCH REV1
+
+Modified:
+- Frontend/package.json
+- Frontend/src/App.jsx
+- Frontend/src/components/sidebar/Sidebar.jsx
+- Frontend/src/pages/invoices/Invoices.jsx
+
+Added:
+- Frontend/src/lib/day12Finance.js
+- Frontend/src/pages/invoices/Invoices.css
+- Frontend/src/pages/invoices/InvoiceVerification.jsx
+- Frontend/src/pages/invoices/InvoiceVerification.css
+- Frontend/scripts/day12-invoice-cashier-source-check.mjs
+- Frontend/README_FIRST_DAY12_INVOICE_CASHIER_FRONTEND_REV1.txt
+- Frontend/PATCH_MANIFEST_DAY12_INVOICE_CASHIER_FRONTEND_REV1.txt
+- Frontend/STATIC_VALIDATION_DAY12_INVOICE_CASHIER_FRONTEND_REV1.txt

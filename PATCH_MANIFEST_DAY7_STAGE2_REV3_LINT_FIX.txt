@@ -1,0 +1,30 @@
+StayQR Day 7 Stage 2 REV3
+
+Corrected files:
+- src/pages/guestguide/GuestGuide.jsx
+- src/pages/food/FoodMenu.jsx
+
+Correction:
+- Removed four react-hooks/purity errors caused by Date.now() being called from render-time helper functions.
+- Added a state-backed nowMs clock updated by the existing one-second effects.
+- Progress and ETA calculations now consume nowMs and remain live without impure render calls.
+
+Preserved from REV2:
+- Revalidation on focus, pageshow, visibility return, and 15-second fallback.
+- Immediate clearing of guest/session/hotel/request/menu/order/cart state after invalidation.
+- Action-level token revalidation.
+- Guest Access Not Available heading layout correction.
+- Migration 015 manual revoke ambiguity repair.
+
+Validation:
+- ESLint: 0 errors, 17 warnings.
+- Relative imports: 141/141.
+- Day 7 security source gate: 15/15.
+- Local QR engine: 5/5.
+
+Excluded:
+- .env
+- node_modules
+- dist
+- .git
+- Supabase temporary project-link data

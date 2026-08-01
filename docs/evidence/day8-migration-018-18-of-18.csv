@@ -1,0 +1,19 @@
+test_name,passed,details
+01_bootstrap_request_id_column,true,hotel_onboarding stores an idempotent bootstrap request UUID.
+02_bootstrap_request_unique_index,true,Duplicate onboarding bootstrap requests cannot create duplicate hotels.
+03_slug_normalization_helper,true,Hotel names are converted to safe hotel_slug candidates.
+04_atomic_bootstrap_rpc,true,Atomic authenticated hotel bootstrap RPC exists.
+05_resumable_step_rpc,true,Server-validated resumable onboarding step RPC exists.
+06_trial_activation_rpc,true,Dedicated one-time hotel trial activation RPC exists.
+07_readiness_get_rpc,true,Authorized callers can retrieve the server readiness checklist.
+08_readiness_refresh_rpc,true,Authorized callers can refresh persisted onboarding readiness.
+09_readiness_checklist_shape,true,Readiness includes every major Day 8 operational category.
+10_existing_readiness_persisted,true,Every existing hotel has a server-generated readiness snapshot.
+11_authenticated_bootstrap_execute,true,Authenticated users can invoke the approved bootstrap RPC.
+12_anon_bootstrap_blocked,true,Anonymous users cannot invoke hotel bootstrap.
+13_anon_trial_blocked,true,Anonymous users cannot activate subscriptions or trials.
+14_private_readiness_not_exposed,true,Browser roles cannot bypass the authorized public readiness RPC.
+15_preflight_helper_removed,true,Temporary Audit 043 helper has been removed.
+16_current_subscriptions_remain_unique,true,No hotel has multiple current trial/active subscriptions.
+17_no_existing_hotel_was_created,true,Migration 018 installed RPCs only; it did not invoke hotel bootstrap.
+18_day8_atomic_onboarding_ready,true,Atomic hotel onboarding RPC foundation is ready for controlled acceptance testing.

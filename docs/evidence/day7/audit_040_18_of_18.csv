@@ -1,0 +1,19 @@
+test_name,passed,details
+01_two_active_hotels_resolved,true,Hotel A: VD Stay Inn; Hotel B: Hotel Apex Stay Inn.
+02_reversible_hotel_a_actor_fixture,true,Temporarily tested Auth identity admin@vdstayinn.com as Hotel A Reception; all fixture changes were rolled back.
+03_authorization_helper_isolation,true,Hotel A actor had Hotel A access and no Hotel B access.
+04_hotel_row_isolation,true,Hotel A visible rows=1; Hotel B visible rows=0.
+05_tenant_table_inventory,true,40 public tenant table(s) carrying hotel_id were inventoried.
+06_all_tenant_tables_have_rls,true,RLS is enabled on all 40 tenant tables.
+07_all_tenant_tables_have_policy_matrix,true,Every tenant table has at least one RLS policy.
+08_hotel_a_cannot_read_hotel_b_tables,true,40/40 tenant-table read probes passed.
+09_hotel_a_cannot_update_hotel_b_tables,true,40/40 tenant-table update probes passed.
+10_hotel_b_room_hidden,true,Selected Hotel B room visible to Hotel A actor=0.
+11_hotel_b_room_update_blocked,true,Hotel A actor could not update the selected Hotel B room.
+12_anonymous_direct_table_access_blocked,true,Anonymous direct access to public.rooms is denied or returns zero rows.
+13_room_number_guessing_rejected,true,Correct hotel slug plus room number 101 was rejected as a guest credential.
+14_no_anonymous_table_grants_or_policies,true,Public tables have no anonymous grants or anonymous/public RLS policies.
+15_only_six_approved_anonymous_rpcs,true,Anonymous execution is restricted to the six approved signed-token guest RPCs.
+16_guest_token_tenant_binding_consistent,true,"Every token remains bound to one hotel, room and authoritative stay."
+17_private_storage_policy_matrix,true,Both StayQR storage buckets are private and have all eight scoped policies.
+18_no_cross_tenant_runtime_failures,true,86 detailed authenticated/anonymous runtime probes were evaluated.

@@ -1,0 +1,14 @@
+StayQR Day 10 — Active Stay Extension Frontend REV1 Validation
+
+Static validation completed before packaging:
+- Guests.jsx parsed successfully as JSX.
+- Atomic extension RPC contract is present.
+- Direct guest_sessions extended_until update removed.
+- UTC .toISOString().slice(0, 16) datetime-local pattern removed.
+- Hotel-timezone renderer and inverse converter included.
+- Stable request id, expected checkout, new checkout, reason, additional charge
+  and explicit confirmation included.
+- Active-stay calendar invalidation included.
+- Existing room-move, checkout, guest directory and KYC source preserved.
+
+User must still run npm run check in the complete local Frontend directory.

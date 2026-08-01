@@ -1,0 +1,4198 @@
+{
+  "columns": [
+    {
+      "column_default": "uuid_generate_v4()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "analytics_events",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "analytics_events",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "analytics_events",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "event_type",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 4,
+      "table_name": "analytics_events",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "event_data",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "analytics_events",
+      "udt_name": "jsonb"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "analytics_events",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "uuid_generate_v4()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "feedback",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "feedback",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "feedback",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "rating",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "feedback",
+      "udt_name": "int4"
+    },
+    {
+      "column_default": null,
+      "column_name": "comments",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "feedback",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "false",
+      "column_name": "google_review_clicked",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "feedback",
+      "udt_name": "bool"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "feedback",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "food_order_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "order_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "food_order_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "menu_item_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "food_order_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "1",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "food_order_items",
+      "udt_name": "int4"
+    },
+    {
+      "column_default": "0",
+      "column_name": "price",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "food_order_items",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "food_orders",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "food_orders",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "food_orders",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "food_orders",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "0",
+      "column_name": "total_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "food_orders",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "'pending'::text",
+      "column_name": "payment_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "food_orders",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'pending'::text",
+      "column_name": "order_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "food_orders",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "food_orders",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "estimated_minutes",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "food_orders",
+      "udt_name": "int4"
+    },
+    {
+      "column_default": null,
+      "column_name": "estimated_delivery_time",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "food_orders",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "delivered_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 11,
+      "table_name": "food_orders",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "uuid_generate_v4()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "guest_sessions",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "guest_sessions",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "guest_sessions",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "guest_sessions",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "checkin_time",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "ordinal_position": 5,
+      "table_name": "guest_sessions",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "checkout_time",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "ordinal_position": 6,
+      "table_name": "guest_sessions",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "'active'::text",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "guest_sessions",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "guest_sessions",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "extended_until",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "guest_sessions",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "expired_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "guest_sessions",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "uuid_generate_v4()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "guests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "guests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "full_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 3,
+      "table_name": "guests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "guests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "guests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "id_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "guests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "id_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "guests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'english'::text",
+      "column_name": "preferred_language",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "guests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "signature_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "guests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "guests",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 11,
+      "table_name": "guests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "uuid_generate_v4()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "hotel_info",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "hotel_info",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "'VD Stay Inn'::text",
+      "column_name": "hotel_name",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'Nagpur, Maharashtra'::text",
+      "column_name": "address",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'+919503893141'::text",
+      "column_name": "reception_phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'+919503893141'::text",
+      "column_name": "emergency_phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'2:00 PM'::text",
+      "column_name": "checkin_time",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'11:00 AM'::text",
+      "column_name": "checkout_time",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'8:00 AM - 10:30 AM'::text",
+      "column_name": "breakfast_time",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'VDStay_Guest'::text",
+      "column_name": "wifi_name",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'welcome123'::text",
+      "column_name": "wifi_password",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 11,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'Please maintain silence, avoid smoking inside rooms, and contact reception for assistance.'::text",
+      "column_name": "hotel_rules",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 12,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'VD Stay Inn offers a smart and comfortable hospitality experience powered by StayQR.'::text",
+      "column_name": "about",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 13,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 14,
+      "table_name": "hotel_info",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "google_review_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 15,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'Thank You Reward'::text",
+      "column_name": "reward_title",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 16,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'Show this screen at reception to know if any offer is available.'::text",
+      "column_name": "reward_description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 17,
+      "table_name": "hotel_info",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "true",
+      "column_name": "reward_enabled",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "ordinal_position": 18,
+      "table_name": "hotel_info",
+      "udt_name": "bool"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "hotel_subscriptions",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "hotel_subscriptions",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "plan_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "hotel_subscriptions",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "'trial'::text",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "hotel_subscriptions",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "start_date",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "hotel_subscriptions",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "end_date",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "hotel_subscriptions",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "hotel_subscriptions",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "uuid_generate_v4()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "hotel_users",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "hotel_users",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "full_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 3,
+      "table_name": "hotel_users",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 4,
+      "table_name": "hotel_users",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'reception'::text",
+      "column_name": "role",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "hotel_users",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "hotel_users",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "hotel_users",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "'active'::text",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "hotel_users",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "uuid_generate_v4()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "hotels",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 2,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "owner_name",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "address",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "city",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "state",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'trial'::text",
+      "column_name": "subscription_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "hotels",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "location",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 11,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'active'::text",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 12,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "logo_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 13,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "website",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 14,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "gst_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 15,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "invoice_terms",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 16,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "invoice_footer",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 17,
+      "table_name": "hotels",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "housekeeping_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 2,
+      "table_name": "housekeeping_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "housekeeping_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "housekeeping_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "request_type",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 5,
+      "table_name": "housekeeping_requests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "housekeeping_requests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'pending'::text",
+      "column_name": "request_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "housekeeping_requests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "assigned_staff",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "housekeeping_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "housekeeping_requests",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "accepted_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "housekeeping_requests",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "started_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 11,
+      "table_name": "housekeeping_requests",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "completed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 12,
+      "table_name": "housekeeping_requests",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "housekeeping_tasks",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "housekeeping_tasks",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "housekeeping_tasks",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "housekeeping_tasks",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'room_cleaning'::text",
+      "column_name": "task_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "housekeeping_tasks",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'pending'::text",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "housekeeping_tasks",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "assigned_to",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "housekeeping_tasks",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "housekeeping_tasks",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "housekeeping_tasks",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "invoice_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "invoice_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 2,
+      "table_name": "invoice_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 3,
+      "table_name": "invoice_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "invoice_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "invoice_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "item_type",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 6,
+      "table_name": "invoice_items",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 7,
+      "table_name": "invoice_items",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "1",
+      "column_name": "quantity",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "invoice_items",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "unit_price",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "invoice_items",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "invoice_items",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": null,
+      "column_name": "source_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 11,
+      "table_name": "invoice_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 12,
+      "table_name": "invoice_items",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "invoices",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "invoices",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "invoices",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "invoices",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "invoice_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "invoices",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "0",
+      "column_name": "room_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "food_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "service_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "total_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "'pending'::text",
+      "column_name": "payment_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "invoices",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 11,
+      "table_name": "invoices",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "0",
+      "column_name": "manual_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 12,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": null,
+      "column_name": "checkin_time",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 13,
+      "table_name": "invoices",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "checkout_time",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 14,
+      "table_name": "invoices",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "0",
+      "column_name": "stay_hours",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "ordinal_position": 15,
+      "table_name": "invoices",
+      "udt_name": "int4"
+    },
+    {
+      "column_default": "0",
+      "column_name": "stay_nights",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "ordinal_position": 16,
+      "table_name": "invoices",
+      "udt_name": "int4"
+    },
+    {
+      "column_default": "0",
+      "column_name": "food_order_count",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "ordinal_position": 17,
+      "table_name": "invoices",
+      "udt_name": "int4"
+    },
+    {
+      "column_default": "0",
+      "column_name": "food_item_count",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "ordinal_position": 18,
+      "table_name": "invoices",
+      "udt_name": "int4"
+    },
+    {
+      "column_default": "0",
+      "column_name": "paid_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 19,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "pending_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 20,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_session_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 21,
+      "table_name": "invoices",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "0",
+      "column_name": "subtotal_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 22,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "tax_percent",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 23,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "tax_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 24,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "'fixed'::text",
+      "column_name": "discount_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 25,
+      "table_name": "invoices",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "0",
+      "column_name": "discount_value",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 26,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "discount_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 27,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "previous_paid_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 28,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "0",
+      "column_name": "amount_to_collect",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 29,
+      "table_name": "invoices",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "'draft'::text",
+      "column_name": "invoice_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 30,
+      "table_name": "invoices",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "settled_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 31,
+      "table_name": "invoices",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "invoice_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 32,
+      "table_name": "invoices",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "manual_charges",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "manual_charges",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "manual_charges",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "manual_charges",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "charge_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 5,
+      "table_name": "manual_charges",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "0",
+      "column_name": "charge_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "manual_charges",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": null,
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "manual_charges",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'pending'::text",
+      "column_name": "payment_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "manual_charges",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "manual_charges",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "menu_categories",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "menu_categories",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 3,
+      "table_name": "menu_categories",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "menu_categories",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "menu_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "menu_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "category_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "menu_items",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "item_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 4,
+      "table_name": "menu_items",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "menu_items",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "0",
+      "column_name": "price",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "menu_items",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": null,
+      "column_name": "image_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "menu_items",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "true",
+      "column_name": "is_available",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "menu_items",
+      "udt_name": "bool"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "menu_items",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "category",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "menu_items",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "notifications",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "notifications",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "notifications",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "notifications",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "type",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 5,
+      "table_name": "notifications",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "title",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 6,
+      "table_name": "notifications",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "message",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "notifications",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "false",
+      "column_name": "is_read",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "notifications",
+      "udt_name": "bool"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "notifications",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "payment_collections",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 2,
+      "table_name": "payment_collections",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "payment_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 3,
+      "table_name": "payment_collections",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "payment_collections",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "payment_collections",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "amount",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "ordinal_position": 6,
+      "table_name": "payment_collections",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "'cash'::text",
+      "column_name": "payment_method",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 7,
+      "table_name": "payment_collections",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "transaction_reference",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "payment_collections",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "payment_collections",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "collected_by",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "payment_collections",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "collected_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 11,
+      "table_name": "payment_collections",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 12,
+      "table_name": "payment_collections",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "invoice_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 13,
+      "table_name": "payment_collections",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "uuid_generate_v4()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "payments",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "payments",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "payments",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "payments",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "amount",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "ordinal_position": 5,
+      "table_name": "payments",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": null,
+      "column_name": "payment_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "payments",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'pending'::text",
+      "column_name": "payment_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "payments",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "razorpay_payment_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "payments",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "payments",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "payments",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'cash'::text",
+      "column_name": "payment_method",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 11,
+      "table_name": "payments",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "transaction_reference",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 12,
+      "table_name": "payments",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "paid_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 13,
+      "table_name": "payments",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "collected_by",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 14,
+      "table_name": "payments",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "payment_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 15,
+      "table_name": "payments",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "invoice_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 16,
+      "table_name": "payments",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "role_permissions",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "role_name",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "role_permissions",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "permission_key",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "role_permissions",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "room_sessions",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "room_sessions",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_name",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "room_sessions",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "room_sessions",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "room_sessions",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "check_in",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "room_sessions",
+      "udt_name": "timestamp"
+    },
+    {
+      "column_default": null,
+      "column_name": "check_out",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "room_sessions",
+      "udt_name": "timestamp"
+    },
+    {
+      "column_default": "'active'::text",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "room_sessions",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "room_sessions",
+      "udt_name": "timestamp"
+    },
+    {
+      "column_default": "uuid_generate_v4()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "rooms",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "rooms",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_number",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 3,
+      "table_name": "rooms",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "rooms",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "qr_code_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "rooms",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'available'::text",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "rooms",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "rooms",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "uuid_generate_v4()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "service_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "service_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "room_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "service_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "guest_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "service_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "request_type",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 5,
+      "table_name": "service_requests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "request_details",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "service_requests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'pending'::text",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "service_requests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "service_requests",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "assigned_to",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "service_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "'normal'::text",
+      "column_name": "priority",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 10,
+      "table_name": "service_requests",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "accepted_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 11,
+      "table_name": "service_requests",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "completed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 12,
+      "table_name": "service_requests",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "started_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 13,
+      "table_name": "service_requests",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": null,
+      "column_name": "assigned_staff",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 14,
+      "table_name": "service_requests",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "estimated_minutes",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "ordinal_position": 15,
+      "table_name": "service_requests",
+      "udt_name": "int4"
+    },
+    {
+      "column_default": null,
+      "column_name": "estimated_arrival_time",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 16,
+      "table_name": "service_requests",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "staff",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "hotel_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 2,
+      "table_name": "staff",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "full_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 3,
+      "table_name": "staff",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 4,
+      "table_name": "staff",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "staff",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "role",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 6,
+      "table_name": "staff",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "'active'::text",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "staff",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "auth_user_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ordinal_position": 8,
+      "table_name": "staff",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 9,
+      "table_name": "staff",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "staff_roles",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "role_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 2,
+      "table_name": "staff_roles",
+      "udt_name": "text"
+    },
+    {
+      "column_default": null,
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "staff_roles",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ordinal_position": 1,
+      "table_name": "subscription_plans",
+      "udt_name": "uuid"
+    },
+    {
+      "column_default": null,
+      "column_name": "plan_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ordinal_position": 2,
+      "table_name": "subscription_plans",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "0",
+      "column_name": "price_monthly",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "ordinal_position": 3,
+      "table_name": "subscription_plans",
+      "udt_name": "numeric"
+    },
+    {
+      "column_default": "10",
+      "column_name": "max_rooms",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "ordinal_position": 4,
+      "table_name": "subscription_plans",
+      "udt_name": "int4"
+    },
+    {
+      "column_default": "'[]'::jsonb",
+      "column_name": "features",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "ordinal_position": 5,
+      "table_name": "subscription_plans",
+      "udt_name": "jsonb"
+    },
+    {
+      "column_default": "'active'::text",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ordinal_position": 6,
+      "table_name": "subscription_plans",
+      "udt_name": "text"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "ordinal_position": 7,
+      "table_name": "subscription_plans",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "constraints": [
+    {
+      "column_name": null,
+      "constraint_name": "2200_17701_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "analytics_events"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17701_4_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "analytics_events"
+    },
+    {
+      "column_name": "guest_id",
+      "constraint_name": "analytics_events_guest_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "guests",
+      "table_name": "analytics_events"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "analytics_events_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "analytics_events"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "analytics_events_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "analytics_events",
+      "table_name": "analytics_events"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17681_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "feedback"
+    },
+    {
+      "column_name": "guest_id",
+      "constraint_name": "feedback_guest_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "guests",
+      "table_name": "feedback"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "feedback_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "feedback"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "feedback_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "feedback",
+      "table_name": "feedback"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18358_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "food_order_items"
+    },
+    {
+      "column_name": "menu_item_id",
+      "constraint_name": "food_order_items_menu_item_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "menu_items",
+      "table_name": "food_order_items"
+    },
+    {
+      "column_name": "order_id",
+      "constraint_name": "food_order_items_order_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "food_orders",
+      "table_name": "food_order_items"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "food_order_items_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "food_order_items",
+      "table_name": "food_order_items"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18346_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "food_orders"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "food_orders_estimated_minutes_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "estimated_minutes",
+      "referenced_table": "food_orders",
+      "table_name": "food_orders"
+    },
+    {
+      "column_name": "guest_id",
+      "constraint_name": "food_orders_guest_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "guests",
+      "table_name": "food_orders"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "food_orders_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "food_orders",
+      "table_name": "food_orders"
+    },
+    {
+      "column_name": "room_id",
+      "constraint_name": "food_orders_room_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "rooms",
+      "table_name": "food_orders"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17606_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "guest_sessions"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17606_5_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "guest_sessions"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17606_6_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "guest_sessions"
+    },
+    {
+      "column_name": "guest_id",
+      "constraint_name": "guest_sessions_guest_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "guests",
+      "table_name": "guest_sessions"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "guest_sessions_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "guest_sessions"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "guest_sessions_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "guest_sessions",
+      "table_name": "guest_sessions"
+    },
+    {
+      "column_name": "room_id",
+      "constraint_name": "guest_sessions_room_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "rooms",
+      "table_name": "guest_sessions"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17591_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "guests"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17591_3_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "guests"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "guests_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "guests"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "guests_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "guests",
+      "table_name": "guests"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18769_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "hotel_info"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "hotel_info_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "hotel_info"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "hotel_info_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotel_info",
+      "table_name": "hotel_info"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19011_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "hotel_subscriptions"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "hotel_subscriptions_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "hotel_subscriptions"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "hotel_subscriptions_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotel_subscriptions",
+      "table_name": "hotel_subscriptions"
+    },
+    {
+      "column_name": "plan_id",
+      "constraint_name": "hotel_subscriptions_plan_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "subscription_plans",
+      "table_name": "hotel_subscriptions"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17559_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "hotel_users"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17559_3_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "hotel_users"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17559_4_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "hotel_users"
+    },
+    {
+      "column_name": "email",
+      "constraint_name": "hotel_users_email_key",
+      "constraint_type": "UNIQUE",
+      "referenced_column": "email",
+      "referenced_table": "hotel_users",
+      "table_name": "hotel_users"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "hotel_users_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "hotel_users"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "hotel_users_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotel_users",
+      "table_name": "hotel_users"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17547_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "hotels"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17547_2_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "hotels"
+    },
+    {
+      "column_name": "email",
+      "constraint_name": "hotels_email_key",
+      "constraint_type": "UNIQUE",
+      "referenced_column": "email",
+      "referenced_table": "hotels",
+      "table_name": "hotels"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "hotels_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "hotels"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19517_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "housekeeping_requests"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19517_2_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "housekeeping_requests"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19517_5_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "housekeeping_requests"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "housekeeping_requests_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "housekeeping_requests",
+      "table_name": "housekeeping_requests"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18982_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "housekeeping_tasks"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "housekeeping_tasks_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "housekeeping_tasks",
+      "table_name": "housekeeping_tasks"
+    },
+    {
+      "column_name": "room_id",
+      "constraint_name": "housekeeping_tasks_room_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "rooms",
+      "table_name": "housekeeping_tasks"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19609_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "invoice_items"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19609_2_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "invoice_items"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19609_3_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "invoice_items"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19609_6_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "invoice_items"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19609_7_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "invoice_items"
+    },
+    {
+      "column_name": "invoice_id",
+      "constraint_name": "invoice_items_invoice_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "invoices",
+      "table_name": "invoice_items"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "invoice_items_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "invoice_items",
+      "table_name": "invoice_items"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "invoice_items_type_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "item_type",
+      "referenced_table": "invoice_items",
+      "table_name": "invoice_items"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18834_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "invoices"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "invoices_discount_type_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "discount_type",
+      "referenced_table": "invoices",
+      "table_name": "invoices"
+    },
+    {
+      "column_name": "guest_id",
+      "constraint_name": "invoices_guest_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "guests",
+      "table_name": "invoices"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "invoices_invoice_status_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "invoice_status",
+      "referenced_table": "invoices",
+      "table_name": "invoices"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "invoices_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "invoices",
+      "table_name": "invoices"
+    },
+    {
+      "column_name": "room_id",
+      "constraint_name": "invoices_room_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "rooms",
+      "table_name": "invoices"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18873_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "manual_charges"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18873_5_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "manual_charges"
+    },
+    {
+      "column_name": "guest_id",
+      "constraint_name": "manual_charges_guest_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "guests",
+      "table_name": "manual_charges"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "manual_charges_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "manual_charges",
+      "table_name": "manual_charges"
+    },
+    {
+      "column_name": "room_id",
+      "constraint_name": "manual_charges_room_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "rooms",
+      "table_name": "manual_charges"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18321_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "menu_categories"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18321_3_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "menu_categories"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "menu_categories_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "menu_categories",
+      "table_name": "menu_categories"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18330_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "menu_items"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18330_4_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "menu_items"
+    },
+    {
+      "column_name": "category_id",
+      "constraint_name": "menu_items_category_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "menu_categories",
+      "table_name": "menu_items"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "menu_items_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "menu_items",
+      "table_name": "menu_items"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19243_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "notifications"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19243_5_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "notifications"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19243_6_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "notifications"
+    },
+    {
+      "column_name": "guest_id",
+      "constraint_name": "notifications_guest_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "guests",
+      "table_name": "notifications"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "notifications_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "notifications"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "notifications_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "notifications",
+      "table_name": "notifications"
+    },
+    {
+      "column_name": "room_id",
+      "constraint_name": "notifications_room_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "rooms",
+      "table_name": "notifications"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19560_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "payment_collections"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19560_2_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "payment_collections"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19560_3_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "payment_collections"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19560_6_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "payment_collections"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19560_7_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "payment_collections"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "payment_collections_amount_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "amount",
+      "referenced_table": "payment_collections",
+      "table_name": "payment_collections"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "payment_collections_method_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "payment_method",
+      "referenced_table": "payment_collections",
+      "table_name": "payment_collections"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "payment_collections_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "payment_collections",
+      "table_name": "payment_collections"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17656_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "payments"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17656_5_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "payments"
+    },
+    {
+      "column_name": "guest_id",
+      "constraint_name": "payments_guest_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "guests",
+      "table_name": "payments"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "payments_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "payments"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "payments_payment_method_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "payment_method",
+      "referenced_table": "payments",
+      "table_name": "payments"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "payments_payment_status_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "payment_status",
+      "referenced_table": "payments",
+      "table_name": "payments"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "payments_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "payments",
+      "table_name": "payments"
+    },
+    {
+      "column_name": "room_id",
+      "constraint_name": "payments_room_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "rooms",
+      "table_name": "payments"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19087_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "role_permissions"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "role_permissions_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "role_permissions",
+      "table_name": "role_permissions"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18028_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "room_sessions"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "room_sessions_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "room_sessions",
+      "table_name": "room_sessions"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17576_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "rooms"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17576_3_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "rooms"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "rooms_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "rooms"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "rooms_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "rooms",
+      "table_name": "rooms"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17631_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "service_requests"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_17631_5_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "service_requests"
+    },
+    {
+      "column_name": "assigned_to",
+      "constraint_name": "service_requests_assigned_to_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "staff",
+      "table_name": "service_requests"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "service_requests_estimated_minutes_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "estimated_minutes",
+      "referenced_table": "service_requests",
+      "table_name": "service_requests"
+    },
+    {
+      "column_name": "guest_id",
+      "constraint_name": "service_requests_guest_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "guests",
+      "table_name": "service_requests"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "service_requests_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "service_requests"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "service_requests_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "service_requests",
+      "table_name": "service_requests"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "service_requests_priority_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "priority",
+      "referenced_table": "service_requests",
+      "table_name": "service_requests"
+    },
+    {
+      "column_name": "room_id",
+      "constraint_name": "service_requests_room_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "rooms",
+      "table_name": "service_requests"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "service_requests_status_check",
+      "constraint_type": "CHECK",
+      "referenced_column": "status",
+      "referenced_table": "service_requests",
+      "table_name": "service_requests"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19062_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "staff"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19062_3_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "staff"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19062_4_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "staff"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19062_6_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "staff"
+    },
+    {
+      "column_name": "hotel_id",
+      "constraint_name": "staff_hotel_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "referenced_column": "id",
+      "referenced_table": "hotels",
+      "table_name": "staff"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "staff_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "staff",
+      "table_name": "staff"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19077_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "staff_roles"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_19077_2_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "staff_roles"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "staff_roles_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "staff_roles",
+      "table_name": "staff_roles"
+    },
+    {
+      "column_name": "role_name",
+      "constraint_name": "staff_roles_role_name_key",
+      "constraint_type": "UNIQUE",
+      "referenced_column": "role_name",
+      "referenced_table": "staff_roles",
+      "table_name": "staff_roles"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18998_1_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "subscription_plans"
+    },
+    {
+      "column_name": null,
+      "constraint_name": "2200_18998_2_not_null",
+      "constraint_type": "CHECK",
+      "referenced_column": null,
+      "referenced_table": null,
+      "table_name": "subscription_plans"
+    },
+    {
+      "column_name": "id",
+      "constraint_name": "subscription_plans_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "referenced_column": "id",
+      "referenced_table": "subscription_plans",
+      "table_name": "subscription_plans"
+    }
+  ],
+  "functions": [],
+  "generated_at": "2026-07-20T08:31:10.787351+00:00",
+  "indexes": [
+    {
+      "indexdef": "CREATE UNIQUE INDEX analytics_events_pkey ON public.analytics_events USING btree (id)",
+      "indexname": "analytics_events_pkey",
+      "tablename": "analytics_events"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX feedback_pkey ON public.feedback USING btree (id)",
+      "indexname": "feedback_pkey",
+      "tablename": "feedback"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX food_order_items_pkey ON public.food_order_items USING btree (id)",
+      "indexname": "food_order_items_pkey",
+      "tablename": "food_order_items"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX food_orders_pkey ON public.food_orders USING btree (id)",
+      "indexname": "food_orders_pkey",
+      "tablename": "food_orders"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX guest_sessions_pkey ON public.guest_sessions USING btree (id)",
+      "indexname": "guest_sessions_pkey",
+      "tablename": "guest_sessions"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX guests_pkey ON public.guests USING btree (id)",
+      "indexname": "guests_pkey",
+      "tablename": "guests"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX hotel_info_pkey ON public.hotel_info USING btree (id)",
+      "indexname": "hotel_info_pkey",
+      "tablename": "hotel_info"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX hotel_subscriptions_pkey ON public.hotel_subscriptions USING btree (id)",
+      "indexname": "hotel_subscriptions_pkey",
+      "tablename": "hotel_subscriptions"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX hotel_users_email_key ON public.hotel_users USING btree (email)",
+      "indexname": "hotel_users_email_key",
+      "tablename": "hotel_users"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX hotel_users_pkey ON public.hotel_users USING btree (id)",
+      "indexname": "hotel_users_pkey",
+      "tablename": "hotel_users"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX hotels_email_key ON public.hotels USING btree (email)",
+      "indexname": "hotels_email_key",
+      "tablename": "hotels"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX hotels_pkey ON public.hotels USING btree (id)",
+      "indexname": "hotels_pkey",
+      "tablename": "hotels"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX housekeeping_requests_pkey ON public.housekeeping_requests USING btree (id)",
+      "indexname": "housekeeping_requests_pkey",
+      "tablename": "housekeeping_requests"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX housekeeping_tasks_pkey ON public.housekeeping_tasks USING btree (id)",
+      "indexname": "housekeeping_tasks_pkey",
+      "tablename": "housekeeping_tasks"
+    },
+    {
+      "indexdef": "CREATE INDEX invoice_items_hotel_idx ON public.invoice_items USING btree (hotel_id)",
+      "indexname": "invoice_items_hotel_idx",
+      "tablename": "invoice_items"
+    },
+    {
+      "indexdef": "CREATE INDEX invoice_items_invoice_idx ON public.invoice_items USING btree (invoice_id)",
+      "indexname": "invoice_items_invoice_idx",
+      "tablename": "invoice_items"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX invoice_items_pkey ON public.invoice_items USING btree (id)",
+      "indexname": "invoice_items_pkey",
+      "tablename": "invoice_items"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX invoices_pkey ON public.invoices USING btree (id)",
+      "indexname": "invoices_pkey",
+      "tablename": "invoices"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX manual_charges_pkey ON public.manual_charges USING btree (id)",
+      "indexname": "manual_charges_pkey",
+      "tablename": "manual_charges"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX menu_categories_pkey ON public.menu_categories USING btree (id)",
+      "indexname": "menu_categories_pkey",
+      "tablename": "menu_categories"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX menu_items_pkey ON public.menu_items USING btree (id)",
+      "indexname": "menu_items_pkey",
+      "tablename": "menu_items"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)",
+      "indexname": "notifications_pkey",
+      "tablename": "notifications"
+    },
+    {
+      "indexdef": "CREATE INDEX payment_collections_hotel_idx ON public.payment_collections USING btree (hotel_id)",
+      "indexname": "payment_collections_hotel_idx",
+      "tablename": "payment_collections"
+    },
+    {
+      "indexdef": "CREATE INDEX payment_collections_invoice_idx ON public.payment_collections USING btree (invoice_id)",
+      "indexname": "payment_collections_invoice_idx",
+      "tablename": "payment_collections"
+    },
+    {
+      "indexdef": "CREATE INDEX payment_collections_payment_idx ON public.payment_collections USING btree (payment_id)",
+      "indexname": "payment_collections_payment_idx",
+      "tablename": "payment_collections"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX payment_collections_pkey ON public.payment_collections USING btree (id)",
+      "indexname": "payment_collections_pkey",
+      "tablename": "payment_collections"
+    },
+    {
+      "indexdef": "CREATE INDEX payments_invoice_idx ON public.payments USING btree (invoice_id)",
+      "indexname": "payments_invoice_idx",
+      "tablename": "payments"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX payments_pkey ON public.payments USING btree (id)",
+      "indexname": "payments_pkey",
+      "tablename": "payments"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX role_permissions_pkey ON public.role_permissions USING btree (id)",
+      "indexname": "role_permissions_pkey",
+      "tablename": "role_permissions"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX room_sessions_pkey ON public.room_sessions USING btree (id)",
+      "indexname": "room_sessions_pkey",
+      "tablename": "room_sessions"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX rooms_pkey ON public.rooms USING btree (id)",
+      "indexname": "rooms_pkey",
+      "tablename": "rooms"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX service_requests_pkey ON public.service_requests USING btree (id)",
+      "indexname": "service_requests_pkey",
+      "tablename": "service_requests"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX staff_pkey ON public.staff USING btree (id)",
+      "indexname": "staff_pkey",
+      "tablename": "staff"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX staff_roles_pkey ON public.staff_roles USING btree (id)",
+      "indexname": "staff_roles_pkey",
+      "tablename": "staff_roles"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX staff_roles_role_name_key ON public.staff_roles USING btree (role_name)",
+      "indexname": "staff_roles_role_name_key",
+      "tablename": "staff_roles"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX subscription_plans_pkey ON public.subscription_plans USING btree (id)",
+      "indexname": "subscription_plans_pkey",
+      "tablename": "subscription_plans"
+    }
+  ],
+  "policies": [
+    {
+      "cmd": "INSERT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow public insert food order items",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "tablename": "food_order_items",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow public read food order items",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "food_order_items",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow public insert food orders",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "tablename": "food_orders",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow public read food orders",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "food_orders",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow public update food orders",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "food_orders",
+      "with_check": "true"
+    },
+    {
+      "cmd": "DELETE",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow delete invoice items",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "invoice_items",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow insert invoice items",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "tablename": "invoice_items",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow select invoice items",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "invoice_items",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow update invoice items",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "invoice_items",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow public read menu categories",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "menu_categories",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow public read menu items",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "menu_items",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow guest create notifications",
+      "qual": null,
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "notifications",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow hotel users read notifications",
+      "qual": "true",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "notifications",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow hotel users update notifications",
+      "qual": "true",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "notifications",
+      "with_check": "true"
+    },
+    {
+      "cmd": "DELETE",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow all delete payment collections",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "payment_collections",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow all insert payment collections",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "tablename": "payment_collections",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow all select payment collections",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "payment_collections",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow all update payment collections",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "payment_collections",
+      "with_check": null
+    }
+  ],
+  "rls": [
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "analytics_events"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "feedback"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "tablename": "food_order_items"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "tablename": "food_orders"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "guest_sessions"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "guests"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "hotel_info"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "hotel_subscriptions"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "tablename": "hotel_users"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "hotels"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "tablename": "housekeeping_requests"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "housekeeping_tasks"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "tablename": "invoice_items"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "invoices"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "manual_charges"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "tablename": "menu_categories"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "menu_items"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "tablename": "notifications"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "tablename": "payment_collections"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "payments"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "role_permissions"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "tablename": "room_sessions"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "rooms"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "service_requests"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "staff"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "staff_roles"
+    },
+    {
+      "rls_enabled": false,
+      "rls_forced": false,
+      "tablename": "subscription_plans"
+    }
+  ],
+  "tables": [
+    {
+      "table_name": "analytics_events"
+    },
+    {
+      "table_name": "feedback"
+    },
+    {
+      "table_name": "food_order_items"
+    },
+    {
+      "table_name": "food_orders"
+    },
+    {
+      "table_name": "guest_sessions"
+    },
+    {
+      "table_name": "guests"
+    },
+    {
+      "table_name": "hotel_info"
+    },
+    {
+      "table_name": "hotel_subscriptions"
+    },
+    {
+      "table_name": "hotel_users"
+    },
+    {
+      "table_name": "hotels"
+    },
+    {
+      "table_name": "housekeeping_requests"
+    },
+    {
+      "table_name": "housekeeping_tasks"
+    },
+    {
+      "table_name": "invoice_items"
+    },
+    {
+      "table_name": "invoices"
+    },
+    {
+      "table_name": "manual_charges"
+    },
+    {
+      "table_name": "menu_categories"
+    },
+    {
+      "table_name": "menu_items"
+    },
+    {
+      "table_name": "notifications"
+    },
+    {
+      "table_name": "payment_collections"
+    },
+    {
+      "table_name": "payments"
+    },
+    {
+      "table_name": "role_permissions"
+    },
+    {
+      "table_name": "room_sessions"
+    },
+    {
+      "table_name": "rooms"
+    },
+    {
+      "table_name": "service_requests"
+    },
+    {
+      "table_name": "staff"
+    },
+    {
+      "table_name": "staff_roles"
+    },
+    {
+      "table_name": "subscription_plans"
+    }
+  ],
+  "triggers": []
+}

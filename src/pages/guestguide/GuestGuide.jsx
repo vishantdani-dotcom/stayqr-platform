@@ -1,7 +1,13 @@
-import { createNotification } from "../../lib/notifications";
-import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { useCallback, useEffect, useState } from "react";
+import {
+  createGuestServiceRequest,
+  getGuestAccessContext,
+  getGuestServiceRequests,
+  resolveGuestPortal,
+} from "../../lib/guestPortal";
 import "./GuestGuide.css";
+
+const ACCESS_RECHECK_INTERVAL_MS = 15000;
 
 export default function GuestGuide() {
   const [loading, setLoading] = useState(true);
@@ -9,162 +15,101 @@ export default function GuestGuide() {
   const [hotelInfo, setHotelInfo] = useState(null);
   const [requests, setRequests] = useState([]);
   const [requestLoading, setRequestLoading] = useState(false);
-  const [, forceTick] = useState(0);
+  const [nowMs, setNowMs] = useState(0);
 
-  useEffect(() => {
-    fetchActiveSession();
+  const clearGuestAccess = useCallback(() => {
+    setSession(null);
+    setHotelInfo(null);
+    setRequests([]);
+  }, []);
+
+  const fetchActiveSession = useCallback(async ({ initial = false } = {}) => {
+    if (initial) setLoading(true);
+
+    try {
+      const portal = await resolveGuestPortal("guest");
+
+      if (!portal?.session) {
+        throw new Error("This guest access link is invalid or expired.");
+      }
+
+      setSession(portal.session);
+      setHotelInfo(portal.hotel_info || null);
+      return true;
+    } catch (error) {
+      console.error("Guest portal access error:", error);
+      clearGuestAccess();
+      return false;
+    } finally {
+      if (initial) setLoading(false);
+    }
+  }, [clearGuestAccess]);
+
+  const fetchMyRequests = useCallback(async () => {
+    try {
+      const data = await getGuestServiceRequests();
+      setRequests(data);
+    } catch (error) {
+      console.error("Guest service requests error:", error);
+      setRequests([]);
+    }
   }, []);
 
   useEffect(() => {
-    if (!session?.guest_id || !session?.hotel_id) {
-      return undefined;
-    }
+    void fetchActiveSession({ initial: true });
+  }, [fetchActiveSession]);
 
-    fetchMyRequests(session.guest_id, session.hotel_id);
-    fetchHotelInfo(session.hotel_id);
+  const hasActiveSession = Boolean(session);
 
-    const requestChannel = supabase
-      .channel(`guest_service_requests_${session.guest_id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "service_requests",
-          filter: `guest_id=eq.${session.guest_id}`,
-        },
-        () => {
-          fetchMyRequests(session.guest_id, session.hotel_id);
-        }
-      )
-      .subscribe((status) => {
-        console.log("Guest service realtime:", status);
-      });
+  useEffect(() => {
+    if (!hasActiveSession) return undefined;
 
-    const sessionInterval = setInterval(() => {
-      fetchActiveSession();
-    }, 30000);
+    const revalidateAccess = () => {
+      void fetchActiveSession();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        revalidateAccess();
+      }
+    };
+
+    window.addEventListener("focus", revalidateAccess);
+    window.addEventListener("pageshow", revalidateAccess);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    const accessInterval = window.setInterval(
+      revalidateAccess,
+      ACCESS_RECHECK_INTERVAL_MS
+    );
 
     return () => {
-      supabase.removeChannel(requestChannel);
-      clearInterval(sessionInterval);
+      window.removeEventListener("focus", revalidateAccess);
+      window.removeEventListener("pageshow", revalidateAccess);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.clearInterval(accessInterval);
     };
-  }, [session?.guest_id, session?.hotel_id]);
+  }, [fetchActiveSession, hasActiveSession]);
+
+  useEffect(() => {
+    if (!hasActiveSession) return undefined;
+
+    void fetchMyRequests();
+
+    const requestInterval = window.setInterval(() => {
+      void fetchMyRequests();
+    }, 20000);
+
+    return () => window.clearInterval(requestInterval);
+  }, [fetchMyRequests, hasActiveSession]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      forceTick((value) => value + 1);
+      setNowMs(new Date().getTime());
     }, 1000);
 
     return () => clearInterval(interval);
   }, []);
-
-  async function fetchActiveSession() {
-    const roomNumber = decodeURIComponent(
-      window.location.pathname.split("/").filter(Boolean).pop() || ""
-    );
-
-    if (!roomNumber) {
-      setSession(null);
-      setLoading(false);
-      return;
-    }
-
-    const { data: roomData, error: roomError } = await supabase
-      .from("rooms")
-      .select("*")
-      .eq("room_number", roomNumber)
-      .maybeSingle();
-
-    if (roomError || !roomData) {
-      console.error("Room fetch error:", roomError);
-      setSession(null);
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("guest_sessions")
-      .select(`
-        *,
-        guests (
-          id,
-          full_name,
-          phone
-        ),
-        rooms (
-          id,
-          room_number,
-          room_type
-        )
-      `)
-      .eq("room_id", roomData.id)
-      .eq("hotel_id", roomData.hotel_id)
-      .eq("status", "active")
-      .maybeSingle();
-
-    if (error || !data) {
-      console.error("Active guest session error:", error);
-      setSession(null);
-      setLoading(false);
-      return;
-    }
-
-    const expiryTime = data.extended_until || data.checkout_time;
-
-    if (expiryTime && new Date(expiryTime) < new Date()) {
-      await supabase
-        .from("guest_sessions")
-        .update({
-          status: "expired",
-          expired_at: new Date().toISOString(),
-        })
-        .eq("id", data.id)
-        .eq("hotel_id", data.hotel_id);
-
-      setSession(null);
-      setLoading(false);
-      return;
-    }
-
-    setSession(data);
-    setLoading(false);
-  }
-
-  async function fetchHotelInfo(hotelId) {
-    if (!hotelId) return;
-
-    const { data, error } = await supabase
-      .from("hotel_info")
-      .select("*")
-      .eq("hotel_id", hotelId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Hotel info error:", error);
-      return;
-    }
-
-    setHotelInfo(data);
-  }
-
-  async function fetchMyRequests(guestId, hotelId) {
-    if (!guestId || !hotelId) return;
-
-    const { data, error } = await supabase
-      .from("service_requests")
-      .select("*")
-      .eq("hotel_id", hotelId)
-      .eq("guest_id", guestId)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Guest service requests error:", error);
-      return;
-    }
-
-    setRequests(data || []);
-  }
 
   async function createRequest(requestType) {
     if (!session || requestLoading) return;
@@ -185,57 +130,34 @@ export default function GuestGuide() {
     try {
       setRequestLoading(true);
 
-      const { error } = await supabase
-        .from("service_requests")
-        .insert([
-          {
-            hotel_id: session.hotel_id,
-            room_id: session.room_id,
-            guest_id: session.guest_id,
-            request_type: requestType,
-            request_details: `${requestType} requested from Room ${session.rooms?.room_number}`,
-            status: "pending",
-            priority:
-              requestType === "Checkout Request" ? "high" : "normal",
-            estimated_minutes: null,
-            estimated_arrival_time: null,
-          },
-        ]);
+      const accessStillValid = await fetchActiveSession();
+      if (!accessStillValid) {
+        alert("Guest access has expired or been revoked.");
+        return;
+      }
 
-      if (error) throw error;
-
-      await createNotification({
-        hotelId: session.hotel_id,
-        roomId: session.room_id,
-        guestId: session.guest_id,
-        type: "service_request",
-        title: `${getRequestIcon(requestType)} ${requestType} Request`,
-        message: `Room ${session.rooms?.room_number} requested ${requestType}`,
-      });
-
+      await createGuestServiceRequest(requestType);
       alert(`${requestType} request sent to hotel staff.`);
-
-      await fetchMyRequests(
-        session.guest_id,
-        session.hotel_id
-      );
+      await fetchMyRequests();
     } catch (error) {
       console.error("Create service request error:", error);
-      alert(error.message);
+      await fetchActiveSession();
+      alert(error.message || "Unable to create the service request.");
     } finally {
       setRequestLoading(false);
     }
   }
 
-  function openFoodMenu() {
-    const roomNumber = session?.rooms?.room_number;
+  async function openFoodMenu() {
+    const accessStillValid = await fetchActiveSession();
+    const { hotelSlug, accessToken } = getGuestAccessContext("guest");
 
-    if (!roomNumber) {
-      alert("Room number not found");
+    if (!accessStillValid || !hotelSlug || !accessToken) {
+      alert("This guest access link is invalid or expired.");
       return;
     }
 
-    window.location.href = `/food/${roomNumber}`;
+    window.location.href = `/food/${encodeURIComponent(hotelSlug)}/${encodeURIComponent(accessToken)}`;
   }
 
   function openGoogleReview() {
@@ -250,9 +172,12 @@ export default function GuestGuide() {
   }
 
   function callReception() {
-    window.location.href = `tel:${
-      hotelInfo?.reception_phone || "+919503893141"
-    }`;
+    if (!hotelInfo?.reception_phone) {
+      alert("Reception contact is not configured for this hotel.");
+      return;
+    }
+
+    window.location.href = `tel:${hotelInfo.reception_phone}`;
   }
 
   function getRequestLabel(status) {
@@ -335,7 +260,7 @@ export default function GuestGuide() {
     }
 
     const etaSetTime = arrivalTime - estimatedDuration;
-    const elapsed = Date.now() - etaSetTime;
+    const elapsed = nowMs - etaSetTime;
 
     const elapsedRatio = Math.min(
       1,
@@ -355,7 +280,7 @@ export default function GuestGuide() {
 
     if (Number.isNaN(targetTime)) return null;
 
-    const remaining = targetTime - Date.now();
+    const remaining = targetTime - nowMs;
 
     if (remaining <= 0) {
       return "Arriving shortly";
@@ -388,17 +313,12 @@ export default function GuestGuide() {
       <div className="guest-lux-page">
         <section className="guest-inactive-card">
           <p className="section-kicker">STAYQR ACCESS</p>
-          <h1>Room Guide Not Active</h1>
+          <h1>Guest Access Not Available</h1>
 
           <p>
-            This QR is permanent, but no active guest session is
-            currently available for this room. The stay may be expired
-            or checked out. Please contact reception.
+            This signed StayQR link is invalid, expired or has been revoked.
+            Please contact the hotel using the details provided at reception.
           </p>
-
-          <button onClick={callReception}>
-            Call Reception
-          </button>
         </section>
       </div>
     );
@@ -746,7 +666,7 @@ export default function GuestGuide() {
             </span>
 
             <h3>
-              {hotelInfo?.checkin_time || "2:00 PM"}
+              {hotelInfo?.checkin_time || "Not configured"}
             </h3>
           </div>
 
@@ -756,7 +676,7 @@ export default function GuestGuide() {
             </span>
 
             <h3>
-              {hotelInfo?.checkout_time || "11:00 AM"}
+              {hotelInfo?.checkout_time || "Not configured"}
             </h3>
           </div>
 
@@ -767,7 +687,7 @@ export default function GuestGuide() {
 
             <h3>
               {hotelInfo?.breakfast_time ||
-                "8:00 AM - 10:30 AM"}
+                "Not configured"}
             </h3>
           </div>
 
@@ -777,8 +697,7 @@ export default function GuestGuide() {
             </span>
 
             <h3>
-              {hotelInfo?.reception_phone ||
-                "+919503893141"}
+              {hotelInfo?.reception_phone || "Not configured"}
             </h3>
           </div>
         </div>
@@ -797,7 +716,7 @@ export default function GuestGuide() {
 
             <h3>
               {hotelInfo?.wifi_name ||
-                "Hotel_Guest_WiFi"}
+                "Not configured"}
             </h3>
           </div>
 
@@ -808,7 +727,7 @@ export default function GuestGuide() {
 
             <h3>
               {hotelInfo?.wifi_password ||
-                "Ask Reception"}
+                "Not configured"}
             </h3>
           </div>
         </div>
@@ -833,11 +752,15 @@ export default function GuestGuide() {
 
           <button
             onClick={() => {
-              window.location.href = `tel:${
-                hotelInfo?.emergency_phone ||
-                hotelInfo?.reception_phone ||
-                "+919503893141"
-              }`;
+              const emergencyPhone =
+                hotelInfo?.emergency_phone || hotelInfo?.reception_phone;
+
+              if (!emergencyPhone) {
+                alert("Emergency contact is not configured for this hotel.");
+                return;
+              }
+
+              window.location.href = `tel:${emergencyPhone}`;
             }}
           >
             <span>🚨</span>

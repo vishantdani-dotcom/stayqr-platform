@@ -1,292 +1,628 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
-import { getCurrentHotel } from "../../lib/currentHotel";
+import { useCallback, useEffect, useState } from 'react'
+import { getCurrentHotel } from '../../lib/currentHotel'
+import {
+  approveHousekeepingRoomReady,
+  assignHousekeepingTask,
+  cancelHousekeepingTask,
+  completeHousekeepingCleaning,
+  createHousekeepingTask,
+  getHousekeepingMobileQueue,
+  getHousekeepingWorkspace,
+  inspectHousekeepingTask,
+  loadActiveHotelStaff,
+  startHousekeepingTask,
+  updateHousekeepingChecklistItem,
+} from '../../lib/day13Operations'
+import '../day13/Day13Operations.css'
 
-export default function Housekeeping() {
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentHotel, setCurrentHotel] = useState(null);
+export default function Housekeeping({ hotel: hotelProp }) {
+  const [hotel, setHotel] = useState(hotelProp || null)
+  const [workspace, setWorkspace] = useState({
+    tasks: [],
+    workload: [],
+    unassigned_open_tasks: 0,
+    rooms_waiting_for_ready: 0,
+  })
+  const [mobileQueue, setMobileQueue] = useState([])
+  const [staff, setStaff] = useState([])
+  const [activeTab, setActiveTab] = useState('board')
+  const [selectedStaffId, setSelectedStaffId] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [busyTaskId, setBusyTaskId] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    roomId: '',
+    taskType: 'room_cleaning',
+    priority: 'normal',
+    dueAt: '',
+    notes: '',
+  })
+
+  const loadData = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true)
+    setError('')
+
+    try {
+      const activeHotel = hotel || (await getCurrentHotel())
+      if (!activeHotel?.id) throw new Error('No active hotel is selected.')
+      if (!hotel) setHotel(activeHotel)
+
+      const [workspaceData, staffData] = await Promise.all([
+        getHousekeepingWorkspace(activeHotel.id),
+        loadActiveHotelStaff(activeHotel.id),
+      ])
+
+      setWorkspace(workspaceData || {})
+      setStaff(staffData)
+    } catch (loadError) {
+      setError(loadError.message)
+    } finally {
+      if (showSpinner) setLoading(false)
+    }
+  }, [hotel])
+
+  const hotelId = hotel?.id || null
+
+  const loadMobile = useCallback(async () => {
+    if (!hotelId) return
+
+    try {
+      const data = await getHousekeepingMobileQueue(
+        hotelId,
+        selectedStaffId || null
+      )
+      setMobileQueue(data || [])
+    } catch (loadError) {
+      setError(loadError.message)
+    }
+  }, [hotelId, selectedStaffId])
 
   useEffect(() => {
-    initPage();
-  }, []);
+    loadData()
+  }, [loadData])
 
-  async function initPage() {
-    const hotel = await getCurrentHotel();
+  useEffect(() => {
+    if (activeTab === 'mobile') loadMobile()
+  }, [activeTab, loadMobile])
 
-    if (!hotel) {
-      alert("No hotel assigned");
-      return;
-    }
+  const tasks = workspace.tasks || []
+  const openTasks = tasks.filter((task) =>
+    [
+      'pending',
+      'assigned',
+      'in_progress',
+      'cleaning_complete',
+      'inspection_failed',
+      'inspected',
+    ].includes(task.status)
+  )
 
-    setCurrentHotel(hotel);
-    fetchTasks(hotel.id);
+  const stats = {
+    open: openTasks.length,
+    unassigned: workspace.unassigned_open_tasks || 0,
+    inProgress: tasks.filter((task) => task.status === 'in_progress').length,
+    inspection: tasks.filter((task) =>
+      ['cleaning_complete', 'inspection_failed', 'inspected'].includes(task.status)
+    ).length,
+    ready: tasks.filter((task) => task.status === 'ready').length,
+    roomsWaiting: workspace.rooms_waiting_for_ready || 0,
   }
 
-  async function fetchTasks(hotelId = currentHotel?.id) {
-    if (!hotelId) return;
+  const runTaskAction = async (taskId, message, action) => {
+    setBusyTaskId(taskId)
+    setError('')
+    setSuccess('')
 
-    setLoading(true);
-
-    const { data, error } = await supabase
-      .from("housekeeping_tasks")
-      .select("*")
-      .eq("hotel_id", hotelId)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      alert(error.message);
-      setLoading(false);
-      return;
-    }
-
-    setTasks(data || []);
-    setLoading(false);
-  }
-
-  async function markCompleted(task) {
     try {
-      const { error: taskError } = await supabase
-        .from("housekeeping_tasks")
-        .update({ status: "completed" })
-        .eq("id", task.id)
-        .eq("hotel_id", currentHotel?.id);
-
-      if (taskError) throw taskError;
-
-      const { error: roomError } = await supabase
-        .from("rooms")
-        .update({ status: "available" })
-        .eq("id", task.room_id)
-        .eq("hotel_id", currentHotel?.id);
-
-      if (roomError) throw roomError;
-
-      alert("Room cleaned and marked available");
-
-      fetchTasks(currentHotel?.id);
-    } catch (err) {
-      alert(err.message);
+      await action()
+      setSuccess(message)
+      await loadData(false)
+      if (activeTab === 'mobile') await loadMobile()
+    } catch (actionError) {
+      setError(actionError.message)
+    } finally {
+      setBusyTaskId('')
     }
   }
 
-  const pending = tasks.filter((t) => t.status === "pending").length;
-  const completed = tasks.filter((t) => t.status === "completed").length;
+  const createTask = (event) => {
+    event.preventDefault()
+    runTaskAction('new', 'Housekeeping task created.', async () => {
+      await createHousekeepingTask(hotel.id, createForm)
+      setCreateOpen(false)
+      setCreateForm({
+        roomId: '',
+        taskType: 'room_cleaning',
+        priority: 'normal',
+        dueAt: '',
+        notes: '',
+      })
+    })
+  }
+
+  const assignTask = (task) => {
+    const staffId = window.prompt(
+      `Assign ${task.room?.room_number || task.room_number}. Paste staff ID:\n${staff
+        .map((member) => `${member.full_name}: ${member.id}`)
+        .join('\n')}`
+    )
+    if (!staffId) return
+
+    runTaskAction(task.id, 'Task assigned.', () =>
+      assignHousekeepingTask(
+        hotel.id,
+        task.id,
+        staffId.trim(),
+        task.priority || 'normal',
+        task.due_at || null
+      )
+    )
+  }
+
+  const inspectTask = (task, result) => {
+    const notes = window.prompt(
+      result === 'passed' ? 'Inspection notes (optional):' : 'Why did inspection fail?'
+    )
+    if (result === 'failed' && !notes?.trim()) return
+
+    runTaskAction(task.id, `Inspection ${result}.`, () =>
+      inspectHousekeepingTask(hotel.id, task.id, result, notes || '')
+    )
+  }
 
   if (loading) {
-    return <div style={page}>Loading housekeeping tasks...</div>;
+    return <div className="day13-page">Loading housekeeping operations…</div>
   }
 
   return (
-    <div style={page}>
-      <div style={header}>
+    <div className="day13-page">
+      <div className="day13-header">
         <div>
-          <h1 style={title}>Housekeeping</h1>
-
-          <p style={hotelName}>
-            {currentHotel?.hotel_name || "Hotel"}
-          </p>
-
-          <p style={subtitle}>
-            Manage cleaning tasks after guest checkout.
+          <div className="day13-kicker">Day 13 · Operational readiness</div>
+          <h1>Housekeeping</h1>
+          <p>
+            Assignment, workload, required cleaning checklist, inspection, rework and
+            explicit room-ready approval.
           </p>
         </div>
-
-        <button
-          style={refreshBtn}
-          onClick={() => fetchTasks(currentHotel?.id)}
-        >
-          Refresh
-        </button>
+        <div className="day13-actions">
+          <button className="day13-button" onClick={() => loadData()} type="button">
+            Refresh
+          </button>
+          <button
+            className="day13-button day13-button-primary"
+            type="button"
+            onClick={() => setCreateOpen(true)}
+          >
+            Create task
+          </button>
+        </div>
       </div>
 
-      <div style={statsGrid}>
-        <Card title="Pending Tasks" value={pending} />
-        <Card title="Completed Tasks" value={completed} />
-        <Card title="Total Tasks" value={tasks.length} />
+      {error && <div className="day13-alert">{error}</div>}
+      {success && <div className="day13-success">{success}</div>}
+
+      <div className="day13-stats">
+        <Stat label="Open tasks" value={stats.open} />
+        <Stat label="Unassigned" value={stats.unassigned} />
+        <Stat label="In progress" value={stats.inProgress} />
+        <Stat label="Inspection queue" value={stats.inspection} />
+        <Stat label="Ready" value={stats.ready} />
+        <Stat label="Rooms waiting" value={stats.roomsWaiting} />
       </div>
 
-      <div style={tableCard}>
-        {tasks.length === 0 ? (
-          <p>No housekeeping tasks found.</p>
-        ) : (
-          <table style={table}>
-            <thead>
-              <tr>
-                <th style={th}>Room</th>
-                <th style={th}>Task</th>
-                <th style={th}>Status</th>
-                <th style={th}>Created</th>
-                <th style={th}>Action</th>
-              </tr>
-            </thead>
+      <div className="day13-tabs">
+        {[
+          ['board', 'Task board'],
+          ['workload', 'Staff workload'],
+          ['mobile', 'Mobile staff view'],
+          ['history', 'Completed history'],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            className={`day13-tab ${activeTab === id ? 'day13-tab-active' : ''}`}
+            type="button"
+            onClick={() => setActiveTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-            <tbody>
-              {tasks.map((task) => (
-                <tr key={task.id}>
-                  <td style={td}>
-                    Room {task.room_number || "-"}
-                  </td>
+      {activeTab === 'board' && (
+        <div className="day13-grid">
+          {openTasks.length === 0 ? (
+            <div className="day13-panel day13-empty">No open housekeeping tasks.</div>
+          ) : (
+            openTasks.map((task) => (
+              <HousekeepingCard
+                key={task.id}
+                task={task}
+                busy={busyTaskId === task.id}
+                onAssign={() => assignTask(task)}
+                onStart={() =>
+                  runTaskAction(task.id, 'Cleaning started.', () =>
+                    startHousekeepingTask(hotel.id, task.id)
+                  )
+                }
+                onItem={(item, status) =>
+                  runTaskAction(task.id, 'Checklist updated.', () =>
+                    updateHousekeepingChecklistItem(
+                      hotel.id,
+                      task.id,
+                      item.id,
+                      status,
+                      ''
+                    )
+                  )
+                }
+                onComplete={() =>
+                  runTaskAction(task.id, 'Cleaning marked complete.', () =>
+                    completeHousekeepingCleaning(hotel.id, task.id, '')
+                  )
+                }
+                onInspect={(result) => inspectTask(task, result)}
+                onReady={() =>
+                  runTaskAction(task.id, 'Room approved ready.', () =>
+                    approveHousekeepingRoomReady(hotel.id, task.id, '')
+                  )
+                }
+                onCancel={() => {
+                  const reason = window.prompt('Cancellation reason:')
+                  if (!reason?.trim()) return
+                  runTaskAction(task.id, 'Task cancelled.', () =>
+                    cancelHousekeepingTask(hotel.id, task.id, reason)
+                  )
+                }}
+              />
+            ))
+          )}
+        </div>
+      )}
 
-                  <td style={td}>
-                    {task.task_type || "room_cleaning"}
-                  </td>
+      {activeTab === 'workload' && (
+        <div className="day13-grid">
+          {(workspace.workload || []).map((row) => (
+            <div className="day13-card" key={row.staff_id}>
+              <h3>{row.staff_name}</h3>
+              <div className="day13-muted">{row.role || 'Staff'}</div>
+              <div className="day13-stats" style={{ marginTop: 14, marginBottom: 0 }}>
+                <Stat label="Open" value={row.open_tasks || 0} />
+                <Stat label="Urgent" value={row.urgent_tasks || 0} />
+                <Stat label="In progress" value={row.in_progress_tasks || 0} />
+                <Stat label="Ready today" value={row.ready_today || 0} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-                  <td style={td}>
-                    <span style={badge(task.status)}>
-                      {task.status}
-                    </span>
-                  </td>
+      {activeTab === 'mobile' && (
+        <>
+          <div className="day13-panel" style={{ marginBottom: 14 }}>
+            <div className="day13-panel-body day13-inline-actions">
+              <select
+                value={selectedStaffId}
+                onChange={(event) => setSelectedStaffId(event.target.value)}
+              >
+                <option value="">All staff and unassigned</option>
+                {staff.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.full_name}
+                  </option>
+                ))}
+              </select>
+              <button className="day13-button" type="button" onClick={loadMobile}>
+                Load mobile queue
+              </button>
+            </div>
+          </div>
+          <div className="day13-mobile-grid">
+            {mobileQueue.map((task) => (
+              <div className="day13-mobile-card" key={task.task_id}>
+                <div className="day13-kicker">{task.priority} priority</div>
+                <div className="day13-mobile-room">Room {task.room_number}</div>
+                <span className={`day13-status day13-status-${task.status}`}>
+                  {task.status}
+                </span>
+                <p className="day13-muted">{task.notes || task.task_type}</p>
+                <div className="day13-small">
+                  Checklist {task.completed_items || 0}/{task.total_items || 0}
+                </div>
+                <Progress
+                  completed={task.completed_items || 0}
+                  total={task.total_items || 0}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
-                  <td style={td}>
-                    {task.created_at
-                      ? new Date(task.created_at).toLocaleString("en-IN")
-                      : "-"}
-                  </td>
-
-                  <td style={td}>
-                    {task.status === "completed" ? (
-                      <span
-                        style={{
-                          color: "#2ecc71",
-                          fontWeight: 700,
-                        }}
-                      >
-                        Done
-                      </span>
-                    ) : (
-                      <button
-                        style={btn}
-                        onClick={() => markCompleted(task)}
-                      >
-                        Mark Complete
-                      </button>
-                    )}
-                  </td>
+      {activeTab === 'history' && (
+        <div className="day13-panel">
+          <div className="day13-table-wrap">
+            <table className="day13-table">
+              <thead>
+                <tr>
+                  <th>Room</th>
+                  <th>Task</th>
+                  <th>Status</th>
+                  <th>Cleaning</th>
+                  <th>Inspection</th>
+                  <th>Ready</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {tasks
+                  .filter((task) => ['ready', 'completed', 'cancelled'].includes(task.status))
+                  .map((task) => (
+                    <tr key={task.id}>
+                      <td>{task.room?.room_number || task.room_number}</td>
+                      <td>{task.task_type}</td>
+                      <td>
+                        <span className={`day13-status day13-status-${task.status}`}>
+                          {task.status}
+                        </span>
+                      </td>
+                      <td>{formatDate(task.cleaning_completed_at)}</td>
+                      <td>{task.inspection_status || '—'}</td>
+                      <td>{formatDate(task.room_ready_at)}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {createOpen && (
+        <div className="day13-overlay">
+          <form className="day13-modal" onSubmit={createTask}>
+            <div className="day13-modal-header">
+              <h2>Create housekeeping task</h2>
+              <button
+                className="day13-button"
+                type="button"
+                onClick={() => setCreateOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="day13-modal-body day13-form">
+              <Field label="Room ID" full>
+                <input
+                  required
+                  placeholder="Paste room UUID from Rooms workspace"
+                  value={createForm.roomId}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, roomId: event.target.value }))
+                  }
+                />
+              </Field>
+              <Field label="Task type">
+                <select
+                  value={createForm.taskType}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({
+                      ...current,
+                      taskType: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="room_cleaning">Room cleaning</option>
+                  <option value="stayover_cleaning">Stayover cleaning</option>
+                  <option value="deep_cleaning">Deep cleaning</option>
+                  <option value="turndown">Turndown</option>
+                </select>
+              </Field>
+              <Field label="Priority">
+                <select
+                  value={createForm.priority}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({
+                      ...current,
+                      priority: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </Field>
+              <Field label="Due at">
+                <input
+                  type="datetime-local"
+                  value={createForm.dueAt}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, dueAt: event.target.value }))
+                  }
+                />
+              </Field>
+              <Field label="Notes" full>
+                <textarea
+                  value={createForm.notes}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, notes: event.target.value }))
+                  }
+                />
+              </Field>
+            </div>
+            <div className="day13-modal-footer">
+              <button
+                className="day13-button"
+                type="button"
+                onClick={() => setCreateOpen(false)}
+              >
+                Cancel
+              </button>
+              <button className="day13-button day13-button-primary" disabled={busyTaskId === 'new'}>
+                Create task
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HousekeepingCard({
+  task,
+  busy,
+  onAssign,
+  onStart,
+  onItem,
+  onComplete,
+  onInspect,
+  onReady,
+  onCancel,
+}) {
+  const items = task.items || []
+  const complete = items.filter((item) =>
+    ['completed', 'not_applicable'].includes(item.item_status)
+  ).length
+
+  return (
+    <div className="day13-card">
+      <div className="day13-inline-actions" style={{ justifyContent: 'space-between' }}>
+        <div>
+          <div className="day13-kicker">{task.priority} priority</div>
+          <h3>Room {task.room?.room_number || task.room_number}</h3>
+          <div className="day13-muted">
+            {task.task_type?.replaceAll('_', ' ')} · {task.assigned_to || 'Unassigned'}
+          </div>
+        </div>
+        <span className={`day13-status day13-status-${task.status}`}>
+          {task.status}
+        </span>
+      </div>
+
+      <div className="day13-small" style={{ marginTop: 12 }}>
+        Checklist {complete}/{items.length}
+      </div>
+      <Progress completed={complete} total={items.length} />
+
+      <div className="day13-checklist">
+        {items.map((item) => (
+          <label className="day13-check" key={item.id}>
+            <input
+              type="checkbox"
+              disabled={
+                busy ||
+                !['assigned', 'in_progress', 'inspection_failed'].includes(task.status)
+              }
+              checked={['completed', 'not_applicable'].includes(item.item_status)}
+              onChange={(event) => onItem(item, event.target.checked ? 'completed' : 'pending')}
+            />
+            <span>{item.label}</span>
+            <small className="day13-muted">{item.is_required ? 'Required' : 'Optional'}</small>
+          </label>
+        ))}
+      </div>
+
+      <div className="day13-inline-actions" style={{ marginTop: 14 }}>
+        {['pending', 'assigned', 'inspection_failed'].includes(task.status) && (
+          <button className="day13-button" type="button" disabled={busy} onClick={onAssign}>
+            Assign
+          </button>
+        )}
+        {['assigned', 'inspection_failed'].includes(task.status) && (
+          <button
+            className="day13-button day13-button-primary"
+            type="button"
+            disabled={busy}
+            onClick={onStart}
+          >
+            Start
+          </button>
+        )}
+        {task.status === 'in_progress' && (
+          <button
+            className="day13-button day13-button-primary"
+            type="button"
+            disabled={busy}
+            onClick={onComplete}
+          >
+            Complete cleaning
+          </button>
+        )}
+        {task.status === 'cleaning_complete' && (
+          <>
+            <button
+              className="day13-button day13-button-success"
+              type="button"
+              disabled={busy}
+              onClick={() => onInspect('passed')}
+            >
+              Pass inspection
+            </button>
+            <button
+              className="day13-button day13-button-danger"
+              type="button"
+              disabled={busy}
+              onClick={() => onInspect('failed')}
+            >
+              Fail inspection
+            </button>
+          </>
+        )}
+        {task.status === 'inspected' && (
+          <button
+            className="day13-button day13-button-success"
+            type="button"
+            disabled={busy}
+            onClick={onReady}
+          >
+            Approve room ready
+          </button>
+        )}
+        {!['ready', 'completed', 'cancelled'].includes(task.status) && (
+          <button
+            className="day13-button day13-button-danger"
+            type="button"
+            disabled={busy}
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
         )}
       </div>
     </div>
-  );
+  )
 }
 
-function Card({ title, value }) {
+function Field({ label, children, full = false }) {
   return (
-    <div style={statCard}>
-      <div style={statTitle}>{title}</div>
-      <div style={statValue}>{value}</div>
+    <div className={`day13-field ${full ? 'day13-field-full' : ''}`}>
+      <label>{label}</label>
+      {children}
     </div>
-  );
+  )
 }
 
-const page = {
-  padding: "32px",
-  color: "#fff",
-};
+function Stat({ label, value }) {
+  return (
+    <div className="day13-stat">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  )
+}
 
-const hotelName = {
-  color: "#d4af37",
-  marginBottom: "6px",
-};
+function Progress({ completed, total }) {
+  const width = total ? Math.min(100, Math.round((completed / total) * 100)) : 0
+  return (
+    <div className="day13-progress">
+      <span style={{ width: `${width}%` }} />
+    </div>
+  )
+}
 
-const header = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "25px",
-};
-
-const title = {
-  fontSize: "42px",
-  marginBottom: "6px",
-};
-
-const subtitle = {
-  color: "#aaa",
-};
-
-const refreshBtn = {
-  background: "#d4af37",
-  color: "#000",
-  border: "none",
-  borderRadius: "10px",
-  padding: "12px 18px",
-  fontWeight: 800,
-  cursor: "pointer",
-};
-
-const statsGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
-  gap: "18px",
-  marginBottom: "25px",
-};
-
-const statCard = {
-  background: "#0f0f0f",
-  border: "1px solid #222",
-  borderRadius: "16px",
-  padding: "20px",
-};
-
-const statTitle = {
-  color: "#d4af37",
-  fontSize: "13px",
-  marginBottom: "10px",
-};
-
-const statValue = {
-  fontSize: "28px",
-  fontWeight: "700",
-};
-
-const tableCard = {
-  background: "#0f0f0f",
-  border: "1px solid #222",
-  borderRadius: "18px",
-  overflowX: "auto",
-  padding: "10px",
-};
-
-const table = {
-  width: "100%",
-  borderCollapse: "collapse",
-  minWidth: "900px",
-};
-
-const th = {
-  padding: "16px",
-  textAlign: "left",
-  color: "#d4af37",
-  borderBottom: "1px solid #222",
-};
-
-const td = {
-  padding: "16px",
-  borderBottom: "1px solid #1f1f1f",
-};
-
-const btn = {
-  background: "#d4af37",
-  color: "#000",
-  border: "none",
-  padding: "9px 14px",
-  borderRadius: "8px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const badge = (status) => ({
-  padding: "7px 12px",
-  borderRadius: "999px",
-  background:
-    status === "completed"
-      ? "rgba(46,204,113,.18)"
-      : "rgba(255,170,0,.18)",
-  color: status === "completed" ? "#2ecc71" : "#ffaa00",
-  fontWeight: 700,
-  textTransform: "capitalize",
-});
+function formatDate(value) {
+  return value ? new Date(value).toLocaleString('en-IN') : '—'
+}

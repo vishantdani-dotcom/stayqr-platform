@@ -1,0 +1,54 @@
+StayQR Day 9 Super Admin Commercial Frontend — Final Source Validation
+======================================================================
+UTC: 2026-07-28 18:57:44
+
+PASS — Resolved 152 relative frontend imports.
+PASS 01_no_fixed_hotel_uuid — No literal production tenant UUID exists in frontend source.
+PASS 02_no_current_hotel_fallback — Current hotel is resolved only from canonical tenant context.
+PASS 03_user_scoped_hotel_selection — Selected hotel storage is scoped to the authenticated user.
+PASS 04_signed_guest_path_validation — Guest routes require a hotel slug and UUID-plus-HMAC token.
+PASS 05_malformed_path_is_safe — Malformed URL encoding is rejected without crashing the guest page.
+PASS 06_guest_access_uses_rpc_only — Guest capabilities are exposed through approved RPCs, not direct tables.
+PASS 07_secure_guest_and_food_routes — Guest guide and food menu use signed path entry points.
+PASS 08_no_legacy_room_route_generation — Frontend does not construct room-number guest credentials.
+PASS 09_local_qr_renderer_present — Secure QR codes are generated locally in the browser.
+PASS 10_no_external_qr_service — Signed guest tokens are never sent to a third-party QR service.
+PASS 11_revocation_state_supported — Revoked and expired access remains disabled until explicit activation.
+PASS 12_service_role_not_in_browser — No Supabase service-role key or browser-side service-role usage exists.
+PASS 13_guest_pages_revalidate_revocation — Open guest pages revalidate on focus, visibility return and a bounded interval.
+PASS 14_revoked_guest_state_is_cleared — Revocation clears already-rendered guest, menu, order and cart state.
+PASS 15_guest_actions_prevalidate_access — Service requests, food navigation and order placement revalidate access before action.
+
+Day 7 frontend security source gate passed 15/15.
+PASS 00_owner_self_signup_available — A new hotel owner can create an authenticated account before entering secure onboarding.
+PASS 01_unassigned_user_enters_onboarding — Authenticated accounts without hotel access enter the secure onboarding wizard.
+PASS 02_atomic_bootstrap_rpc_used — The wizard creates tenants through the atomic bootstrap RPC.
+PASS 03_inventory_rpc_used — Floors, room types and rates use the server-owned inventory RPC.
+PASS 04_room_import_rpc_used — CSV room creation uses the validated bulk-room RPC.
+PASS 05_readiness_is_server_computed — The browser cannot self-declare the hotel operational.
+PASS 06_resumable_step_rpc_used — Wizard progress is persisted through server-validated onboarding steps.
+PASS 07_superadmin_direct_hotel_insert_removed — Super Admin launches atomic onboarding instead of separate table inserts.
+PASS 08_normalized_menu_categories_used — Menu configuration uses hotel-owned normalized categories.
+PASS 09_database_amenities_used — The Amenities page no longer renders fixed demo data.
+PASS 10_hotel_setup_navigation_authorized — Owners, managers and Platform Admins can open Hotel Setup through normal authorization.
+PASS 11_user_scoped_idempotency_key — Bootstrap retry protection is scoped to the authenticated user.
+PASS 12_no_service_role_or_fixed_tenant — Day 8 frontend code contains no service-role secret or fixed tenant UUID.
+PASS 13_subscription_plan_schema_contract — Onboarding queries only subscription-plan columns that exist in the locked production schema.
+
+Day 8 onboarding source gate passed 14/14.
+PASS — Day 9 commercial frontend source gate (18 required contracts; 7 unsafe patterns blocked).
+PASS — SVG document generated
+PASS — QR module path generated
+PASS — Quiet-zone background generated
+PASS — SVG data URL generated
+PASS — No remote image endpoint used
+
+Local QR engine test passed 5/5.
+PASS — JavaScript syntax parsed: 57 files.
+PASS — No unused imports/local bindings: src/pages/superadmin/SuperAdmin.jsx
+PASS — No unused imports/local bindings: src/lib/commercialControl.js
+PASS — CSS structural validation.
+
+KNOWN ENVIRONMENT LIMITATION
+- Full npm lint/build was not executable here because the uploaded archive contained an incomplete Windows node_modules set and this environment could not reach npm.
+- Final package excludes node_modules. Run npm install && npm run check on the normal connected development machine.

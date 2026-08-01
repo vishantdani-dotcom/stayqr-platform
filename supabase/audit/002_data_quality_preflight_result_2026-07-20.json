@@ -1,0 +1,259 @@
+{
+  "active_session_tenant_or_orphan_conflicts": [],
+  "duplicate_active_subscriptions": [],
+  "duplicate_hotel_info": [],
+  "duplicate_hotel_user_auth": [
+    {
+      "duplicate_count": 2,
+      "user_id": "a3d5f5a6-6fff-40fe-8fe0-b0b6c436effd"
+    }
+  ],
+  "duplicate_role_permissions": [],
+  "duplicate_rooms": [],
+  "duplicate_staff_auth": [],
+  "financial_null_or_invalid_amounts": {
+    "invoice_balance_mismatch": 15,
+    "negative_collections": 0,
+    "negative_food_totals": 0,
+    "negative_invoice_totals": 0,
+    "negative_manual_charges": 0,
+    "negative_payments": 0
+  },
+  "food_item_tenant_conflicts": [],
+  "food_order_tenant_conflicts": [],
+  "generated_at": "2026-07-20T08:52:27.036768+00:00",
+  "hotel_readiness": [
+    {
+      "has_active_membership": true,
+      "has_active_staff": true,
+      "has_current_subscription": false,
+      "has_hotel_info": true,
+      "has_rooms": true,
+      "hotel_id": "77d850d0-016d-4155-bc44-a6207d30e7b9",
+      "status": "active",
+      "subscription_status": "active"
+    },
+    {
+      "has_active_membership": false,
+      "has_active_staff": false,
+      "has_current_subscription": true,
+      "has_hotel_info": false,
+      "has_rooms": false,
+      "hotel_id": "9e105be7-0d93-4dc9-84c6-f729b53f1368",
+      "status": "active",
+      "subscription_status": "trial"
+    }
+  ],
+  "hotel_user_auth_issues": {
+    "active_memberships_without_user_id": 0,
+    "membership_auth_user_missing": 0,
+    "membership_email_mismatch": 1
+  },
+  "housekeeping_request_tenant_conflicts": [],
+  "housekeeping_task_tenant_conflicts": [],
+  "invoice_item_tenant_conflicts": [],
+  "invoice_tenant_conflicts": [],
+  "legacy_room_sessions": {
+    "active_count": 0,
+    "row_count": 0
+  },
+  "manual_charge_tenant_conflicts": [],
+  "menu_item_tenant_conflicts": [],
+  "multiple_active_sessions_per_room": [],
+  "null_hotel_ids": [
+    {
+      "null_count": 1,
+      "table_name": "hotel_info"
+    }
+  ],
+  "payment_collection_tenant_conflicts": [],
+  "payment_tenant_conflicts": [],
+  "purpose": "StayQR pre-migration production data-quality audit",
+  "room_session_status_conflicts": [
+    {
+      "has_active_guest_session": true,
+      "hotel_id": "77d850d0-016d-4155-bc44-a6207d30e7b9",
+      "room_id": "9137c934-1cae-4e99-ae71-8e99d145244e",
+      "room_number": "102",
+      "room_status": "available"
+    }
+  ],
+  "service_request_tenant_conflicts": [],
+  "staff_auth_issues": {
+    "active_staff_without_auth_user": 1,
+    "staff_auth_user_missing": 0,
+    "staff_email_mismatch": 0
+  },
+  "status_counts": [
+    {
+      "row_count": 28,
+      "status": "delivered",
+      "table_name": "food_orders"
+    },
+    {
+      "row_count": 1,
+      "status": "active",
+      "table_name": "guest_sessions"
+    },
+    {
+      "row_count": 24,
+      "status": "completed",
+      "table_name": "guest_sessions"
+    },
+    {
+      "row_count": 11,
+      "status": "expired",
+      "table_name": "guest_sessions"
+    },
+    {
+      "row_count": 1,
+      "status": "active",
+      "table_name": "hotel_subscriptions"
+    },
+    {
+      "row_count": 12,
+      "status": "completed",
+      "table_name": "housekeeping_tasks"
+    },
+    {
+      "row_count": 18,
+      "status": "draft",
+      "table_name": "invoices"
+    },
+    {
+      "row_count": 3,
+      "status": "issued",
+      "table_name": "invoices"
+    },
+    {
+      "row_count": 3,
+      "status": "paid",
+      "table_name": "invoices"
+    },
+    {
+      "row_count": 36,
+      "status": "paid",
+      "table_name": "payments"
+    },
+    {
+      "row_count": 12,
+      "status": "available",
+      "table_name": "rooms"
+    },
+    {
+      "row_count": 32,
+      "status": "completed",
+      "table_name": "service_requests"
+    }
+  ],
+  "table_counts": [
+    {
+      "row_count": 0,
+      "table_name": "analytics_events"
+    },
+    {
+      "row_count": 0,
+      "table_name": "feedback"
+    },
+    {
+      "row_count": 46,
+      "table_name": "food_order_items"
+    },
+    {
+      "row_count": 28,
+      "table_name": "food_orders"
+    },
+    {
+      "row_count": 36,
+      "table_name": "guest_sessions"
+    },
+    {
+      "row_count": 36,
+      "table_name": "guests"
+    },
+    {
+      "row_count": 2,
+      "table_name": "hotel_info"
+    },
+    {
+      "row_count": 1,
+      "table_name": "hotel_subscriptions"
+    },
+    {
+      "row_count": 2,
+      "table_name": "hotel_users"
+    },
+    {
+      "row_count": 2,
+      "table_name": "hotels"
+    },
+    {
+      "row_count": 0,
+      "table_name": "housekeeping_requests"
+    },
+    {
+      "row_count": 12,
+      "table_name": "housekeeping_tasks"
+    },
+    {
+      "row_count": 15,
+      "table_name": "invoice_items"
+    },
+    {
+      "row_count": 24,
+      "table_name": "invoices"
+    },
+    {
+      "row_count": 5,
+      "table_name": "manual_charges"
+    },
+    {
+      "row_count": 4,
+      "table_name": "menu_categories"
+    },
+    {
+      "row_count": 10,
+      "table_name": "menu_items"
+    },
+    {
+      "row_count": 170,
+      "table_name": "notifications"
+    },
+    {
+      "row_count": 14,
+      "table_name": "payment_collections"
+    },
+    {
+      "row_count": 36,
+      "table_name": "payments"
+    },
+    {
+      "row_count": 0,
+      "table_name": "role_permissions"
+    },
+    {
+      "row_count": 0,
+      "table_name": "room_sessions"
+    },
+    {
+      "row_count": 12,
+      "table_name": "rooms"
+    },
+    {
+      "row_count": 32,
+      "table_name": "service_requests"
+    },
+    {
+      "row_count": 2,
+      "table_name": "staff"
+    },
+    {
+      "row_count": 6,
+      "table_name": "staff_roles"
+    },
+    {
+      "row_count": 3,
+      "table_name": "subscription_plans"
+    }
+  ]
+}

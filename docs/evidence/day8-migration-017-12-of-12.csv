@@ -1,0 +1,13 @@
+test_name,passed,details
+01_neutral_hotel_info_defaults,true,hotel_info no longer has a fixed tenant-name default.
+02_hotel_info_coverage,true,Every hotel has exactly one hotel_info row through the existing unique index.
+03_hotel_settings_coverage,true,Every hotel has structured settings.
+04_resumable_onboarding_coverage,true,Every hotel has resumable onboarding state.
+05_floor_coverage,true,Every hotel has at least one normalized floor.
+06_existing_rooms_floor_linked,true,All rooms that existed at migration time are floor-linked.
+07_room_floor_foreign_key,true,Room-to-floor ownership is protected by a validated hotel-scoped foreign key.
+08_invoice_sequence_coverage,true,Every hotel has a current-year invoice numbering configuration.
+09_trial_lifecycle_columns,true,"Explicit trial, activation, cancellation, metadata and update fields exist."
+10_new_tenant_tables_have_rls,true,All four new tenant tables have RLS enabled.
+11_new_tenant_policy_matrix,true,SELECT/INSERT/UPDATE/DELETE policies exist for every new tenant table.
+12_day8_foundation_ready,true,Migration 017 foundation is ready for the atomic onboarding and bulk-configuration RPC package.

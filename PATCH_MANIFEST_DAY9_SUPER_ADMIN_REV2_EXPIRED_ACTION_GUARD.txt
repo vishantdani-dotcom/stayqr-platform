@@ -1,0 +1,12 @@
+Modified:
+- src/pages/superadmin/SuperAdmin.jsx
+- scripts/day9-commercial-source-check.mjs
+
+Added:
+- README_FIRST_DAY9_SUPER_ADMIN_REV2_EXPIRED_ACTION_GUARD.txt
+- PATCH_MANIFEST_DAY9_SUPER_ADMIN_REV2_EXPIRED_ACTION_GUARD.txt
+
+Runtime correction:
+- expired/cancelled Manage action is now informational and cannot submit unsupported lifecycle RPCs.
+- payment recovery is routed to the existing Link action.
+- renewal is shown only for active, past_due or suspended subscriptions.

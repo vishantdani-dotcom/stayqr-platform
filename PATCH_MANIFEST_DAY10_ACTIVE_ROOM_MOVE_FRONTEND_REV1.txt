@@ -1,0 +1,19 @@
+StayQR_Day10_Active_Room_Move_Frontend_REV1_PATCH
+
+FILES
+-----
+Frontend/src/pages/guests/Guests.jsx
+Frontend/src/pages/guests/Guests.css
+Frontend/scripts/day10-front-office-source-check.mjs
+Frontend/README_FIRST_DAY10_ACTIVE_ROOM_MOVE_FRONTEND_REV1.txt
+Frontend/FINAL_VALIDATION_DAY10_ACTIVE_ROOM_MOVE_FRONTEND_REV1.txt
+Frontend/PATCH_MANIFEST_DAY10_ACTIVE_ROOM_MOVE_FRONTEND_REV1.txt
+
+SERVER CONTRACT
+---------------
+public.move_active_walkin_guest_room(uuid, uuid, uuid, jsonb)
+
+SCOPE
+-----
+Active direct walk-in room movement only.
+Reservation-linked active stays remain outside this RPC.

@@ -1,0 +1,150 @@
+{
+  "audit": "StayQR Day 7 Storage API Runtime Isolation",
+  "exported_at": "2026-07-27T09:11:01.321Z",
+  "actor_user_id": "a3d5f5a6-6fff-40fe-8fe0-b0b6c436effd",
+  "actor_email": "admin@vdstayinn.com",
+  "hotel_a": {
+    "id": "77d850d0-016d-4155-bc44-a6207d30e7b9",
+    "hotel_name": "VD Stay Inn",
+    "created_at": "2026-05-29T21:22:11.997177+00:00",
+    "status": "active"
+  },
+  "hotel_b": {
+    "id": "9e105be7-0d93-4dc9-84c6-f729b53f1368",
+    "hotel_name": "Hotel Apex Stay Inn",
+    "created_at": "2026-06-21T07:30:36.39253+00:00",
+    "status": "active"
+  },
+  "summary": {
+    "passed": 25,
+    "total": 25,
+    "failed": 0
+  },
+  "results": [
+    {
+      "test_name": "01_platform_admin_temporarily_disabled",
+      "passed": true,
+      "details": "Platform Admin access is disabled for the reversible Hotel A test actor."
+    },
+    {
+      "test_name": "02_hotel_a_owner_actor_resolved",
+      "passed": true,
+      "details": "Hotel A owner=true; active Hotel B staff access=false."
+    },
+    {
+      "test_name": "hotel-assets_03_cross_tenant_select_blocked",
+      "passed": true,
+      "details": "Hotel B fixture visible=false."
+    },
+    {
+      "test_name": "hotel-assets_04_cross_tenant_insert_blocked",
+      "passed": true,
+      "details": "Blocked: 403 · 400 · new row violates row-level security policy"
+    },
+    {
+      "test_name": "hotel-assets_05_cross_tenant_update_blocked",
+      "passed": true,
+      "details": "Blocked: 403 · 400 · new row violates row-level security policy"
+    },
+    {
+      "test_name": "hotel-assets_06_cross_tenant_delete_blocked_provisional",
+      "passed": true,
+      "details": "Storage API returned deleted object=false; final survival is verified after restore."
+    },
+    {
+      "test_name": "hotel-assets_07_own_folder_upload_allowed",
+      "passed": true,
+      "details": "Own-folder upload succeeded."
+    },
+    {
+      "test_name": "hotel-assets_08_own_folder_select_allowed",
+      "passed": true,
+      "details": "Own object visible=true."
+    },
+    {
+      "test_name": "hotel-assets_09_own_folder_update_allowed",
+      "passed": true,
+      "details": "Own-folder update succeeded."
+    },
+    {
+      "test_name": "hotel-assets_10_own_folder_download_allowed",
+      "passed": true,
+      "details": "Own-folder download succeeded."
+    },
+    {
+      "test_name": "hotel-assets_11_own_folder_delete_allowed",
+      "passed": true,
+      "details": "Deleted object count=1."
+    },
+    {
+      "test_name": "guest-documents_03_cross_tenant_select_blocked",
+      "passed": true,
+      "details": "Hotel B fixture visible=false."
+    },
+    {
+      "test_name": "guest-documents_04_cross_tenant_insert_blocked",
+      "passed": true,
+      "details": "Blocked: 403 · 400 · new row violates row-level security policy"
+    },
+    {
+      "test_name": "guest-documents_05_cross_tenant_update_blocked",
+      "passed": true,
+      "details": "Blocked: 403 · 400 · new row violates row-level security policy"
+    },
+    {
+      "test_name": "guest-documents_06_cross_tenant_delete_blocked_provisional",
+      "passed": true,
+      "details": "Storage API returned deleted object=false; final survival is verified after restore."
+    },
+    {
+      "test_name": "guest-documents_07_own_folder_upload_allowed",
+      "passed": true,
+      "details": "Own-folder upload succeeded."
+    },
+    {
+      "test_name": "guest-documents_08_own_folder_select_allowed",
+      "passed": true,
+      "details": "Own object visible=true."
+    },
+    {
+      "test_name": "guest-documents_09_own_folder_update_allowed",
+      "passed": true,
+      "details": "Own-folder update succeeded."
+    },
+    {
+      "test_name": "guest-documents_10_own_folder_download_allowed",
+      "passed": true,
+      "details": "Own-folder download succeeded."
+    },
+    {
+      "test_name": "guest-documents_11_own_folder_delete_allowed",
+      "passed": true,
+      "details": "Deleted object count=1."
+    },
+    {
+      "test_name": "23_platform_admin_restored",
+      "passed": true,
+      "details": "Platform Admin restored=true."
+    },
+    {
+      "test_name": "hotel-assets_24_cross_tenant_delete_survival_verified",
+      "passed": true,
+      "details": "Hotel B fixture survived Hotel A delete attempt=true."
+    },
+    {
+      "test_name": "hotel-assets_25_storage_api_cleanup_complete",
+      "passed": true,
+      "details": "Residual Hotel B audit objects=0."
+    },
+    {
+      "test_name": "guest-documents_24_cross_tenant_delete_survival_verified",
+      "passed": true,
+      "details": "Hotel B fixture survived Hotel A delete attempt=true."
+    },
+    {
+      "test_name": "guest-documents_25_storage_api_cleanup_complete",
+      "passed": true,
+      "details": "Residual Hotel B audit objects=0."
+    }
+  ]
+}

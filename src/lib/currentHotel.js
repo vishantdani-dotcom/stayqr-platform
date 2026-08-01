@@ -1,37 +1,17 @@
-import { supabase } from './supabase'
+import { loadTenantContext } from './tenantContext'
 
-const DEFAULT_HOTEL_ID = '77d850d0-016d-4155-bc44-a6207d30e7b9'
-
+/**
+ * Return the hotel selected by the canonical authenticated tenant context.
+ *
+ * No page is allowed to invent, hard-code or silently fall back to a tenant.
+ * A null result means the signed-in user has no authorized hotel context.
+ */
 export async function getCurrentHotel() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (user?.email) {
-    const { data } = await supabase
-      .from('hotel_users')
-      .select(`
-        *,
-        hotels (
-          id,
-          hotel_name,
-          location,
-          status
-        )
-      `)
-      .eq('email', user.email)
-      .maybeSingle()
-
-    if (data?.hotels) {
-      return data.hotels
-    }
+  try {
+    const context = await loadTenantContext()
+    return context?.selectedHotel || null
+  } catch (error) {
+    console.error('Current hotel context error:', error)
+    return null
   }
-
-  const { data: fallbackHotel } = await supabase
-    .from('hotels')
-    .select('id, hotel_name, location, status')
-    .eq('id', DEFAULT_HOTEL_ID)
-    .maybeSingle()
-
-  return fallbackHotel
 }

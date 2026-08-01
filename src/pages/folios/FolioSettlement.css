@@ -1,0 +1,1125 @@
+.folio-page {
+  min-height: calc(100vh - var(--navbar-h));
+  padding: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(212, 175, 55, 0.07), transparent 28%),
+    #0f0f0f;
+  color: var(--text-primary);
+}
+
+.folio-page-header,
+.folio-section-heading,
+.folio-toolbar,
+.folio-header-actions,
+.folio-form-footer,
+.folio-service-type-footer,
+.folio-service-type-title,
+.folio-action-panel-header,
+.folio-drawer-actions,
+.folio-inline-actions {
+  display: flex;
+  align-items: center;
+}
+
+.folio-page-header {
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+.folio-page-header h1,
+.folio-section-heading h2,
+.folio-drawer-header h2 {
+  margin: 0;
+  color: #fff;
+}
+
+.folio-page-header h1 {
+  font-size: clamp(30px, 4vw, 46px);
+  letter-spacing: -0.035em;
+}
+
+.folio-eyebrow {
+  margin: 0 0 7px;
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.folio-page-subtitle,
+.folio-section-heading span {
+  display: block;
+  max-width: 760px;
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.folio-header-actions {
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.folio-access-badge {
+  padding: 9px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.folio-access-badge.manage {
+  color: var(--green);
+  border: 1px solid rgba(79, 209, 139, 0.3);
+  background: var(--green-dim);
+}
+
+.folio-access-badge.view {
+  color: var(--orange);
+  border: 1px solid rgba(241, 163, 75, 0.3);
+  background: var(--orange-dim);
+}
+
+.folio-button,
+.folio-row-button,
+.folio-add-line,
+.folio-drawer-actions button,
+.folio-inline-actions button,
+.folio-table-action-danger,
+.folio-refund-process button {
+  appearance: none;
+  border: 1px solid var(--gold-border);
+  border-radius: 9px;
+  background: var(--gold);
+  color: #090909;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.folio-button {
+  padding: 10px 15px;
+}
+
+.folio-button:hover:not(:disabled),
+.folio-row-button:hover:not(:disabled),
+.folio-add-line:hover:not(:disabled),
+.folio-drawer-actions button:hover:not(:disabled),
+.folio-inline-actions button:hover:not(:disabled),
+.folio-refund-process button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: var(--gold-light);
+  box-shadow: var(--shadow-gold);
+}
+
+.folio-button:disabled,
+.folio-row-button:disabled,
+.folio-add-line:disabled,
+.folio-drawer-actions button:disabled,
+.folio-inline-actions button:disabled,
+.folio-table-action-danger:disabled,
+.folio-refund-process button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.folio-button-secondary {
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border-color: var(--glass-border);
+}
+
+.folio-page-message,
+.folio-action-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.folio-page-message.error,
+.folio-action-message.error {
+  color: #ffb0b0;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(127, 29, 29, 0.2);
+}
+
+.folio-page-message.success,
+.folio-action-message.success {
+  color: #a8f0c8;
+  border: 1px solid rgba(79, 209, 139, 0.35);
+  background: rgba(22, 101, 52, 0.16);
+}
+
+.folio-page-message button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.folio-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.folio-stat-card {
+  position: relative;
+  min-height: 102px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.025), transparent), var(--surface-2);
+  box-shadow: var(--shadow-sm);
+}
+
+.folio-stat-card::after {
+  content: '';
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  right: -24px;
+  bottom: -28px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.08;
+}
+
+.folio-stat-card span {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.folio-stat-card strong {
+  color: #fff;
+  font-size: clamp(18px, 2vw, 24px);
+}
+
+.folio-stat-card.gold { color: var(--gold); }
+.folio-stat-card.green { color: var(--green); }
+.folio-stat-card.orange { color: var(--orange); }
+.folio-stat-card.blue { color: var(--blue); }
+.folio-stat-card.red { color: #f87171; }
+.folio-stat-card.violet { color: #c084fc; }
+
+.folio-status-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin-bottom: 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: rgba(14, 14, 14, 0.72);
+}
+
+.folio-status-strip > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 11px 14px;
+  border-right: 1px solid var(--glass-border);
+}
+
+.folio-status-strip > div:last-child {
+  border-right: 0;
+}
+
+.folio-status-strip strong {
+  font-size: 17px;
+}
+
+.folio-status-strip span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.folio-view-tabs,
+.folio-detail-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.folio-view-tabs {
+  margin-bottom: 14px;
+  padding: 5px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: #0b0b0b;
+}
+
+.folio-view-tabs button,
+.folio-detail-tabs button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.folio-view-tabs button {
+  padding: 10px 15px;
+}
+
+.folio-view-tabs button.active,
+.folio-detail-tabs button.active {
+  color: #090909;
+  background: var(--gold);
+}
+
+.folio-panel {
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-card);
+}
+
+.folio-toolbar {
+  gap: 10px;
+  padding: 15px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.folio-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 220px;
+  padding: 0 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 9px;
+  background: #0c0c0c;
+}
+
+.folio-search span {
+  color: var(--gold);
+  font-size: 18px;
+}
+
+.folio-search input,
+.folio-toolbar select,
+.folio-field input,
+.folio-field select,
+.folio-field textarea,
+.folio-split-line input,
+.folio-split-line select,
+.folio-refund-process input {
+  width: 100%;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  outline: 0;
+  background: #0b0b0b;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12px;
+  transition: var(--transition);
+}
+
+.folio-search input {
+  border: 0;
+  padding: 11px 0;
+}
+
+.folio-toolbar select {
+  width: auto;
+  min-width: 145px;
+  padding: 10px 12px;
+}
+
+.folio-search input:focus,
+.folio-field input:focus,
+.folio-field select:focus,
+.folio-field textarea:focus,
+.folio-split-line input:focus,
+.folio-split-line select:focus,
+.folio-refund-process input:focus {
+  border-color: var(--gold-border);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
+}
+
+.folio-table-wrap,
+.folio-detail-table-wrap {
+  overflow: auto;
+}
+
+.folio-table,
+.folio-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.folio-table th,
+.folio-detail-table th {
+  padding: 12px 14px;
+  color: var(--text-muted);
+  background: #0b0b0b;
+  border-bottom: 1px solid var(--glass-border);
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.folio-table td,
+.folio-detail-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.folio-table tr:last-child td,
+.folio-detail-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.folio-table tbody tr:hover,
+.folio-detail-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.022);
+}
+
+.folio-table td strong,
+.folio-table td span,
+.folio-detail-table td strong,
+.folio-detail-table td span {
+  display: block;
+}
+
+.folio-table td strong,
+.folio-detail-table td strong {
+  color: #fff;
+}
+
+.folio-table td span,
+.folio-detail-table td span {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.folio-adjustment-mini {
+  color: var(--blue) !important;
+}
+
+.folio-adjustment-mini.refund {
+  color: var(--orange) !important;
+}
+
+.folio-balance-due {
+  color: var(--orange) !important;
+}
+
+.folio-balance-zero {
+  color: var(--green) !important;
+}
+
+.folio-row-button {
+  padding: 7px 11px;
+  background: var(--gold-subtle);
+  color: var(--gold);
+}
+
+.folio-status-pill {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+  margin: 0 !important;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 9px !important;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.folio-status-pill.success {
+  color: var(--green) !important;
+  border-color: rgba(79, 209, 139, 0.28);
+  background: var(--green-dim);
+}
+
+.folio-status-pill.warning {
+  color: var(--orange) !important;
+  border-color: rgba(241, 163, 75, 0.28);
+  background: var(--orange-dim);
+}
+
+.folio-status-pill.danger {
+  color: #fca5a5 !important;
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(127, 29, 29, 0.18);
+}
+
+.folio-status-pill.neutral {
+  color: var(--blue) !important;
+  border-color: rgba(100, 167, 255, 0.28);
+  background: var(--blue-dim);
+}
+
+.folio-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.66);
+  backdrop-filter: blur(4px);
+}
+
+.folio-drawer {
+  width: min(1120px, calc(100vw - 40px));
+  height: 100vh;
+  overflow-y: auto;
+  border-left: 1px solid var(--gold-border);
+  background: #0d0d0d;
+  box-shadow: -28px 0 80px rgba(0, 0, 0, 0.55);
+}
+
+.folio-drawer-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(13, 13, 13, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.folio-drawer-header p {
+  margin: 0 0 4px;
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.folio-drawer-header h2 {
+  font-size: 24px;
+}
+
+.folio-drawer-header span {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.folio-close-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--glass-border);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 23px;
+}
+
+.folio-equation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--glass-border);
+  background: #090909;
+}
+
+.folio-equation > div {
+  min-width: 105px;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+
+.folio-equation > div.emphasis {
+  border-color: var(--gold-border);
+  background: var(--gold-subtle);
+}
+
+.folio-equation > div span,
+.folio-equation > div strong {
+  display: block;
+}
+
+.folio-equation > div span {
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.folio-equation > div strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.folio-equation > span {
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.folio-drawer-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.folio-drawer-actions button {
+  padding: 8px 12px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border-color: var(--glass-border);
+}
+
+.folio-drawer-actions button.active {
+  color: #090909;
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.folio-action-panel {
+  margin: 0 24px 14px;
+  padding: 16px;
+  border: 1px solid var(--gold-border);
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.04);
+}
+
+.folio-action-panel-header {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.folio-action-panel-header strong {
+  color: var(--gold);
+}
+
+.folio-action-panel-header button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 19px;
+}
+
+.folio-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.folio-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.folio-field.wide {
+  grid-column: 1 / -1;
+}
+
+.folio-field > span {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.folio-field input,
+.folio-field select,
+.folio-field textarea,
+.folio-split-line input,
+.folio-split-line select,
+.folio-refund-process input {
+  padding: 10px 11px;
+}
+
+.folio-field textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.folio-form-footer {
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 14px;
+}
+
+.folio-form-footer > span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.folio-split-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.folio-split-line {
+  display: grid;
+  grid-template-columns: 26px 1fr 1fr 1.3fr 32px;
+  gap: 8px;
+  align-items: center;
+}
+
+.folio-split-index {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--gold);
+  background: var(--gold-subtle);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.folio-icon-button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.folio-add-line {
+  margin-top: 10px;
+  padding: 7px 10px;
+  background: transparent;
+  color: var(--gold);
+}
+
+.folio-detail-tabs {
+  position: sticky;
+  top: 91px;
+  z-index: 3;
+  padding: 8px 24px;
+  border-top: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(13, 13, 13, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.folio-detail-tabs button {
+  padding: 8px 11px;
+}
+
+.folio-drawer-body {
+  padding: 18px 24px 30px;
+}
+
+.folio-detail-table-wrap {
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+}
+
+.folio-detail-table-wrap.compact {
+  max-height: 340px;
+}
+
+.folio-money-charge,
+.folio-money-refund {
+  color: var(--orange) !important;
+  font-weight: 800;
+}
+
+.folio-money-reduction {
+  color: var(--green) !important;
+  font-weight: 800;
+}
+
+.folio-inline-actions {
+  gap: 6px;
+}
+
+.folio-inline-actions button {
+  padding: 6px 9px;
+  font-size: 10px;
+}
+
+.folio-inline-actions button.danger,
+.folio-table-action-danger {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(127, 29, 29, 0.18);
+}
+
+.folio-table-action-danger {
+  padding: 6px 9px;
+}
+
+.folio-refund-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.folio-refund-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(260px, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.folio-refund-card span,
+.folio-refund-card small {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.folio-refund-card h4 {
+  margin: 4px 0;
+  color: #fff;
+  font-size: 20px;
+}
+
+.folio-refund-card p {
+  margin: 0 0 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.folio-refund-card-status {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.folio-refund-process {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 7px;
+}
+
+.folio-refund-process button {
+  padding: 8px 10px;
+}
+
+.folio-audit-stack,
+.folio-service-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.folio-audit-stack section > h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.folio-section-heading {
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.folio-section-heading h2 {
+  font-size: 22px;
+}
+
+.folio-service-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 15px;
+}
+
+.folio-service-type-card {
+  padding: 15px;
+  border: 1px solid var(--glass-border);
+  border-radius: 11px;
+  background: #0b0b0b;
+}
+
+.folio-service-type-title {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.folio-service-type-title strong,
+.folio-service-type-title span {
+  display: block;
+}
+
+.folio-service-type-title strong {
+  color: #fff;
+}
+
+.folio-service-type-title span {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.folio-switch {
+  position: relative;
+  display: inline-flex;
+}
+
+.folio-switch input {
+  position: absolute;
+  opacity: 0;
+}
+
+.folio-switch span {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: #272727;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.folio-switch span::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: var(--transition);
+}
+
+.folio-switch input:checked + span {
+  background: var(--gold);
+}
+
+.folio-switch input:checked + span::after {
+  transform: translateX(18px);
+  background: #0b0b0b;
+}
+
+.folio-service-type-footer {
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.folio-service-type-footer label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.folio-posted-charge {
+  color: var(--green) !important;
+  font-size: 10px !important;
+  font-weight: 800;
+}
+
+.folio-loading,
+.folio-empty-state {
+  display: grid;
+  place-items: center;
+  min-height: 280px;
+  padding: 30px;
+  text-align: center;
+}
+
+.folio-loading.compact,
+.folio-empty-state.compact {
+  min-height: 150px;
+}
+
+.folio-loading span {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 10px;
+  border: 3px solid rgba(212, 175, 55, 0.17);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: folio-spin 0.8s linear infinite;
+}
+
+.folio-loading strong,
+.folio-empty-state strong {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.folio-empty-state > span {
+  margin-bottom: 8px;
+  color: var(--gold);
+  font-size: 26px;
+}
+
+.folio-empty-state p {
+  max-width: 440px;
+  margin: 7px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+@keyframes folio-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1280px) {
+  .folio-stat-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .folio-status-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .folio-status-strip > div:nth-child(3) {
+    border-right: 0;
+  }
+
+  .folio-status-strip > div:nth-child(n + 4) {
+    border-top: 1px solid var(--glass-border);
+  }
+}
+
+@media (max-width: 900px) {
+  .folio-page {
+    padding: 18px;
+  }
+
+  .folio-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .folio-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .folio-service-type-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .folio-refund-card {
+    grid-template-columns: 1fr;
+  }
+
+  .folio-refund-card-status {
+    align-items: flex-start;
+  }
+
+  .folio-refund-process {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .folio-page {
+    padding: 12px;
+  }
+
+  .folio-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .folio-status-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .folio-status-strip > div {
+    border-right: 1px solid var(--glass-border);
+    border-top: 1px solid var(--glass-border);
+  }
+
+  .folio-status-strip > div:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .folio-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .folio-toolbar select {
+    width: 100%;
+  }
+
+  .folio-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .folio-field.wide {
+    grid-column: auto;
+  }
+
+  .folio-split-line {
+    grid-template-columns: 26px 1fr 1fr 32px;
+  }
+
+  .folio-split-line input:nth-of-type(2) {
+    grid-column: 2 / 5;
+  }
+
+  .folio-drawer {
+    width: 100vw;
+  }
+
+  .folio-drawer-header,
+  .folio-equation,
+  .folio-drawer-actions,
+  .folio-detail-tabs,
+  .folio-drawer-body {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .folio-action-panel {
+    margin-left: 14px;
+    margin-right: 14px;
+  }
+}

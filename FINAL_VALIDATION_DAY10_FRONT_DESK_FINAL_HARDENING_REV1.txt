@@ -1,0 +1,29 @@
+StayQR Day 10 Front-Desk Final Hardening REV1 — Validation
+
+Reconstructed source baseline:
+- Day 9 commercial frontend complete
+- Day 9 expired-action REV2
+- Day 10 atomic walk-in
+- Day 10 guest directory/history
+- Day 10 private KYC
+- Day 10 active room move
+- Day 10 active stay extension REV2
+
+Validation completed:
+- ESLint parsing: PASS
+- ESLint errors: 0
+- Existing React Hook warnings: 16
+- Relative imports: 156 resolved
+- Day 7 security source gate: PASS 15/15
+- Day 8 onboarding source gate: PASS 14/14
+- Day 9 commercial source gate: PASS
+- Day 10 source gate: PASS
+  - 62 required contracts
+  - 13 unsafe patterns blocked
+- Local QR source test: PASS 5/5
+
+The reconstructed Linux environment could not execute the final Vite bundle
+because the archived Windows node_modules did not include Rolldown's Linux
+native optional binding. This is an environment-specific native module issue,
+not a source or JSX error. The user's Windows project must complete npm run
+check and Vite build after extraction.

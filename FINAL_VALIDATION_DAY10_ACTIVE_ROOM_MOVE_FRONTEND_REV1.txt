@@ -1,0 +1,34 @@
+StayQR v1.0 — Day 10 Active Room Move Frontend REV1
+
+PACKAGE VALIDATION
+------------------
+Modified JSX parsed successfully with TypeScript 5.8.3 in JSX-preserve mode.
+
+Day 10 source gate:
+PASS — 40 required contracts
+PASS — 10 unsafe patterns blocked
+
+REQUIRED RUNTIME EXPECTATION
+----------------------------
+Before move:
+- Room 106 occupied
+- Room 108 available
+- Guest session active
+- Room charge ₹2,500
+- One active allocation
+- One open room-history segment
+- No pre-existing room-move event
+
+After the later controlled move:
+- Same guest-session ID remains active
+- Room 108 occupied
+- Room 106 cleaning
+- ₹2,500 room charge preserved
+- One active allocation points to Room 108
+- Room 106 history segment closed
+- Room 108 history segment opened
+- Housekeeping task exists for Room 106
+- One immutable move event/activity record exists
+- Browser retry returns the same result idempotently
+
+No browser move was executed while building this package.

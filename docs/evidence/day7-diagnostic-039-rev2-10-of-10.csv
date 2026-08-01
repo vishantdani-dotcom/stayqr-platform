@@ -1,0 +1,11 @@
+step_no,check_name,passed,details
+1,canonical_guest_relations,true,"Found 3/3 canonical relations: public.guests, public.guest_sessions, public.guest_access_tokens."
+2,routine_definition_scan,true,No ordinary function/procedure references an unqualified relation named guest.
+3,view_definition_scan,true,No view/materialized view references an unqualified relation named guest.
+4,policy_definition_scan,true,No RLS policy references an unqualified relation named guest.
+5,trigger_definition_scan,true,No trigger definition references an unqualified relation named guest.
+6,constraint_definition_scan,true,No constraint definition references an unqualified relation named guest.
+7,column_expression_scan,true,No column expression references an unqualified relation named guest.
+8,guest_access_tokens_direct_probe,true,Direct token-table query succeeded; 0 token row(s) currently exist.
+9,active_token_join_probe,true,Active-token join query succeeded; 0 valid active sample(s) exist.
+10,migration_014_marker,true,Returns hotel-scoped signed guest links. Manual revocation persists until explicit token rotation.

@@ -1,0 +1,12 @@
+StayQR Day 10 Active Stay Extension Frontend REV2
+
+Files replaced:
+- Frontend/src/pages/guests/Guests.jsx
+- Frontend/src/pages/guests/Guests.css
+- Frontend/scripts/day10-front-office-source-check.mjs
+
+Corrections over REV1:
+- Removed unused `smallModal` style constant.
+- Removed unused `modalTitle` style constant.
+- No business logic, RPC payload, timezone conversion, room-move, checkout,
+  guest-directory or KYC behavior changed.

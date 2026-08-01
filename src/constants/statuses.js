@@ -1,0 +1,178 @@
+export const STATUS = Object.freeze({
+  HOTEL: Object.freeze([
+    'active',
+    'suspended',
+    'inactive',
+    'archived',
+  ]),
+  SUBSCRIPTION: Object.freeze([
+    'trial',
+    'trialing',
+    'active',
+    'past_due',
+    'suspended',
+    'cancelled',
+    'expired',
+  ]),
+  ROOM: Object.freeze([
+    'available',
+    'occupied',
+    'cleaning',
+    'maintenance',
+    'out_of_order',
+  ]),
+  RESERVATION: Object.freeze([
+    'draft',
+    'tentative',
+    'confirmed',
+    'checked_in',
+    'checked_out',
+    'cancelled',
+    'no_show',
+  ]),
+  GUEST_SESSION: Object.freeze([
+    'active',
+    'completed',
+    'expired',
+    'cancelled',
+  ]),
+  FOOD_ORDER: Object.freeze([
+    'pending',
+    'accepted',
+    'preparing',
+    'ready',
+    'out_for_delivery',
+    'delivered',
+    'cancelled',
+  ]),
+  SERVICE_REQUEST: Object.freeze([
+    'pending',
+    'accepted',
+    'in_progress',
+    'completed',
+    'cancelled',
+    'escalated',
+  ]),
+  HOUSEKEEPING: Object.freeze([
+    'pending',
+    'assigned',
+    'in_progress',
+    'inspection',
+    'completed',
+    'blocked',
+    'cancelled',
+  ]),
+  PAYMENT: Object.freeze([
+    'pending',
+    'partially_paid',
+    'paid',
+    'waived',
+    'refunded',
+    'partially_refunded',
+    'failed',
+    'cancelled',
+  ]),
+  INVOICE: Object.freeze([
+    'draft',
+    'issued',
+    'paid',
+    'partially_paid',
+    'cancelled',
+    'void',
+    'credited',
+  ]),
+})
+
+export const STATUS_TRANSITIONS = Object.freeze({
+  HOTEL: Object.freeze({
+    active: ['suspended', 'inactive', 'archived'],
+    suspended: ['active', 'inactive', 'archived'],
+    inactive: ['active', 'archived'],
+    archived: [],
+  }),
+  SUBSCRIPTION: Object.freeze({
+    trial: ['active', 'expired', 'cancelled'],
+    trialing: ['active', 'expired', 'cancelled'],
+    active: ['past_due', 'suspended', 'cancelled'],
+    past_due: ['active', 'suspended', 'cancelled'],
+    suspended: ['active', 'cancelled'],
+    cancelled: [],
+    expired: ['active', 'cancelled'],
+  }),
+  ROOM: Object.freeze({
+    available: ['occupied', 'cleaning', 'maintenance', 'out_of_order'],
+    occupied: ['cleaning', 'maintenance', 'out_of_order'],
+    cleaning: ['available', 'maintenance', 'out_of_order'],
+    maintenance: ['cleaning', 'available', 'out_of_order'],
+    out_of_order: ['maintenance', 'cleaning', 'available'],
+  }),
+  RESERVATION: Object.freeze({
+    draft: ['tentative', 'confirmed', 'cancelled'],
+    tentative: ['confirmed', 'cancelled', 'no_show'],
+    confirmed: ['checked_in', 'cancelled', 'no_show'],
+    checked_in: ['checked_out'],
+    checked_out: [],
+    cancelled: [],
+    no_show: [],
+  }),
+  GUEST_SESSION: Object.freeze({
+    active: ['completed', 'expired', 'cancelled'],
+    completed: [],
+    expired: [],
+    cancelled: [],
+  }),
+  FOOD_ORDER: Object.freeze({
+    pending: ['accepted', 'cancelled'],
+    accepted: ['preparing', 'cancelled'],
+    preparing: ['ready', 'cancelled'],
+    ready: ['out_for_delivery', 'delivered', 'cancelled'],
+    out_for_delivery: ['delivered', 'cancelled'],
+    delivered: [],
+    cancelled: [],
+  }),
+  SERVICE_REQUEST: Object.freeze({
+    pending: ['accepted', 'cancelled', 'escalated'],
+    accepted: ['in_progress', 'cancelled', 'escalated'],
+    in_progress: ['completed', 'cancelled', 'escalated'],
+    escalated: ['accepted', 'in_progress', 'completed', 'cancelled'],
+    completed: [],
+    cancelled: [],
+  }),
+  HOUSEKEEPING: Object.freeze({
+    pending: ['assigned', 'in_progress', 'cancelled'],
+    assigned: ['in_progress', 'blocked', 'cancelled'],
+    in_progress: ['inspection', 'completed', 'blocked', 'cancelled'],
+    inspection: ['completed', 'in_progress', 'blocked'],
+    blocked: ['assigned', 'in_progress', 'cancelled'],
+    completed: [],
+    cancelled: [],
+  }),
+  PAYMENT: Object.freeze({
+    pending: ['partially_paid', 'paid', 'waived', 'failed', 'cancelled'],
+    partially_paid: ['paid', 'waived', 'partially_refunded', 'refunded'],
+    paid: ['partially_refunded', 'refunded'],
+    partially_refunded: ['refunded'],
+    waived: [],
+    refunded: [],
+    failed: ['pending', 'cancelled'],
+    cancelled: [],
+  }),
+  INVOICE: Object.freeze({
+    draft: ['issued', 'cancelled', 'void'],
+    issued: ['partially_paid', 'paid', 'cancelled', 'void', 'credited'],
+    partially_paid: ['paid', 'cancelled', 'void', 'credited'],
+    paid: ['credited'],
+    cancelled: [],
+    void: [],
+    credited: [],
+  }),
+})
+
+export function isKnownStatus(domain, status) {
+  return STATUS[domain]?.includes(status) || false
+}
+
+export function canTransitionStatus(domain, currentStatus, nextStatus) {
+  if (currentStatus === nextStatus) return true
+  return STATUS_TRANSITIONS[domain]?.[currentStatus]?.includes(nextStatus) || false
+}

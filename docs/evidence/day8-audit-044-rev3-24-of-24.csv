@@ -1,0 +1,25 @@
+test_name,passed,details
+01_actor_and_plan_resolved,true,Actor=admin@vdstayinn.com; active plan=Starter.
+02_atomic_bootstrap_returned_complete_identity,true,"Bootstrap returned hotel, slug, owner staff, subscription and non-idempotent first-call identifiers."
+03_hotel_metadata_created,true,"Hotel name, slug, status, trial state, timezone, currency and location were created atomically."
+04_owner_staff_identity_created,true,Authenticated actor became the active authoritative owner of the new hotel.
+05_compatibility_membership_synced,true,The locked staff-to-hotel_users compatibility mirror contains the active owner.
+06_profile_and_settings_created,true,Neutral hotel profile and structured tax/policy settings were created.
+07_onboarding_state_created,true,"Resumable onboarding state, request ID, owner, completed steps and saved form data were created."
+08_default_floor_created,true,A normalized Default Floor was created for the fresh hotel.
+09_invoice_sequence_created,true,Current-year hotel-scoped invoice numbering was initialized.
+10_trial_subscription_created,true,The approved active plan received one explicit trialing subscription with valid dates and metadata.
+11_readiness_shape_valid,true,Bootstrap returned the server readiness object and major checklist categories.
+12_fresh_hotel_correctly_incomplete,true,Core identity/settings/floor/trial checks passed while missing room types and rooms kept readiness false.
+13_same_request_is_idempotent,true,Repeating the identical request ID returned the same hotel instead of creating another tenant.
+14_idempotency_created_no_duplicates,true,"One request ID produced one hotel, one onboarding row and one current subscription."
+15_slug_collision_resolved,true,Requested slug=stayqr-day8-audit-1a5e7cde40ba; collision-safe second slug=stayqr-day8-audit-1a5e7cde40ba-2.
+16_second_hotel_stack_complete,true,"A separate request created a separate hotel with owner, settings and trial stack."
+17_valid_step_completion,true,A server-ready policies step completed and advanced to room_types.
+18_incomplete_step_rejected,true,Step room_types cannot be completed because its server readiness check is false.
+19_draft_step_saved_without_completion,true,Room-type draft data was saved without falsely completing or advancing the step.
+20_readiness_get_and_refresh,true,Authorized readiness retrieval and persisted refresh both succeeded.
+21_trial_activation_idempotent,true,Repeating trial activation returned the existing subscription and created no duplicate.
+22_anonymous_onboarding_and_trial_blocked,true,Real anon role calls could execute neither hotel bootstrap nor trial activation.
+23_existing_production_counts_unchanged,true,Hotels 2→2; staff 2→2; subscriptions 1→1.
+24_synthetic_acceptance_data_rolled_back,true,Both synthetic hotels and every dependent onboarding record were rolled back.

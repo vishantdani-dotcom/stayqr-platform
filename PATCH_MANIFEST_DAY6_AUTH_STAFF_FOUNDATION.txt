@@ -1,0 +1,20 @@
+DAY 6 AUTHENTICATION AND STAFF IDENTITY FOUNDATION
+
+Added:
+- DAY6_AUTH_STAFF_FOUNDATION_README.md
+- docs/day-06-exact-source-audit.md
+- src/pages/auth/AuthAction.jsx
+- supabase/migrations/202607250011_day6_auth_staff_identity_foundation.sql
+- supabase/audit/031_verify_day6_auth_staff_identity_foundation.sql
+- supabase/functions/manage-staff-user/index.ts
+- supabase/functions/manage-staff-user/deno.json
+
+Replaced/updated:
+- src/App.jsx
+- src/lib/currentStaff.js
+- src/lib/tenantContext.js
+- src/pages/auth/Login.jsx
+- src/pages/auth/Login.css
+- src/pages/staff/StaffManagement.jsx
+- src/pages/staff/StaffManagement.css
+- src/components/sidebar/Sidebar.jsx

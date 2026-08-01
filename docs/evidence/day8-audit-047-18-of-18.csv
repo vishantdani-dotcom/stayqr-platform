@@ -1,0 +1,19 @@
+test_name,passed,details
+01_audit_044_helper_removed,true,Temporary Audit 044 runtime helper is absent.
+02_audit_046_helper_removed,true,Temporary Audit 046 runtime helper is absent.
+03_preflight_helper_removed,true,Temporary Audit 043 preflight helper is absent.
+04_day8_foundation_tables_present,true,All Day 8 foundation and configuration tables remain present.
+05_all_required_day8_rpcs_present,true,"All nine approved onboarding, trial, readiness, defaults, inventory and room-import RPCs remain installed."
+06_authenticated_rpc_execution,true,Authenticated users retain execute permission on every approved Day 8 RPC.
+07_anonymous_day8_rpc_execution_blocked,true,Anonymous users cannot execute any Day 8 onboarding or configuration RPC.
+08_new_tenant_tables_have_rls,true,Every Day 8 tenant-owned table has RLS enabled.
+09_amenity_request_policy_matrix,true,Amenities and request categories retain complete CRUD policy matrices.
+10_existing_menu_categories_normalized,true,Every existing text menu category remains linked to a normalized hotel-owned category.
+11_existing_request_types_normalized,true,Every existing service request remains linked to a normalized hotel-owned request category.
+12_existing_room_integrity,true,Every existing room remains linked to a room type and floor.
+13_inventory_uniqueness_intact,true,"Room numbers, room-type codes and rate-plan codes remain unique within each hotel."
+14_existing_hotels_have_configuration_defaults,true,"Every existing hotel retains active amenity, request-category and menu-category defaults."
+15_future_hotel_default_trigger_present,true,Every future hotel will receive configuration defaults automatically.
+16_onboarding_readiness_snapshots_present,true,Every hotel onboarding row retains the server readiness checklist.
+17_no_synthetic_runtime_hotels_remain,true,No reversible Audit 044 or Audit 046 tenant remains in production.
+18_day8_backend_ready_for_frontend,true,The permanent Day 8 backend is clean and ready for frontend wizard integration.

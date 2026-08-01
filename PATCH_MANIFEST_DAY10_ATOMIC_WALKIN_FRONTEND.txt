@@ -1,0 +1,18 @@
+StayQR Day 10 Atomic Walk-In Frontend REV1
+
+CHANGED
+- src/pages/checkin/CheckIn.jsx
+- src/pages/checkin/CheckIn.css
+- package.json
+
+ADDED
+- scripts/day10-front-office-source-check.mjs
+- README_FIRST_DAY10_ATOMIC_WALKIN_FRONTEND.txt
+- PATCH_MANIFEST_DAY10_ATOMIC_WALKIN_FRONTEND.txt
+
+SERVER CONTRACT
+- public.check_in_walk_in_guest(uuid,jsonb)
+
+SOURCE GATE
+- Required contracts: 16
+- Unsafe patterns blocked: 6

@@ -1,0 +1,20 @@
+StayQR Day 10 Arrivals & Departures Final Hardening REV1
+
+Files replaced:
+- Frontend/src/pages/operations/ReservationOperations.jsx
+- Frontend/src/pages/operations/ReservationOperations.css
+- Frontend/scripts/day10-front-office-source-check.mjs
+
+Backend changes:
+- None
+
+Database changes:
+- None
+
+Preserved:
+- Migration 031 overdue classification
+- Reservation arrival check-in
+- Today Departures and In House queue semantics
+- Room 107 extension
+- Room 108 room-move and charge state
+- Tenant isolation and hotel switcher behavior

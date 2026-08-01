@@ -7,7 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "npm run lint && npm run source:imports && npm run security:day7 && npm run security:day8 && npm run security:day9 && npm run security:day10 && npm run security:day11 && npm run security:day12 && npm run security:day13 && npm run test:qr && npm run build",
+    "security:day7": "node scripts/day7-security-source-check.mjs",
+    "test:qr": "node scripts/test-local-qr.mjs",
+    "source:imports": "node scripts/check-relative-imports.mjs",
+    "security:day8": "node scripts/day8-onboarding-source-check.mjs",
+    "security:day9": "node scripts/day9-commercial-source-check.mjs",
+    "security:day10": "node scripts/day10-front-office-source-check.mjs",
+    "security:day11": "node scripts/day11-folio-settlement-source-check.mjs",
+    "security:day12": "node scripts/day12-invoice-cashier-source-check.mjs",
+    "security:day13": "node scripts/day13-operations-source-check.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

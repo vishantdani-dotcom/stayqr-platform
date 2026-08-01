@@ -1,0 +1,16 @@
+StayQR Day 5 Browser Acceptance v2
+Correction: deterministic seed rate-plan fallback
+
+Changed files:
+- DAY5_BROWSER_ACCEPTANCE_README.md
+- docs/day-05-browser-acceptance-rate-plan-fallback.md
+- supabase/audit/022_seed_day5_browser_acceptance.sql
+- supabase/audit/023_cleanup_day5_browser_acceptance.sql
+- supabase/audit/024_verify_day5_browser_acceptance_cleanup.sql
+
+The corrected seed reuses an existing positive active rate plan or creates an isolated temporary D5QA rate plan. Audit 023 removes it and audit 024 verifies zero remaining acceptance rate plans.
+0d27f2065d8d7c6cb826e06546e9268c8af1b7f9f8f7c21161a283f458c9b796  DAY5_BROWSER_ACCEPTANCE_README.md
+2664ffc0a862a1b02dbe74e7cb430135c29851ee904e489b9483e99b310cbdc0  docs/day-05-browser-acceptance-rate-plan-fallback.md
+7c36b59955cb126fbbf35438c1c90760f8cca7d477578a3d4ef5b14bf6881f01  supabase/audit/022_seed_day5_browser_acceptance.sql
+5ec45c2ca3b81c2bb3982ba4b8c1759cf89826332e8a60ba765968d5e2b8a71f  supabase/audit/023_cleanup_day5_browser_acceptance.sql
+78163a4f015122203a0c505bf488ca352bea09ed97fc2f17f25bbef2d9de5405  supabase/audit/024_verify_day5_browser_acceptance_cleanup.sql

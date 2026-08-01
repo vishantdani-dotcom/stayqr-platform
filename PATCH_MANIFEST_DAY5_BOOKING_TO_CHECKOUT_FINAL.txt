@@ -1,0 +1,24 @@
+StayQR Day 5 Booking-to-Checkout Final Closure
+
+ADDED
+- supabase/migrations/202607240010_atomic_checkout_and_booking_completion.sql
+- supabase/audit/026_verify_day5_atomic_checkout_foundation.sql
+- supabase/audit/027_seed_day5_booking_checkout_smoke.sql
+- supabase/audit/028_day5_booking_checkout_final_gate.sql
+- supabase/audit/029_cleanup_day5_booking_checkout_smoke.sql
+- supabase/audit/030_verify_day5_booking_checkout_cleanup.sql
+- DAY5_BOOKING_TO_CHECKOUT_FINAL_CLOSURE_README.md
+- README_FIRST_DAY5_CHECKOUT_CLOSURE.txt
+- docs/day-05-booking-to-checkout-final-closure.md
+
+UPDATED
+- src/lib/day5Reservations.js
+- src/pages/guests/Guests.jsx
+- src/pages/guests/Guests.css
+
+CORE FIX
+- Atomic checkout transaction instead of browser-side partial writes.
+- Exact deposit/remaining settlement linkage.
+- One invoice, one checkout event, one cleaning task.
+- Reservation/room/stay/inventory/housekeeping synchronization.
+- Multi-room checkout preview scoped to the selected room.

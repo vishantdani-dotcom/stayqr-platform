@@ -1,0 +1,31 @@
+StayQR Day 10 Private KYC Frontend REV1 — Validation
+
+Database prerequisite
+---------------------
+Migration 027 acceptance: 30/30 passed (user-provided CSV verified).
+
+Container validation
+--------------------
+ESLint: 0 errors; 16 pre-existing React Hook warnings.
+Relative imports: 156 resolved.
+Day 7 security: 15/15.
+Day 8 onboarding: 14/14.
+Day 9 commercial source gate: passed.
+Day 10 front-office source gate: 29 required contracts; 10 unsafe patterns blocked.
+Local QR engine: 5/5.
+JavaScript/JSX parse: 53/53 files parsed with @babel/parser.
+
+Build note
+----------
+The Linux validation container lacks Vite/Rolldown's optional native Linux binding,
+so the final Vite production build must be confirmed by `npm run check` in the
+user's Windows workspace. This is an environment-specific optional-dependency
+issue, not a source parse or lint failure.
+
+Browser acceptance still required
+---------------------------------
+1. Upload one synthetic PNG/PDF.
+2. Confirm pending metadata and private signed viewing.
+3. Verify document and confirm guest KYC status changes.
+4. Run database side-effect and idempotency acceptance.
+5. Test rejection/reset workflow if required.

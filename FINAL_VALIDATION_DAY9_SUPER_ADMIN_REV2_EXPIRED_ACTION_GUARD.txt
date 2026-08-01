@@ -1,0 +1,28 @@
+StayQR Day 9 Super Admin Commercial Frontend REV2
+Expired / Cancelled Action Eligibility Guard
+
+ROOT CAUSE CONFIRMED
+- Hotel Apex Stay Inn has hotel subscription_status = expired.
+- Its current hotel_subscriptions row has status = expired.
+- public.renew_hotel_subscription selects only active, past_due, or suspended rows.
+- Therefore the earlier "No renewable current subscription was found" rejection was correct and caused no database damage.
+
+FRONTEND CORRECTIONS
+1. Expired and cancelled subscriptions no longer expose unsupported manual lifecycle actions.
+2. Manage displays a payment-recovery message and directs Platform Admin to the existing Link action.
+3. Renew period is shown only for active, past_due, or suspended subscriptions, matching the backend contract.
+4. Renewal audit note is required.
+5. Annual billing is disabled when the selected plan has no annual price, in both lifecycle and Cashfree payment-link forms.
+
+VALIDATION
+- ESLint: 0 errors; 16 pre-existing warnings.
+- Relative imports: 152/152 passed.
+- Day 7 frontend security: 15/15 passed.
+- Day 8 onboarding source gate: 14/14 passed.
+- Day 9 commercial source gate: 20 required contracts; 7 unsafe patterns blocked.
+- Local QR engine: 5/5 passed.
+- SuperAdmin.jsx JSX parse: passed.
+- Production build in this Linux workspace was blocked only by the uploaded Windows node_modules native Rolldown binding. Run npm install and npm run check on the user's Windows machine after applying the patch.
+
+NO DATABASE MIGRATION IS INCLUDED OR REQUIRED.
+Cashfree must remain in Test Environment.

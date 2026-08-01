@@ -1,0 +1,16 @@
+StayQR Day 10 Guest History Frontend REV1 — Validation
+
+Passed in package workspace:
+- ESLint: 0 errors, 16 pre-existing warnings
+- Relative imports: 155 resolved
+- Day 7 security: 15/15
+- Day 8 onboarding: 14/14
+- Day 9 commercial source gate: passed
+- Day 10 front-office source gate: 19 required contracts, 6 unsafe patterns blocked
+- Local QR engine: 5/5
+- TypeScript parser/no-emit syntax validation: passed for Guests.jsx and GuestDirectory.jsx
+
+The container could not execute Vite's final native build because its copied Linux
+node_modules lacked the optional Rolldown native binding. This is an environment
+package-cache issue, not a source failure. Run `npm run check` after installation
+on the user's Windows workspace; the package is not accepted until that completes.

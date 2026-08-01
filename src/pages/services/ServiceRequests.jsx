@@ -3,6 +3,7 @@ import { createNotification } from "../../lib/notifications";
 import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
 import { getCurrentStaff } from "../../lib/currentStaff";
+import { navigateToSection } from "../../lib/bookingCalendar";
 import "./ServiceRequests.css";
 
 export default function ServiceRequests() {
@@ -303,100 +304,63 @@ export default function ServiceRequests() {
     }
   }
 
-  async function processCheckout(request) {
-    if (!currentHotel?.id || !request?.id) return;
-
-    const confirmCheckout = window.confirm(
-      `Approve checkout request for Room ${
-        request.rooms?.room_number || "-"
-      }?`
-    );
-
-    if (!confirmCheckout) return;
+  async function openCheckoutSettlement(request) {
+    if (!currentHotel?.id || !request?.id || !request?.room_id) return;
 
     try {
       setUpdatingId(request.id);
 
-      const now = new Date().toISOString();
-
-      const { error: roomError } = await supabase
-        .from("rooms")
-        .update({ status: "cleaning" })
-        .eq("id", request.room_id)
-        .eq("hotel_id", currentHotel.id);
-
-      if (roomError) throw roomError;
-
-      const { error: sessionError } = await supabase
+      const { data: activeSession, error: sessionError } = await supabase
         .from("guest_sessions")
-        .update({
-          status: "completed",
-          expired_at: now,
-        })
-        .eq("room_id", request.room_id)
+        .select("id")
         .eq("hotel_id", currentHotel.id)
-        .eq("status", "active");
+        .eq("room_id", request.room_id)
+        .eq("guest_id", request.guest_id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (sessionError) throw sessionError;
 
-      const { error: requestError } = await supabase
-        .from("service_requests")
-        .update({
-          status: "completed",
-          accepted_at: request.accepted_at || now,
-          started_at: request.started_at || now,
-          completed_at: now,
-        })
-        .eq("id", request.id)
-        .eq("hotel_id", currentHotel.id);
-
-      if (requestError) throw requestError;
-
-      const { data: existingTask, error: taskCheckError } =
-        await supabase
-          .from("housekeeping_tasks")
-          .select("id")
-          .eq("hotel_id", currentHotel.id)
-          .eq("room_id", request.room_id)
-          .in("status", ["pending", "in_progress"])
-          .limit(1)
-          .maybeSingle();
-
-      if (taskCheckError) throw taskCheckError;
-
-      if (!existingTask) {
-        const { error: housekeepingError } = await supabase
-          .from("housekeeping_tasks")
-          .insert([
-            {
-              hotel_id: currentHotel.id,
-              room_id: request.room_id,
-              room_number: request.rooms?.room_number || null,
-              task_type: "room_cleaning",
-              status: "pending",
-            },
-          ]);
-
-        if (housekeepingError) throw housekeepingError;
+      if (!activeSession?.id) {
+        throw new Error(
+          "No active guest stay was found for this checkout request. Refresh the request or verify the guest in the Guests module."
+        );
       }
 
-      await createNotification({
-        hotelId: currentHotel.id,
-        roomId: request.room_id,
-        guestId: request.guest_id,
-        type: "checkout",
-        title: "Checkout Completed",
-        message: `Checkout for Room ${
-          request.rooms?.room_number || "-"
-        } has been completed.`,
+      if (request.status === "pending") {
+        const acceptedAt = new Date().toISOString();
+        const { error: requestError } = await supabase
+          .from("service_requests")
+          .update({
+            status: "accepted",
+            accepted_at: request.accepted_at || acceptedAt,
+            assigned_to: request.assigned_to || currentStaff?.id || null,
+          })
+          .eq("id", request.id)
+          .eq("hotel_id", currentHotel.id);
+
+        if (requestError) throw requestError;
+
+        await createNotification({
+          hotelId: currentHotel.id,
+          roomId: request.room_id,
+          guestId: request.guest_id,
+          type: "service_status",
+          title: "🚪 Checkout Request Accepted",
+          message:
+            "The front desk has accepted your checkout request and is preparing the final settlement.",
+        });
+      }
+
+      navigateToSection("guests", {
+        guestSessionId: activeSession.id,
+        checkoutRequestId: request.id,
       });
-
-      alert("Guest checkout completed and housekeeping task created.");
-
-      await fetchRequests(currentHotel.id);
     } catch (error) {
-      console.error("Checkout request error:", error);
-      alert(error.message);
+      console.error("Open checkout settlement error:", error);
+      alert(error.message || "Unable to open the checkout settlement.");
     } finally {
       setUpdatingId(null);
     }
@@ -680,10 +644,10 @@ export default function ServiceRequests() {
                               type="button"
                               disabled={isUpdating}
                               onClick={() =>
-                                processCheckout(request)
+                                openCheckoutSettlement(request)
                               }
                             >
-                              Approve Checkout
+                              Open Settlement
                             </button>
                           )}
 

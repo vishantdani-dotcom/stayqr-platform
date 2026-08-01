@@ -1,0 +1,26 @@
+StayQR Day 10 Private KYC Frontend REV1 Patch Manifest
+
+Files replaced
+--------------
+Frontend/src/pages/guests/GuestDirectory.jsx
+Frontend/src/pages/guests/GuestDirectory.css
+Frontend/scripts/day10-front-office-source-check.mjs
+
+Files added
+-----------
+Frontend/README_FIRST_DAY10_PRIVATE_KYC_FRONTEND_REV1.txt
+Frontend/FINAL_VALIDATION_DAY10_PRIVATE_KYC_FRONTEND_REV1.txt
+Frontend/PATCH_MANIFEST_DAY10_PRIVATE_KYC_FRONTEND_REV1.txt
+
+Contracts
+---------
+- Private guest-documents bucket only
+- Strict hotel/guest/document/file path
+- 15 MB and MIME allowlist validation
+- Stable request and document IDs for retries
+- register_guest_document RPC for metadata
+- review_guest_document RPC for review state
+- 60-second signed URL; no public URL
+- guests.manage/checkin.manage upload permission
+- guests.manage review permission
+- No direct guest_documents writes

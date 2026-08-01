@@ -1,0 +1,29 @@
+test_name,passed,details
+01_actor_and_plan_resolved,true,Actor=admin@vdstayinn.com; plan=Starter.
+02_fresh_hotel_bootstrap_succeeded,true,A reversible fresh hotel was created through the authenticated atomic bootstrap RPC.
+03_future_hotel_amenity_defaults,true,Active amenities immediately after bootstrap=5.
+04_future_hotel_request_defaults,true,Active request categories immediately after bootstrap=4.
+05_future_hotel_menu_category_defaults,true,Active menu categories immediately after bootstrap=3.
+06_configuration_defaults_idempotent,true,"Repeated default seeding inserted no duplicate amenities, request types or menu categories."
+07_inventory_configuration_rpc,true,"One call created one floor, two room types and two rate plans."
+08_inventory_reconfiguration_no_duplicates,true,"Repeating inventory configuration retained one F1 floor, two room types and two rate plans."
+09_rate_plans_linked_to_correct_room_types,true,STD-BAR and DLX-BAR are linked to their hotel-owned room types.
+10_readiness_before_rooms_is_correct,true,"Room types, rates and floors were ready while rooms remained incomplete."
+11_first_bulk_room_import,true,The first two-row import inserted both rooms atomically.
+12_imported_room_links_and_legacy_text,true,"Imported rooms have correct floor_id, room_type_id and compatible room_type text."
+13_repeated_room_import_idempotent,true,Repeating the same room import produced two unchanged rows and no duplicates.
+14_available_room_update_allowed,true,An available room could be moved to maintenance through the import RPC.
+15_duplicate_payload_rooms_rejected,true,Two rows with the same room number in one payload were rejected.
+16_unknown_room_type_rejected,true,An unknown active room_type_code could not create a room.
+17_unknown_floor_rejected,true,An unknown active floor_code could not create a room.
+18_room_can_be_marked_occupied,true,The import RPC preserved normal operational status updates.
+19_occupied_room_reconfiguration_blocked,true,An occupied room could not be moved to another room type through bulk import.
+20_readiness_after_rooms_is_correct,true,"Rooms, rates, floors, amenities, request categories and QR readiness passed; menu items correctly remained incomplete."
+21_normalized_default_counts,true,"Fresh hotel retained the minimum amenity, request-category and menu-category defaults."
+22_new_configuration_tables_have_rls,true,Amenities and service_request_types both have RLS enabled.
+23_authenticated_rpc_execute,true,Authenticated users retain execute grants on approved configuration RPCs.
+24_anonymous_configure_blocked,true,The real anon role could not execute inventory configuration.
+25_anonymous_room_import_blocked,true,The real anon role could not execute room import.
+26_existing_production_counts_unchanged,true,Hotels 2→2; rooms 14→14; room types 3→3; rates 3→3; amenities 10→10; request types 8→8; menu categories 8→8.
+27_synthetic_configuration_rolled_back,true,"The synthetic hotel, rooms, rates and defaults were fully rolled back."
+28_day8_configuration_runtime_ready,true,Migration 019 configuration and bulk-room runtime acceptance passed.

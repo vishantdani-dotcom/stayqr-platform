@@ -1,0 +1,18 @@
+StayQR Day 5 Checkout Closure — Validation Notes
+
+Completed in the package build environment:
+- Inspected the uploaded current Frontend source.
+- Parsed all 44 JavaScript/JSX source files with the TypeScript JSX parser: 0 syntax errors.
+- Verified the six new SQL files for balanced comments, quotes, dollar blocks and parentheses.
+- Reviewed the checkout transaction against the current StayQR schema snapshot and Day 1-5 migrations.
+- Corrected PL/pgSQL variable names in the final gate and cleanup to prevent ambiguous-column errors.
+- Corrected cleanup deletion order for payment-transfer foreign keys.
+- Corrected multi-room settlement preview scoping to the selected physical room.
+
+Must be run in the user's environment after overlay:
+- npm run check
+- Migration 202607240010
+- Audit 026 (8 true)
+- Controlled browser smoke test
+- Audit 028 (13 true)
+- Audits 029 and 030 cleanup/zero verification

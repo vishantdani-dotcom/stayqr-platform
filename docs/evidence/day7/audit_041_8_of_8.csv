@@ -1,0 +1,9 @@
+test_name,passed,details
+01_rev3_audit_helper_removed,true,Audit 040 REV3 helper is absent from production.
+02_rev4_audit_helper_removed,true,Audit 040 REV4 helper is absent from production.
+03_rev5_audit_helper_removed,true,Audit 040 REV5 helper is absent from production.
+04_all_tenant_tables_still_have_rls,true,Every public tenant table carrying hotel_id still has RLS enabled.
+05_no_anonymous_table_access,true,Anonymous users retain no direct public-table grants or policies.
+06_only_approved_anonymous_rpcs,true,Anonymous execution remains restricted to the six approved guest RPCs.
+07_guest_token_binding_consistent,true,"All guest tokens remain bound to the correct hotel, room and stay."
+08_private_storage_matrix_intact,true,Both private storage buckets and all eight scoped policies remain intact.

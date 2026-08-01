@@ -1,0 +1,25 @@
+test_name,passed,details
+01_stage2_migration_installed,true,Migration 014 marker is installed.
+02_guest_session_trigger_installed,true,Guest-token lifecycle trigger is attached to public.guest_sessions.
+03_trigger_issues_on_insert,true,A new active stay receives its first signed token.
+04_trigger_rotates_access_defining_changes,true,"Hotel, room, guest and expiry changes explicitly rotate access."
+05_unrelated_update_does_not_reissue,true,An unrelated guest-session update cannot silently reactivate revoked access.
+06_inactive_or_expired_stay_revoked,true,"Inactive, checked-out and expired stays invalidate active tokens."
+07_link_status_contract,true,The staff QR response separates stay status from access status.
+08_recovery_only_without_token_history,true,Automatic recovery is limited to active legacy stays with no token history.
+09_revoked_token_not_silently_reissued,true,Refreshing link administration preserves manual revocation.
+10_only_active_unexpired_token_rendered,true,Only an active and unexpired token is rendered into guest URLs.
+11_rotation_revokes_previous_token,true,Explicit rotation revokes the previous active token before issuance.
+12_one_active_token_per_stay,true,The database permits at most one active token per guest stay.
+13_resolver_requires_active_token,true,Revoked and expired token records cannot resolve.
+14_resolver_requires_active_stay,true,Checkout and stay expiry invalidate previously signed URLs.
+15_signed_token_format_contract,true,Rendered access uses UUID nonce plus SHA-256 HMAC signature.
+16_tampered_signature_rejection_contract,true,Malformed or altered signatures are rejected by the resolver.
+17_hotel_slug_binding_contract,true,A signed token is bound to its hotel slug.
+18_room_number_is_not_credential_contract,true,"The resolver accepts signed UUID-plus-HMAC tokens, never room numbers."
+19_no_raw_token_or_signing_secret,true,Raw tokens and signing secrets are not exposed to browser roles.
+20_link_administration_not_anonymous,true,Only authenticated hotel staff can administer secure guest links.
+21_no_anonymous_table_access,true,Anonymous access remains restricted to approved RPCs.
+22_all_hotel_tables_have_rls,true,Every public table carrying hotel_id has RLS enabled.
+23_guest_token_tenant_consistency,true,"Every token remains bound to one hotel, room and authoritative stay."
+24_private_storage_policy_contract,true,Both StayQR Storage buckets are private and have all eight policies.

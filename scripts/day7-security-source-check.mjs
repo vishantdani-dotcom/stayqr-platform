@@ -113,18 +113,19 @@ check(
 
 check(
   '13_guest_pages_revalidate_revocation',
-  /addEventListener\("focus"/.test(guestGuide) &&
+  /addEventListener\((?:'|")focus(?:'|")/.test(guestGuide) &&
     /visibilitychange/.test(guestGuide) &&
     /ACCESS_RECHECK_INTERVAL_MS/.test(guestGuide) &&
-    /addEventListener\("focus"/.test(foodMenu) &&
+    /addEventListener\((?:'|")focus(?:'|")/.test(foodMenu) &&
     /visibilitychange/.test(foodMenu) &&
     /ACCESS_RECHECK_INTERVAL_MS/.test(foodMenu),
   'Open guest pages revalidate on focus, visibility return and a bounded interval.'
 )
 check(
   '14_revoked_guest_state_is_cleared',
-  /setSession\(null\)/.test(guestGuide) &&
-    /setHotelInfo\(null\)/.test(guestGuide) &&
+  (/setPortal\(null\)/.test(guestGuide) ||
+    (/setSession\(null\)/.test(guestGuide) &&
+      /setHotelInfo\(null\)/.test(guestGuide))) &&
     /setRequests\(\[\]\)/.test(guestGuide) &&
     /setActiveSession\(null\)/.test(foodMenu) &&
     /setItems\(\[\]\)/.test(foodMenu) &&
@@ -134,7 +135,7 @@ check(
 )
 check(
   '15_guest_actions_prevalidate_access',
-  /const accessStillValid = await fetchActiveSession\(\)/.test(guestGuide) &&
+  /const accessStillValid = await fetchActive(?:Session|Portal)\(\)/.test(guestGuide) &&
     /const portal = await validateFoodAccess\(\)/.test(foodMenu),
   'Service requests, food navigation and order placement revalidate access before action.'
 )

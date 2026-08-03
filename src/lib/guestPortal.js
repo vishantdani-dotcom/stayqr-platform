@@ -156,6 +156,38 @@ export async function placeGuestFoodOrder(items) {
   )
 }
 
+
+
+export async function submitGuestFeedback({ rating, message = '', consentToFollowUp = false }) {
+  const { hotelSlug, accessToken } = requireGuestAccess('guest')
+
+  return callGuestRpc(
+    'submit_guest_feedback',
+    {
+      p_hotel_slug: hotelSlug,
+      p_access_token: accessToken,
+      p_rating: Number(rating),
+      p_message: String(message || '').trim() || null,
+      p_consent_to_follow_up: Boolean(consentToFollowUp),
+    },
+    'Unable to submit your feedback.'
+  )
+}
+
+export async function recordGuestReviewRewardAction(action) {
+  const { hotelSlug, accessToken } = requireGuestAccess('guest')
+
+  return callGuestRpc(
+    'record_guest_review_reward_action',
+    {
+      p_hotel_slug: hotelSlug,
+      p_access_token: accessToken,
+      p_action: action,
+    },
+    'Unable to record the review or reward action.'
+  )
+}
+
 export async function getGuestAccessLinks(hotelId) {
   if (!hotelId) return []
 
@@ -195,4 +227,43 @@ export async function revokeGuestAccessToken({
 
   if (error) throw error
   return data
+}
+
+export async function resolvePremiumGuestGuide(root = 'guest') {
+  const { hotelSlug, accessToken } = requireGuestAccess(root)
+
+  const data = await callGuestRpc(
+    'resolve_premium_guest_guide',
+    {
+      p_hotel_slug: hotelSlug,
+      p_access_token: accessToken,
+    },
+    'This guest access link is invalid or expired.'
+  )
+
+  return data || null
+}
+
+export async function recordGuestGuideEvent({
+  eventType,
+  sectionKey = null,
+  itemId = null,
+  locale = null,
+  metadata = {},
+}) {
+  const { hotelSlug, accessToken } = requireGuestAccess('guest')
+
+  return callGuestRpc(
+    'record_guest_guide_event',
+    {
+      p_hotel_slug: hotelSlug,
+      p_access_token: accessToken,
+      p_event_type: String(eventType || '').trim(),
+      p_section_key: sectionKey ? String(sectionKey).trim() : null,
+      p_item_id: itemId || null,
+      p_locale: locale ? String(locale).trim() : null,
+      p_metadata: metadata && typeof metadata === 'object' ? metadata : {},
+    },
+    'Unable to record the guest-guide action.'
+  )
 }

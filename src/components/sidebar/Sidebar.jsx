@@ -38,6 +38,7 @@ const NAV_ITEMS = [
       { id: 'superadmin', label: 'Super Admin', icon: BuildingIcon, badge: null },
       { id: 'onboarding', label: 'Hotel Setup', icon: SettingsIcon, badge: null },
       { id: 'hotel', label: 'Hotel Profile', icon: BuildingIcon, badge: null },
+      { id: 'guidebuilder', label: 'Guest Guide Builder', icon: QrIcon, badge: null },
       { id: 'reports', label: 'Reports', icon: ChartIcon, badge: null },
       { id: 'invoices', label: 'Invoices & Audit', icon: CardIcon, badge: null },
       { id: 'settings', label: 'Settings', icon: SettingsIcon, badge: null },

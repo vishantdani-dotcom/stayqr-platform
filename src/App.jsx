@@ -30,6 +30,7 @@ import Maintenance from './pages/maintenance/Maintenance'
 import Login from './pages/auth/Login'
 import AuthAction from './pages/auth/AuthAction'
 import HotelProfile from './pages/hotel/HotelProfile'
+import GuestGuideBuilder from './pages/guestbuilder/GuestGuideBuilder'
 import Reports from './pages/reports/Reports'
 import Invoices from './pages/invoices/Invoices'
 import InvoiceVerification from './pages/invoices/InvoiceVerification'
@@ -380,6 +381,8 @@ export default function App() {
         return <Amenities />
       case 'hotel':
         return <HotelProfile />
+      case 'guidebuilder':
+        return <GuestGuideBuilder />
       case 'reports':
         return <Reports />
       case 'invoices':

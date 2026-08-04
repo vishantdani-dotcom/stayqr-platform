@@ -127,16 +127,17 @@ check(
     (/setSession\(null\)/.test(guestGuide) &&
       /setHotelInfo\(null\)/.test(guestGuide))) &&
     /setRequests\(\[\]\)/.test(guestGuide) &&
-    /setActiveSession\(null\)/.test(foodMenu) &&
+    (/setActiveSession\(null\)/.test(foodMenu) || /setPortal\(null\)/.test(foodMenu)) &&
     /setItems\(\[\]\)/.test(foodMenu) &&
-    /setMyOrders\(\[\]\)/.test(foodMenu) &&
+    (/setMyOrders\(\[\]\)/.test(foodMenu) || /setOrders\(\[\]\)/.test(foodMenu)) &&
     /setCart\(\[\]\)/.test(foodMenu),
   'Revocation clears already-rendered guest, menu, order and cart state.'
 )
 check(
   '15_guest_actions_prevalidate_access',
   /const accessStillValid = await fetchActive(?:Session|Portal)\(\)/.test(guestGuide) &&
-    /const portal = await validateFoodAccess\(\)/.test(foodMenu),
+    (/const portal = await validateFoodAccess\(\)/.test(foodMenu) ||
+      /const valid = await validateAccess\(\)/.test(foodMenu)),
   'Service requests, food navigation and order placement revalidate access before action.'
 )
 

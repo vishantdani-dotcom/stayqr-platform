@@ -1,775 +1,372 @@
-import { useEffect, useState } from "react";
-import { createNotification } from "../../lib/notifications";
-import { supabase } from "../../lib/supabase";
-import { getCurrentHotel } from "../../lib/currentHotel";
-import { getCurrentStaff } from "../../lib/currentStaff";
-import { navigateToSection } from "../../lib/bookingCalendar";
-import "./ServiceRequests.css";
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { getCurrentHotel } from '../../lib/currentHotel'
+import { getCurrentStaff } from '../../lib/currentStaff'
+import {
+  assignServiceRequest,
+  escalateOverdueServiceRequests,
+  getServiceOperationsAnalytics,
+  loadDay15ServiceRequests,
+  updateServiceRequestPriority,
+  updateServiceRequestStatus,
+} from '../../lib/day15Operations'
+import { navigateToSection } from '../../lib/bookingCalendar'
+import { supabase } from '../../lib/supabase'
+import './ServiceRequests.css'
+
+const ACTIVE_STATUSES = ['pending', 'accepted', 'in_progress', 'escalated']
+const DEPARTMENTS = [
+  'front_office',
+  'housekeeping',
+  'maintenance',
+  'restaurant',
+  'laundry',
+  'transport',
+  'guest_services',
+  'accounts',
+  'management',
+]
 
 export default function ServiceRequests() {
-  const [requests, setRequests] = useState([]);
-  const [staffList, setStaffList] = useState([]);
-  const [currentHotel, setCurrentHotel] = useState(null);
-  const [currentStaff, setCurrentStaff] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState(null);
+  const [hotel, setHotel] = useState(null)
+  const [currentStaff, setCurrentStaff] = useState(null)
+  const [requests, setRequests] = useState([])
+  const [staff, setStaff] = useState([])
+  const [types, setTypes] = useState([])
+  const [analytics, setAnalytics] = useState({})
+  const [department, setDepartment] = useState('all')
+  const [status, setStatus] = useState('active')
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState('')
+  const [toast, setToast] = useState('')
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  const [catalogOpen, setCatalogOpen] = useState(false)
 
-  useEffect(() => {
-    initPage();
-  }, []);
+  const showToast = useCallback((message) => {
+    setToast(String(message || ''))
+    window.setTimeout(() => setToast(''), 3200)
+  }, [])
 
-  useEffect(() => {
-    if (!currentHotel?.id) return undefined;
+  const loadSupportData = useCallback(async (hotelId) => {
+    const [requestRows, staffResult, typeResult] = await Promise.all([
+      loadDay15ServiceRequests(hotelId),
+      supabase
+        .from('staff')
+        .select('id, full_name, role, status')
+        .eq('hotel_id', hotelId)
+        .eq('status', 'active')
+        .order('full_name'),
+      supabase
+        .from('service_request_types')
+        .select('*')
+        .eq('hotel_id', hotelId)
+        .order('sort_order'),
+    ])
+    if (staffResult.error) throw staffResult.error
+    if (typeResult.error) throw typeResult.error
+    setRequests(requestRows)
+    setStaff(staffResult.data || [])
+    setTypes(typeResult.data || [])
+  }, [])
 
-    const channel = supabase
-      .channel(`service_requests_table_${currentHotel.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "service_requests",
-          filter: `hotel_id=eq.${currentHotel.id}`,
-        },
-        () => {
-          fetchRequests(currentHotel.id);
-        }
-      )
-      .subscribe((status) => {
-        console.log("Service requests realtime:", status);
-      });
+  const loadAnalytics = useCallback(async (hotelId) => {
+    const from = new Date()
+    from.setHours(0, 0, 0, 0)
+    const to = new Date(from)
+    to.setDate(to.getDate() + 1)
+    const result = await getServiceOperationsAnalytics({
+      hotelId,
+      from: from.toISOString(),
+      to: to.toISOString(),
+    })
+    setAnalytics(result || {})
+  }, [])
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentHotel?.id]);
-
-  async function initPage() {
-    setLoading(true);
-
+  const initialize = useCallback(async () => {
+    setLoading(true)
     try {
-      const [hotel, staff] = await Promise.all([
+      const [selectedHotel, actor] = await Promise.all([
         getCurrentHotel(),
         getCurrentStaff(),
-      ]);
-
-      if (!hotel) {
-        alert("No hotel assigned");
-        return;
-      }
-
-      setCurrentHotel(hotel);
-      setCurrentStaff(staff || null);
-
-      await Promise.all([
-        fetchRequests(hotel.id),
-        fetchActiveStaff(hotel.id),
-      ]);
+      ])
+      if (!selectedHotel) throw new Error('No hotel is selected.')
+      setHotel(selectedHotel)
+      setCurrentStaff(actor || null)
+      await escalateOverdueServiceRequests(selectedHotel.id).catch(() => null)
+      await Promise.all([loadSupportData(selectedHotel.id), loadAnalytics(selectedHotel.id)])
     } catch (error) {
-      console.error("Service requests initialization error:", error);
-      alert(error.message || "Unable to load service requests");
+      console.error('Service operations initialization failed:', error)
+      showToast(error.message || 'Unable to load service operations.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }
+  }, [loadAnalytics, loadSupportData, showToast])
 
-  async function fetchRequests(hotelId = currentHotel?.id) {
-    if (!hotelId) return;
+  useEffect(() => {
+    void initialize()
+  }, [initialize])
 
-    const { data, error } = await supabase
-      .from("service_requests")
-      .select(`
-        *,
-        guests (
-          full_name,
-          phone
-        ),
-        rooms (
-          room_number,
-          room_type
-        )
-      `)
-      .eq("hotel_id", hotelId)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Fetch service requests error:", error);
-      alert(error.message);
-      return;
+  useEffect(() => {
+    if (!hotel?.id) return undefined
+    const channel = supabase
+      .channel(`day15_service_requests_${hotel.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'service_requests',
+        filter: `hotel_id=eq.${hotel.id}`,
+      }, () => void Promise.all([loadSupportData(hotel.id), loadAnalytics(hotel.id)]))
+      .subscribe()
+    const refreshTimer = window.setInterval(() => void loadSupportData(hotel.id), 15000)
+    const escalationTimer = window.setInterval(() => {
+      void escalateOverdueServiceRequests(hotel.id)
+        .then(() => Promise.all([loadSupportData(hotel.id), loadAnalytics(hotel.id)]))
+        .catch(() => null)
+    }, 60000)
+    const clockTimer = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => {
+      window.clearInterval(refreshTimer)
+      window.clearInterval(escalationTimer)
+      window.clearInterval(clockTimer)
+      supabase.removeChannel(channel)
     }
+  }, [hotel?.id, loadAnalytics, loadSupportData])
 
-    setRequests(data || []);
-  }
+  const filteredRequests = useMemo(() => requests.filter((request) => {
+    const departmentMatch = department === 'all' || request.department === department
+    const statusMatch = status === 'all'
+      || (status === 'active' && ACTIVE_STATUSES.includes(request.status))
+      || request.status === status
+    return departmentMatch && statusMatch
+  }), [department, requests, status])
 
-  async function fetchActiveStaff(hotelId) {
-    if (!hotelId) return;
+  const overdueCount = useMemo(() => requests.filter((request) => isOverdue(request, nowMs)).length, [nowMs, requests])
 
-    const { data, error } = await supabase
-      .from("staff")
-      .select("id, full_name, role, status")
-      .eq("hotel_id", hotelId)
-      .eq("status", "active")
-      .order("full_name", { ascending: true });
-
-    if (error) {
-      console.error("Fetch staff error:", error);
-      return;
-    }
-
-    setStaffList(data || []);
-  }
-
-  async function assignStaff(request, staffId) {
-    if (!currentHotel?.id || !request?.id) return;
-
+  async function runRequestAction(requestId, action) {
+    setBusyId(requestId)
     try {
-      setUpdatingId(request.id);
-
-      const { error } = await supabase
-        .from("service_requests")
-        .update({
-          assigned_to: staffId || null,
-        })
-        .eq("id", request.id)
-        .eq("hotel_id", currentHotel.id);
-
-      if (error) throw error;
-
-      await fetchRequests(currentHotel.id);
+      await action()
+      await Promise.all([loadSupportData(hotel.id), loadAnalytics(hotel.id)])
     } catch (error) {
-      console.error("Assign staff error:", error);
-      alert(error.message);
+      showToast(error.message || 'Unable to update the service request.')
     } finally {
-      setUpdatingId(null);
+      setBusyId('')
     }
   }
 
-  async function updatePriority(request, priority) {
-    if (!currentHotel?.id || !request?.id) return;
-
-    try {
-      setUpdatingId(request.id);
-
-      const { error } = await supabase
-        .from("service_requests")
-        .update({ priority })
-        .eq("id", request.id)
-        .eq("hotel_id", currentHotel.id);
-
-      if (error) throw error;
-
-      await fetchRequests(currentHotel.id);
-    } catch (error) {
-      console.error("Update priority error:", error);
-      alert(error.message);
-    } finally {
-      setUpdatingId(null);
-    }
+  function assign(request, staffId) {
+    return runRequestAction(request.id, async () => {
+      await assignServiceRequest({ hotelId: hotel.id, requestId: request.id, staffId })
+      showToast(staffId ? 'Request assigned.' : 'Request unassigned.')
+    })
   }
 
-  async function updateETA(request, minutes) {
-    if (!currentHotel?.id || !request?.id) return;
-
-    const estimatedMinutes = Number(minutes);
-
-    try {
-      setUpdatingId(request.id);
-
-      if (!estimatedMinutes) {
-        const { error } = await supabase
-          .from("service_requests")
-          .update({
-            estimated_minutes: null,
-            estimated_arrival_time: null,
-          })
-          .eq("id", request.id)
-          .eq("hotel_id", currentHotel.id);
-
-        if (error) throw error;
-
-        await fetchRequests(currentHotel.id);
-        return;
-      }
-
-      const estimatedArrivalTime = new Date(
-        Date.now() + estimatedMinutes * 60 * 1000
-      ).toISOString();
-
-      const { error } = await supabase
-        .from("service_requests")
-        .update({
-          estimated_minutes: estimatedMinutes,
-          estimated_arrival_time: estimatedArrivalTime,
-        })
-        .eq("id", request.id)
-        .eq("hotel_id", currentHotel.id);
-
-      if (error) throw error;
-
-      await createNotification({
-        hotelId: currentHotel.id,
-        roomId: request.room_id,
-        guestId: request.guest_id,
-        type: "service_eta",
-        title: `${request.request_type} ETA`,
-        message: `Hotel staff is expected in approximately ${estimatedMinutes} minutes.`,
-      });
-
-      await fetchRequests(currentHotel.id);
-    } catch (error) {
-      console.error("Update service ETA error:", error);
-      alert(error.message);
-    } finally {
-      setUpdatingId(null);
-    }
+  function updatePriority(request, priority) {
+    return runRequestAction(request.id, async () => {
+      await updateServiceRequestPriority({ hotelId: hotel.id, requestId: request.id, priority })
+      showToast('Priority updated.')
+    })
   }
 
-  async function updateRequestStatus(request, status) {
-    if (!currentHotel?.id || !request?.id) return;
+  function changeStatus(request, nextStatus, eta = null, note = null) {
+    return runRequestAction(request.id, async () => {
+      await updateServiceRequestStatus({
+        hotelId: hotel.id,
+        requestId: request.id,
+        status: nextStatus,
+        estimatedMinutes: eta,
+        note,
+      })
+      showToast(`Request moved to ${nextStatus.replaceAll('_', ' ')}.`)
+    })
+  }
 
+  function changeEta(request, eta) {
+    return changeStatus(request, request.status, eta)
+  }
+
+  async function cancelRequest(request) {
+    const reason = window.prompt('Cancellation reason:', 'Unable to complete request')
+    if (reason === null) return
+    await changeStatus(request, 'cancelled', null, reason)
+  }
+
+  async function reconcileEscalations() {
+    setBusyId('escalate')
     try {
-      setUpdatingId(request.id);
-
-      const now = new Date().toISOString();
-
-      const payload = {
-        status,
-      };
-
-      if (status === "accepted") {
-        payload.accepted_at = now;
-
-        if (!request.assigned_to && currentStaff?.id) {
-          payload.assigned_to = currentStaff.id;
-        }
-      }
-
-      if (status === "in_progress") {
-        payload.started_at = now;
-      }
-
-      if (status === "completed") {
-        payload.completed_at = now;
-      }
-
-      const { error } = await supabase
-        .from("service_requests")
-        .update(payload)
-        .eq("id", request.id)
-        .eq("hotel_id", currentHotel.id);
-
-      if (error) throw error;
-
-      const notifications = {
-        accepted: {
-          title: `${getRequestIcon(request.request_type)} Request Accepted`,
-          message: `Hotel staff has accepted your ${request.request_type} request.`,
-        },
-
-        in_progress: {
-          title: "👷 Staff On The Way",
-          message: `Your ${request.request_type} request is now in progress.`,
-        },
-
-        completed: {
-          title: "✅ Request Completed",
-          message: `Your ${request.request_type} request has been completed.`,
-        },
-
-        cancelled: {
-          title: "❌ Request Cancelled",
-          message: `Your ${request.request_type} request has been cancelled.`,
-        },
-      };
-
-      const notification = notifications[status];
-
-      if (notification) {
-        await createNotification({
-          hotelId: currentHotel.id,
-          roomId: request.room_id,
-          guestId: request.guest_id,
-          type: "service_status",
-          title: notification.title,
-          message: notification.message,
-        });
-      }
-
-      await fetchRequests(currentHotel.id);
+      const result = await escalateOverdueServiceRequests(hotel.id)
+      await Promise.all([loadSupportData(hotel.id), loadAnalytics(hotel.id)])
+      showToast(`${result?.escalated_count || 0} overdue request(s) escalated.`)
     } catch (error) {
-      console.error("Update request error:", error);
-      alert(error.message);
+      showToast(error.message || 'Unable to escalate overdue requests.')
     } finally {
-      setUpdatingId(null);
+      setBusyId('')
     }
   }
 
   async function openCheckoutSettlement(request) {
-    if (!currentHotel?.id || !request?.id || !request?.room_id) return;
-
+    setBusyId(request.id)
     try {
-      setUpdatingId(request.id);
-
-      const { data: activeSession, error: sessionError } = await supabase
-        .from("guest_sessions")
-        .select("id")
-        .eq("hotel_id", currentHotel.id)
-        .eq("room_id", request.room_id)
-        .eq("guest_id", request.guest_id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
+      const { data: session, error } = await supabase
+        .from('guest_sessions')
+        .select('id')
+        .eq('hotel_id', hotel.id)
+        .eq('room_id', request.room_id)
+        .eq('guest_id', request.guest_id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle();
-
-      if (sessionError) throw sessionError;
-
-      if (!activeSession?.id) {
-        throw new Error(
-          "No active guest stay was found for this checkout request. Refresh the request or verify the guest in the Guests module."
-        );
+        .maybeSingle()
+      if (error) throw error
+      if (!session?.id) throw new Error('No active stay was found for this checkout request.')
+      if (request.status === 'pending') {
+        await updateServiceRequestStatus({
+          hotelId: hotel.id,
+          requestId: request.id,
+          status: 'accepted',
+          estimatedMinutes: request.estimated_minutes || 10,
+        })
       }
-
-      if (request.status === "pending") {
-        const acceptedAt = new Date().toISOString();
-        const { error: requestError } = await supabase
-          .from("service_requests")
-          .update({
-            status: "accepted",
-            accepted_at: request.accepted_at || acceptedAt,
-            assigned_to: request.assigned_to || currentStaff?.id || null,
-          })
-          .eq("id", request.id)
-          .eq("hotel_id", currentHotel.id);
-
-        if (requestError) throw requestError;
-
-        await createNotification({
-          hotelId: currentHotel.id,
-          roomId: request.room_id,
-          guestId: request.guest_id,
-          type: "service_status",
-          title: "🚪 Checkout Request Accepted",
-          message:
-            "The front desk has accepted your checkout request and is preparing the final settlement.",
-        });
-      }
-
-      navigateToSection("guests", {
-        guestSessionId: activeSession.id,
+      navigateToSection('guests', {
+        guestSessionId: session.id,
         checkoutRequestId: request.id,
-      });
+      })
     } catch (error) {
-      console.error("Open checkout settlement error:", error);
-      alert(error.message || "Unable to open the checkout settlement.");
+      showToast(error.message || 'Unable to open checkout settlement.')
     } finally {
-      setUpdatingId(null);
+      setBusyId('')
     }
   }
 
-  const pendingRequests = requests.filter(
-    (request) => request.status === "pending"
-  );
-
-  const acceptedRequests = requests.filter(
-    (request) => request.status === "accepted"
-  );
-
-  const inProgressRequests = requests.filter(
-    (request) => request.status === "in_progress"
-  );
-
-  const completedRequests = requests.filter(
-    (request) => request.status === "completed"
-  );
-
-  const activeRequests = requests.filter(
-    (request) =>
-      !["completed", "cancelled"].includes(request.status)
-  );
-
-  if (loading) {
-    return (
-      <div className="service-page">
-        <div className="service-loading">
-          Loading service requests...
-        </div>
-      </div>
-    );
+  async function saveServiceType(type, patch) {
+    setBusyId(type.id)
+    try {
+      const { error } = await supabase
+        .from('service_request_types')
+        .update(patch)
+        .eq('hotel_id', hotel.id)
+        .eq('id', type.id)
+      if (error) throw error
+      await loadSupportData(hotel.id)
+      showToast(`${type.name} configuration saved.`)
+    } catch (error) {
+      showToast(error.message || 'Unable to save the service category. Hotel-management permission may be required.')
+    } finally {
+      setBusyId('')
+    }
   }
 
+  if (loading) return <div className="service-loading">Loading service operations…</div>
+
   return (
-    <div className="service-page">
-      <div className="service-header">
-        <div>
-          <p className="service-kicker">
-            Live Hotel Operations
-          </p>
+    <div className="service-day15-page">
+      <header className="service-day15-header">
+        <div><span>Day 15 · Guest Services</span><h1>Service Operations</h1><p>{hotel?.hotel_name} · Department routing, assignment, SLA, escalation and guest tracking.</p></div>
+        <div><button onClick={() => setCatalogOpen((value) => !value)}>{catalogOpen ? 'Hide catalogue' : 'Service catalogue'}</button><button className="gold" disabled={busyId === 'escalate'} onClick={reconcileEscalations}>Escalate overdue ({overdueCount})</button></div>
+      </header>
 
-          <h1>Service Requests</h1>
+      <section className="service-metrics">
+        <Metric label="Requests today" value={analytics.requests || 0} />
+        <Metric label="Completed" value={analytics.completed || 0} />
+        <Metric label="Overdue" value={analytics.overdue || overdueCount} tone="danger" />
+        <Metric label="SLA met" value={`${Number(analytics.sla_met_rate || 0).toFixed(0)}%`} />
+        <Metric label="Avg. accept" value={`${Math.round(Number(analytics.average_accept_minutes || 0))} min`} />
+        <Metric label="Avg. complete" value={`${Math.round(Number(analytics.average_completion_minutes || 0))} min`} />
+      </section>
 
-          <p>
-            {currentHotel?.hotel_name || "Hotel"} · Manage guest
-            requests in real time.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="service-refresh-btn"
-          onClick={() => fetchRequests(currentHotel?.id)}
-        >
-          Refresh
-        </button>
-      </div>
-
-      <div className="service-stats">
-        <StatCard
-          title="Pending"
-          value={pendingRequests.length}
-          icon="🟡"
-        />
-
-        <StatCard
-          title="Accepted"
-          value={acceptedRequests.length}
-          icon="🟠"
-        />
-
-        <StatCard
-          title="In Progress"
-          value={inProgressRequests.length}
-          icon="🔵"
-        />
-
-        <StatCard
-          title="Completed"
-          value={completedRequests.length}
-          icon="🟢"
-        />
-      </div>
-
-      <div className="service-table-card">
-        {requests.length === 0 ? (
-          <div className="service-empty">
-            <div>🛎️</div>
-            <h3>No service requests</h3>
-            <p>
-              Guest requests will appear here automatically.
-            </p>
+      {catalogOpen && (
+        <section className="service-catalogue-panel">
+          <div className="service-section-title"><h2>Dynamic service catalogue</h2><span>Guest-visible types route to the selected department and inherit SLA deadlines.</span></div>
+          <div className="service-type-grid">
+            {types.map((type) => <ServiceTypeEditor key={type.id} type={type} busy={busyId === type.id} onSave={(patch) => saveServiceType(type, patch)} />)}
           </div>
-        ) : (
-          <table className="service-table">
-            <thead>
-              <tr>
-                <th>Room</th>
-                <th>Guest</th>
-                <th>Request</th>
-                <th>Priority</th>
-                <th>Assigned Staff</th>
-                <th>ETA</th>
-                <th>Status</th>
-                <th>Requested</th>
-                <th>Action</th>
-              </tr>
-            </thead>
+        </section>
+      )}
 
-            <tbody>
-              {requests.map((request) => {
-                const isUpdating = updatingId === request.id;
-                const isCompleted =
-                  request.status === "completed";
-                const isCheckout =
-                  request.request_type === "Checkout Request";
+      <section className="service-filters">
+        <select value={department} onChange={(event) => setDepartment(event.target.value)}><option value="all">All departments</option>{DEPARTMENTS.map((entry) => <option value={entry} key={entry}>{formatLabel(entry)}</option>)}</select>
+        <select value={status} onChange={(event) => setStatus(event.target.value)}><option value="active">Active requests</option><option value="all">All statuses</option><option value="pending">Pending</option><option value="accepted">Accepted</option><option value="in_progress">In progress</option><option value="escalated">Escalated</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select>
+        <button onClick={() => Promise.all([loadSupportData(hotel.id), loadAnalytics(hotel.id)])}>Refresh</button>
+      </section>
 
-                return (
-                  <tr key={request.id}>
-                    <td>
-                      <strong>
-                        Room {request.rooms?.room_number || "-"}
-                      </strong>
+      <section className="service-request-grid">
+        {filteredRequests.length === 0 ? <div className="service-empty">No requests match the selected queue.</div> : filteredRequests.map((request) => (
+          <RequestCard
+            key={request.id}
+            request={request}
+            staff={staff}
+            actor={currentStaff}
+            nowMs={nowMs}
+            busy={busyId === request.id}
+            onAssign={(staffId) => assign(request, staffId)}
+            onPriority={(priority) => updatePriority(request, priority)}
+            onEta={(eta) => changeEta(request, eta)}
+            onStatus={(nextStatus) => changeStatus(request, nextStatus)}
+            onCancel={() => cancelRequest(request)}
+            onCheckout={() => openCheckoutSettlement(request)}
+          />
+        ))}
+      </section>
 
-                      <small>
-                        {request.rooms?.room_type || ""}
-                      </small>
-                    </td>
+      {Array.isArray(analytics.by_department) && analytics.by_department.length > 0 && (
+        <section className="service-department-report">
+          <div className="service-section-title"><h2>Department activity today</h2></div>
+          {analytics.by_department.map((entry) => <div key={entry.department}><span>{formatLabel(entry.department)}</span><strong>{entry.requests} requests · {entry.completed} complete · {entry.overdue} overdue</strong></div>)}
+        </section>
+      )}
 
-                    <td>
-                      <strong>
-                        {request.guests?.full_name || "Guest"}
-                      </strong>
-
-                      <small>
-                        {request.guests?.phone || ""}
-                      </small>
-                    </td>
-
-                    <td>
-                      <div className="service-request-name">
-                        <span>
-                          {getRequestIcon(request.request_type)}
-                        </span>
-
-                        <div>
-                          <strong>
-                            {request.request_type || "Request"}
-                          </strong>
-
-                          <small>
-                            {request.request_details ||
-                              "No additional details"}
-                          </small>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>
-                      <select
-                        className={`priority-select ${
-                          request.priority || "normal"
-                        }`}
-                        value={request.priority || "normal"}
-                        disabled={isCompleted || isUpdating}
-                        onChange={(event) =>
-                          updatePriority(
-                            request,
-                            event.target.value
-                          )
-                        }
-                      >
-                        <option value="low">Low</option>
-                        <option value="normal">Normal</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                      </select>
-                    </td>
-
-                    <td>
-                      <select
-                        className="service-select"
-                        value={request.assigned_to || ""}
-                        disabled={isCompleted || isUpdating}
-                        onChange={(event) =>
-                          assignStaff(request, event.target.value)
-                        }
-                      >
-                        <option value="">Unassigned</option>
-
-                        {staffList.map((staff) => (
-                          <option key={staff.id} value={staff.id}>
-                            {staff.full_name} · {staff.role}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-
-                    <td>
-                      {isCompleted ? (
-                        <span className="service-done-text">
-                          Completed
-                        </span>
-                      ) : (
-                        <>
-                          <select
-                            className="service-select eta-select"
-                            value={request.estimated_minutes || ""}
-                            disabled={isUpdating}
-                            onChange={(event) =>
-                              updateETA(
-                                request,
-                                event.target.value
-                              )
-                            }
-                          >
-                            <option value="">Set ETA</option>
-                            <option value="10">10 min</option>
-                            <option value="20">20 min</option>
-                            <option value="30">30 min</option>
-                            <option value="45">45 min</option>
-                          </select>
-
-                          {request.estimated_arrival_time && (
-                            <small className="service-eta-time">
-                              By{" "}
-                              {new Date(
-                                request.estimated_arrival_time
-                              ).toLocaleTimeString("en-IN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </small>
-                          )}
-                        </>
-                      )}
-                    </td>
-
-                    <td>
-                      <span
-                        className={`service-status ${
-                          request.status || "pending"
-                        }`}
-                      >
-                        {formatStatus(request.status)}
-                      </span>
-                    </td>
-
-                    <td>
-                      {request.created_at
-                        ? new Date(
-                            request.created_at
-                          ).toLocaleString("en-IN")
-                        : "-"}
-                    </td>
-
-                    <td>
-                      <div className="service-actions">
-                        {request.status === "pending" &&
-                          !isCheckout && (
-                            <button
-                              type="button"
-                              disabled={isUpdating}
-                              onClick={() =>
-                                updateRequestStatus(
-                                  request,
-                                  "accepted"
-                                )
-                              }
-                            >
-                              Accept
-                            </button>
-                          )}
-
-                        {request.status === "pending" &&
-                          isCheckout && (
-                            <button
-                              type="button"
-                              disabled={isUpdating}
-                              onClick={() =>
-                                openCheckoutSettlement(request)
-                              }
-                            >
-                              Open Settlement
-                            </button>
-                          )}
-
-                        {request.status === "accepted" && (
-                          <button
-                            type="button"
-                            disabled={isUpdating}
-                            onClick={() =>
-                              updateRequestStatus(
-                                request,
-                                "in_progress"
-                              )
-                            }
-                          >
-                            Start Work
-                          </button>
-                        )}
-
-                        {request.status === "in_progress" && (
-                          <button
-                            type="button"
-                            disabled={isUpdating}
-                            onClick={() =>
-                              updateRequestStatus(
-                                request,
-                                "completed"
-                              )
-                            }
-                          >
-                            Complete
-                          </button>
-                        )}
-
-                        {!isCompleted &&
-                          request.status !== "cancelled" &&
-                          !isCheckout && (
-                            <button
-                              type="button"
-                              className="cancel-btn"
-                              disabled={isUpdating}
-                              onClick={() =>
-                                updateRequestStatus(
-                                  request,
-                                  "cancelled"
-                                )
-                              }
-                            >
-                              Cancel
-                            </button>
-                          )}
-
-                        {isCompleted && (
-                          <span className="service-done-text">
-                            Done
-                          </span>
-                        )}
-
-                        {request.status === "cancelled" && (
-                          <span className="service-cancelled-text">
-                            Cancelled
-                          </span>
-                        )}
-
-                        {isUpdating && (
-                          <small className="service-updating">
-                            Updating...
-                          </small>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <p className="service-footer-note">
-        Active requests: {activeRequests.length}
-      </p>
+      {toast && <div className="service-toast">{toast}</div>}
     </div>
-  );
+  )
 }
 
-function StatCard({ title, value, icon }) {
+function RequestCard({ request, staff, nowMs, busy, onAssign, onPriority, onEta, onStatus, onCancel, onCheckout }) {
+  const nextStatus = request.status === 'pending' ? 'accepted' : request.status === 'accepted' || request.status === 'escalated' ? 'in_progress' : request.status === 'in_progress' ? 'completed' : null
+  const assigned = staff.find((entry) => entry.id === request.assigned_staff_id)
+  const checkout = /checkout/i.test(request.request_type || '')
+  const overdue = isOverdue(request, nowMs)
   return (
-    <div className="service-stat-card">
-      <div className="service-stat-icon">{icon}</div>
-
-      <div>
-        <p>{title}</p>
-        <h3>{value}</h3>
+    <article className={`service-request-card ${overdue ? 'overdue' : ''}`}>
+      <div className="service-card-head"><div><span>{formatLabel(request.department)}</span><h3>{request.request_type}</h3></div><Status status={request.status} /></div>
+      <div className="service-room-line"><strong>Room {request.rooms?.room_number || '—'}</strong><span>{request.guests?.full_name || 'Guest'}</span></div>
+      <p>{request.request_details || 'Guest service request'}</p>
+      <div className="service-sla"><span>{overdue ? 'SLA overdue' : 'SLA remaining'}</span><strong>{deadline(request.sla_due_at, nowMs)}</strong></div>
+      <div className="service-controls">
+        <label>Assign<select disabled={busy} value={request.assigned_staff_id || ''} onChange={(event) => onAssign(event.target.value)}><option value="">Unassigned</option>{staff.map((entry) => <option key={entry.id} value={entry.id}>{entry.full_name} · {entry.role}</option>)}</select></label>
+        <label>Priority<select disabled={busy} value={request.priority || 'normal'} onChange={(event) => onPriority(event.target.value)}><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
+        <label>ETA<select disabled={busy} value={request.estimated_minutes || ''} onChange={(event) => onEta(event.target.value)}><option value="">Not set</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option></select></label>
       </div>
-    </div>
-  );
+      <div className="service-card-meta"><span>Assigned: {assigned?.full_name || 'Nobody'}</span><span>Escalation: L{request.escalation_level || 0}</span></div>
+      <div className="service-card-actions">
+        {checkout && !['completed', 'cancelled'].includes(request.status) && <button className="gold" disabled={busy} onClick={onCheckout}>Open settlement</button>}
+        {!checkout && nextStatus && <button className="gold" disabled={busy} onClick={() => onStatus(nextStatus)}>{busy ? 'Updating…' : `Mark ${formatLabel(nextStatus)}`}</button>}
+        {['pending', 'accepted', 'in_progress', 'escalated'].includes(request.status) && <button className="danger" disabled={busy} onClick={onCancel}>Cancel</button>}
+      </div>
+    </article>
+  )
 }
 
-function formatStatus(status) {
-  const labels = {
-    pending: "Pending",
-    accepted: "Accepted",
-    in_progress: "In Progress",
-    completed: "Completed",
-    cancelled: "Cancelled",
-  };
-
-  return labels[status] || "Pending";
+function ServiceTypeEditor({ type, busy, onSave }) {
+  const [form, setForm] = useState({
+    department: type.department || 'guest_services',
+    sla_minutes: type.sla_minutes || 30,
+    escalation_minutes: type.escalation_minutes || 15,
+    default_estimated_minutes: type.default_estimated_minutes || '',
+    guest_visible: type.guest_visible !== false,
+    is_active: type.is_active !== false,
+  })
+  return (
+    <article className="service-type-card">
+      <div><strong>{type.name}</strong><span>{type.code}</span></div>
+      <select value={form.department} onChange={(event) => setForm((current) => ({ ...current, department: event.target.value }))}>{DEPARTMENTS.map((entry) => <option key={entry} value={entry}>{formatLabel(entry)}</option>)}</select>
+      <div className="service-type-numbers"><label>SLA<input type="number" min="1" max="1440" value={form.sla_minutes} onChange={(event) => setForm((current) => ({ ...current, sla_minutes: Number(event.target.value) }))} /></label><label>Escalate after<input type="number" min="1" max="1440" value={form.escalation_minutes} onChange={(event) => setForm((current) => ({ ...current, escalation_minutes: Number(event.target.value) }))} /></label><label>Default ETA<input type="number" min="1" max="1440" value={form.default_estimated_minutes} onChange={(event) => setForm((current) => ({ ...current, default_estimated_minutes: event.target.value === '' ? null : Number(event.target.value) }))} /></label></div>
+      <div className="service-type-toggles"><label><input type="checkbox" checked={form.guest_visible} onChange={(event) => setForm((current) => ({ ...current, guest_visible: event.target.checked }))} />Guest visible</label><label><input type="checkbox" checked={form.is_active} onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))} />Active</label></div>
+      <button disabled={busy} onClick={() => onSave(form)}>Save category</button>
+    </article>
+  )
 }
 
-function getRequestIcon(requestType) {
-  const icons = {
-    Housekeeping: "🧹",
-    Water: "💧",
-    Towel: "🧺",
-    "Fresh Towels": "🧺",
-    "Checkout Request": "🚪",
-    Toiletries: "🧴",
-    "Extra Blanket": "🛏️",
-    Maintenance: "🔧",
-    Laundry: "👕",
-  };
-
-  return icons[requestType] || "🛎️";
-}
+function Metric({ label, value, tone = '' }) { return <div className={`service-metric ${tone}`}><span>{label}</span><strong>{value}</strong></div> }
+function Status({ status }) { return <span className={`service-status ${status}`}>{formatLabel(status)}</span> }
+function formatLabel(value) { return String(value || '').replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase()) }
+function isOverdue(request, nowMs) { return ACTIVE_STATUSES.includes(request.status) && request.sla_due_at && new Date(request.sla_due_at).getTime() < nowMs }
+function deadline(iso, nowMs) { if (!iso) return 'Not set'; const difference = new Date(iso).getTime() - nowMs; const absoluteMinutes = Math.ceil(Math.abs(difference) / 60000); return difference < 0 ? `${absoluteMinutes} min overdue` : `${absoluteMinutes} min` }

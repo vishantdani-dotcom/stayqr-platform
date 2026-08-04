@@ -1,1046 +1,320 @@
-import { useEffect, useRef, useState } from "react";
-import { supabase } from "../../lib/supabase";
-import { getCurrentHotel } from "../../lib/currentHotel";
-import { createNotification } from "../../lib/notifications";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { getCurrentHotel } from '../../lib/currentHotel'
+import {
+  getFoodOperationsAnalytics,
+  getFoodOrderKot,
+  loadDay15FoodOrders,
+  postFoodOrderToFolio,
+  updateFoodOrderStatus,
+} from '../../lib/day15Operations'
+import { supabase } from '../../lib/supabase'
+import './FoodOrders.css'
+
+const COLUMNS = [
+  ['pending', 'New'],
+  ['accepted', 'Accepted'],
+  ['preparing', 'Preparing'],
+  ['ready', 'Ready'],
+  ['out_for_delivery', 'On the way'],
+]
+
+const NEXT_STATUS = {
+  pending: 'accepted',
+  accepted: 'preparing',
+  preparing: 'ready',
+  ready: 'out_for_delivery',
+  out_for_delivery: 'delivered',
+}
 
 export default function FoodOrders() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentHotel, setCurrentHotel] = useState(null);
-  const [newOrderAlert, setNewOrderAlert] = useState(null);
-  const [updatingOrderId, setUpdatingOrderId] = useState(null);
+  const [hotel, setHotel] = useState(null)
+  const [orders, setOrders] = useState([])
+  const [analytics, setAnalytics] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState('')
+  const [toast, setToast] = useState('')
+  const knownIds = useRef(new Set())
+  const initialLoadDone = useRef(false)
 
-  const knownOrderIds = useRef(new Set());
-  const firstLoadDone = useRef(false);
-  const alertTimeoutRef = useRef(null);
+  const showToast = useCallback((message) => {
+    setToast(String(message || ''))
+    window.setTimeout(() => setToast(''), 3000)
+  }, [])
+
+  const loadOrders = useCallback(async (hotelId) => {
+    const data = await loadDay15FoodOrders(hotelId)
+    const newOrders = data.filter((order) => !knownIds.current.has(order.id))
+    data.forEach((order) => knownIds.current.add(order.id))
+    setOrders(data)
+    if (initialLoadDone.current && newOrders.some((order) => order.order_status === 'pending')) {
+      playKitchenBell()
+      showToast('New guest food order received.')
+    }
+    initialLoadDone.current = true
+  }, [showToast])
+
+  const loadAnalytics = useCallback(async (hotelId) => {
+    const from = new Date()
+    from.setHours(0, 0, 0, 0)
+    const to = new Date(from)
+    to.setDate(to.getDate() + 1)
+    const result = await getFoodOperationsAnalytics({
+      hotelId,
+      from: from.toISOString(),
+      to: to.toISOString(),
+    })
+    setAnalytics(result || {})
+  }, [])
+
+  const initialize = useCallback(async () => {
+    setLoading(true)
+    try {
+      const selectedHotel = await getCurrentHotel()
+      if (!selectedHotel) throw new Error('No hotel is selected.')
+      setHotel(selectedHotel)
+      await Promise.all([loadOrders(selectedHotel.id), loadAnalytics(selectedHotel.id)])
+    } catch (error) {
+      console.error('Food operations initialization failed:', error)
+      showToast(error.message || 'Unable to load food operations.')
+    } finally {
+      setLoading(false)
+    }
+  }, [loadAnalytics, loadOrders, showToast])
 
   useEffect(() => {
-    initPage();
-
-    return () => {
-      if (alertTimeoutRef.current) {
-        clearTimeout(alertTimeoutRef.current);
-      }
-    };
-  }, []);
+    void initialize()
+  }, [initialize])
 
   useEffect(() => {
-    if (!currentHotel?.id) return undefined;
-
-    loadOrders(currentHotel.id);
-
+    if (!hotel?.id) return undefined
     const channel = supabase
-      .channel(`food_orders_${currentHotel.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "food_orders",
-          filter: `hotel_id=eq.${currentHotel.id}`,
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            handleNewOrder(payload.new);
-          }
-
-          loadOrders(currentHotel.id);
-        }
-      )
-      .subscribe((status) => {
-        console.log("Food orders realtime status:", status);
-      });
-
+      .channel(`day15_food_orders_${hotel.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'food_orders',
+        filter: `hotel_id=eq.${hotel.id}`,
+      }, () => {
+        void Promise.all([loadOrders(hotel.id), loadAnalytics(hotel.id)])
+      })
+      .subscribe()
+    const interval = window.setInterval(() => void loadOrders(hotel.id), 15000)
     return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentHotel?.id]);
-
-  async function initPage() {
-    const hotel = await getCurrentHotel();
-
-    if (!hotel) {
-      alert("No hotel assigned");
-      setLoading(false);
-      return;
+      window.clearInterval(interval)
+      supabase.removeChannel(channel)
     }
-
-    setCurrentHotel(hotel);
-    await loadOrders(hotel.id);
-    setLoading(false);
-  }
-
-  function handleNewOrder(order) {
-    if (!order?.id) return;
-    if (knownOrderIds.current.has(order.id)) return;
-
-    knownOrderIds.current.add(order.id);
-
-    if (!firstLoadDone.current) return;
-
-    setNewOrderAlert(order);
-    playKitchenSound();
-
-    if (alertTimeoutRef.current) {
-      clearTimeout(alertTimeoutRef.current);
-    }
-
-    alertTimeoutRef.current = setTimeout(() => {
-      setNewOrderAlert(null);
-    }, 6000);
-  }
-
-  function playKitchenSound() {
-    try {
-      const AudioContextClass =
-        window.AudioContext || window.webkitAudioContext;
-
-      if (!AudioContextClass) return;
-
-      const audioContext = new AudioContextClass();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.value = 880;
-      oscillator.type = "sine";
-
-      gainNode.gain.setValueAtTime(0.001, audioContext.currentTime);
-
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.25,
-        audioContext.currentTime + 0.02
-      );
-
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.001,
-        audioContext.currentTime + 0.35
-      );
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.35);
-    } catch (error) {
-      console.warn("Kitchen sound unavailable:", error);
-    }
-  }
-
-  async function loadOrders(hotelId = currentHotel?.id) {
-    if (!hotelId) return;
-
-    const { data, error } = await supabase
-      .from("food_orders")
-      .select(`
-        *,
-        rooms (
-          room_number
-        ),
-        guests (
-          full_name
-        ),
-        food_order_items (
-          quantity,
-          price,
-          menu_items (
-            item_name,
-            category
-          )
-        )
-      `)
-      .eq("hotel_id", hotelId)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Load food orders error:", error);
-      alert(error.message);
-      return;
-    }
-
-    const nextOrders = data || [];
-
-    nextOrders.forEach((order) => {
-      if (order?.id) {
-        knownOrderIds.current.add(order.id);
-      }
-    });
-
-    firstLoadDone.current = true;
-    setOrders(nextOrders);
-  }
-
-  async function updateStatus(order, status) {
-    if (!currentHotel?.id || !order?.id) return;
-
-    try {
-      setUpdatingOrderId(order.id);
-
-      const payload = {
-        order_status: status,
-      };
-
-      if (status === "delivered") {
-        payload.delivered_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from("food_orders")
-        .update(payload)
-        .eq("id", order.id)
-        .eq("hotel_id", currentHotel.id);
-
-      if (error) throw error;
-
-      const notificationMessages = {
-        accepted: {
-          title: "🍽 Order Accepted",
-          message: "The kitchen has accepted your order.",
-        },
-
-        preparing: {
-          title: "👨‍🍳 Preparing Your Meal",
-          message: "Our chefs have started preparing your order.",
-        },
-
-        out_for_delivery: {
-          title: "🚶 Order On The Way",
-          message: "Your order is on the way to your room.",
-        },
-
-        delivered: {
-          title: "✅ Order Delivered",
-          message: "Your order has been delivered. Enjoy your meal!",
-        },
-      };
-
-      const notification = notificationMessages[status];
-
-      if (notification) {
-        await createNotification({
-          hotelId: currentHotel.id,
-          roomId: order.room_id,
-          guestId: order.guest_id,
-          type: "food_status",
-          title: notification.title,
-          message: notification.message,
-        });
-      }
-
-      await loadOrders(currentHotel.id);
-    } catch (error) {
-      console.error("Update food status error:", error);
-      alert(error.message);
-    } finally {
-      setUpdatingOrderId(null);
-    }
-  }
-
-  async function updateETA(order, minutes) {
-    if (!currentHotel?.id || !order?.id) return;
-
-    const estimatedMinutes = Number(minutes);
-
-    try {
-      setUpdatingOrderId(order.id);
-
-      if (!estimatedMinutes) {
-        const { error } = await supabase
-          .from("food_orders")
-          .update({
-            estimated_minutes: null,
-            estimated_delivery_time: null,
-          })
-          .eq("id", order.id)
-          .eq("hotel_id", currentHotel.id);
-
-        if (error) throw error;
-
-        await loadOrders(currentHotel.id);
-        return;
-      }
-
-      const estimatedDeliveryTime = new Date(
-        Date.now() + estimatedMinutes * 60 * 1000
-      ).toISOString();
-
-      const { error } = await supabase
-        .from("food_orders")
-        .update({
-          estimated_minutes: estimatedMinutes,
-          estimated_delivery_time: estimatedDeliveryTime,
-        })
-        .eq("id", order.id)
-        .eq("hotel_id", currentHotel.id);
-
-      if (error) throw error;
-
-      await createNotification({
-        hotelId: currentHotel.id,
-        roomId: order.room_id,
-        guestId: order.guest_id,
-        type: "food_eta",
-        title: "⏱ Food Delivery ETA",
-        message: `Your order is expected in approximately ${estimatedMinutes} minutes.`,
-      });
-
-      await loadOrders(currentHotel.id);
-    } catch (error) {
-      console.error("Update food ETA error:", error);
-      alert(error.message);
-    } finally {
-      setUpdatingOrderId(null);
-    }
-  }
-
-  const today = new Date().toDateString();
-
-  const todayOrders = orders.filter(
-    (order) => new Date(order.created_at).toDateString() === today
-  );
-
-  const todayRevenue = todayOrders.reduce(
-    (sum, order) => sum + Number(order.total_amount || 0),
-    0
-  );
-
-  const pendingOrders = orders.filter(
-    (order) => order.order_status === "pending"
-  );
-
-  const acceptedOrders = orders.filter(
-    (order) => order.order_status === "accepted"
-  );
-
-  const preparingOrders = orders.filter(
-    (order) => order.order_status === "preparing"
-  );
-
-  const outForDeliveryOrders = orders.filter(
-    (order) => order.order_status === "out_for_delivery"
-  );
-
-  const deliveredOrders = orders.filter(
-    (order) => order.order_status === "delivered"
-  );
-
-  const deliveredRevenue = deliveredOrders.reduce(
-    (sum, order) => sum + Number(order.total_amount || 0),
-    0
-  );
-
-  const pendingRevenue = pendingOrders.reduce(
-    (sum, order) => sum + Number(order.total_amount || 0),
-    0
-  );
-
-  const totalRevenue = orders.reduce(
-    (sum, order) => sum + Number(order.total_amount || 0),
-    0
-  );
-
-  const averageOrderValue =
-    orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0;
-
-  const deliveryRate =
-    orders.length > 0
-      ? Math.round((deliveredOrders.length / orders.length) * 100)
-      : 0;
-
-  const topSellingItems = Object.values(
-    orders.reduce((accumulator, order) => {
-      order.food_order_items?.forEach((item) => {
-        const name = item.menu_items?.item_name || "Unknown";
-
-        if (!accumulator[name]) {
-          accumulator[name] = {
-            name,
-            quantity: 0,
-            revenue: 0,
-          };
-        }
-
-        accumulator[name].quantity += Number(item.quantity || 0);
-
-        accumulator[name].revenue +=
-          Number(item.quantity || 0) * Number(item.price || 0);
-      });
-
-      return accumulator;
-    }, {})
+  }, [hotel?.id, loadAnalytics, loadOrders])
+
+  const terminalOrders = useMemo(
+    () => orders.filter((order) => ['delivered', 'cancelled'].includes(order.order_status)),
+    [orders]
   )
-    .sort((first, second) => second.quantity - first.quantity)
-    .slice(0, 5);
 
-  const categoryRevenue = Object.values(
-    orders.reduce((accumulator, order) => {
-      order.food_order_items?.forEach((item) => {
-        const category = item.menu_items?.category || "Uncategorized";
-
-        if (!accumulator[category]) {
-          accumulator[category] = {
-            category,
-            revenue: 0,
-          };
-        }
-
-        accumulator[category].revenue +=
-          Number(item.quantity || 0) * Number(item.price || 0);
-      });
-
-      return accumulator;
-    }, {})
-  ).sort((first, second) => second.revenue - first.revenue);
-
-  const last7Days = [...Array(7)].map((_, index) => {
-    const day = new Date();
-
-    day.setHours(0, 0, 0, 0);
-    day.setDate(day.getDate() - (6 - index));
-
-    const nextDay = new Date(day);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    const count = orders.filter((order) => {
-      const orderDate = new Date(order.created_at);
-
-      return orderDate >= day && orderDate < nextDay;
-    }).length;
-
-    return {
-      key: day.toISOString().slice(0, 10),
-      label: day.toLocaleDateString("en-IN", {
-        weekday: "short",
-      }),
-      count,
-    };
-  });
-
-  if (loading) {
-    return <div style={page}>Loading Food Orders...</div>;
+  async function moveOrder(order, nextStatus) {
+    if (!hotel?.id || busyId) return
+    setBusyId(order.id)
+    try {
+      const defaultEta = nextStatus === 'accepted'
+        ? Math.max(10, Number(order.estimated_minutes || 25))
+        : order.estimated_minutes
+      await updateFoodOrderStatus({
+        hotelId: hotel.id,
+        orderId: order.id,
+        status: nextStatus,
+        estimatedMinutes: ['accepted', 'preparing'].includes(nextStatus) ? defaultEta : null,
+      })
+      await Promise.all([loadOrders(hotel.id), loadAnalytics(hotel.id)])
+      showToast(`Order moved to ${nextStatus.replaceAll('_', ' ')}.`)
+    } catch (error) {
+      showToast(error.message || 'Unable to update the order.')
+    } finally {
+      setBusyId('')
+    }
   }
 
+  async function changeEta(order, value) {
+    if (!hotel?.id || busyId) return
+    setBusyId(order.id)
+    try {
+      await updateFoodOrderStatus({
+        hotelId: hotel.id,
+        orderId: order.id,
+        status: order.order_status,
+        estimatedMinutes: value,
+      })
+      await loadOrders(hotel.id)
+      showToast('Kitchen ETA updated and shared with the guest.')
+    } catch (error) {
+      showToast(error.message || 'Unable to update ETA.')
+    } finally {
+      setBusyId('')
+    }
+  }
+
+  async function cancelOrder(order) {
+    if (!window.confirm('Cancel this food order?')) return
+    const reason = window.prompt('Cancellation reason:', 'Item unavailable')
+    if (reason === null) return
+    setBusyId(order.id)
+    try {
+      await updateFoodOrderStatus({
+        hotelId: hotel.id,
+        orderId: order.id,
+        status: 'cancelled',
+        note: reason,
+      })
+      await Promise.all([loadOrders(hotel.id), loadAnalytics(hotel.id)])
+      showToast('Order cancelled and guest notified.')
+    } catch (error) {
+      showToast(error.message || 'Unable to cancel the order.')
+    } finally {
+      setBusyId('')
+    }
+  }
+
+  async function printKot(order) {
+    setBusyId(order.id)
+    try {
+      const ticket = await getFoodOrderKot({ hotelId: hotel.id, orderId: order.id })
+      const popup = window.open('', '_blank', 'width=520,height=760')
+      if (!popup) throw new Error('Allow pop-ups to print the kitchen ticket.')
+      popup.document.write(renderKot(ticket, hotel?.hotel_name || 'StayQR Hotel'))
+      popup.document.close()
+      popup.focus()
+      popup.print()
+      showToast(`${ticket.ticket_number} prepared for printing.`)
+    } catch (error) {
+      showToast(error.message || 'Unable to print the KOT.')
+    } finally {
+      setBusyId('')
+    }
+  }
+
+  async function reconcileFolio(order) {
+    setBusyId(order.id)
+    try {
+      const result = await postFoodOrderToFolio({ hotelId: hotel.id, orderId: order.id })
+      await loadOrders(hotel.id)
+      showToast(result?.idempotent ? 'Folio posting already existed.' : 'Food order posted to the folio.')
+    } catch (error) {
+      showToast(error.message || 'Unable to post the order to the folio.')
+    } finally {
+      setBusyId('')
+    }
+  }
+
+  if (loading) return <div className="day15-loading">Loading kitchen operations…</div>
+
   return (
-    <div style={page}>
-      {newOrderAlert && (
-        <div style={newOrderBanner}>
-          <div style={bannerIcon}>🔔</div>
+    <div className="day15-foodops">
+      <header className="day15-page-header">
+        <div><span>Day 15 · Food & Kitchen</span><h1>Kitchen Command</h1><p>{hotel?.hotel_name} · Trusted status transitions, KOT and exact-once folio posting.</p></div>
+        <button onClick={() => Promise.all([loadOrders(hotel.id), loadAnalytics(hotel.id)])}>Refresh</button>
+      </header>
 
-          <div>
-            <strong>New Food Order</strong>
+      <section className="day15-stat-grid">
+        <Metric label="Orders today" value={analytics.orders || 0} />
+        <Metric label="Delivered" value={analytics.delivered_orders || 0} />
+        <Metric label="Cancelled" value={analytics.cancelled_orders || 0} />
+        <Metric label="Revenue" value={money(analytics.revenue)} />
+        <Metric label="Avg. order" value={money(analytics.average_order_value)} />
+        <Metric label="Avg. prep" value={`${Math.round(Number(analytics.average_prep_minutes || 0))} min`} />
+      </section>
 
-            <p style={bannerText}>
-              Room order received · ₹{newOrderAlert.total_amount || 0}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div style={header}>
-        <div>
-          <p style={kicker}>Kitchen Operations</p>
-          <h1 style={title}>Food Orders</h1>
-
-          <p style={subtitle}>
-            {currentHotel?.hotel_name || "Hotel"} · Live kitchen order
-            dashboard.
-          </p>
-        </div>
-
-        <button
-          style={refreshBtn}
-          onClick={() => loadOrders(currentHotel?.id)}
-        >
-          Refresh
-        </button>
-      </div>
-
-      <div style={statsGrid}>
-        <Stat title="Today's Orders" value={todayOrders.length} />
-        <Stat title="Today's Revenue" value={`₹${todayRevenue}`} />
-        <Stat title="Pending" value={pendingOrders.length} />
-        <Stat title="Accepted" value={acceptedOrders.length} />
-        <Stat title="Preparing" value={preparingOrders.length} />
-        <Stat title="On the Way" value={outForDeliveryOrders.length} />
-        <Stat title="Delivered" value={deliveredOrders.length} />
-        <Stat title="Delivered Revenue" value={`₹${deliveredRevenue}`} />
-        <Stat title="Pending Revenue" value={`₹${pendingRevenue}`} />
-        <Stat title="Avg Order Value" value={`₹${averageOrderValue}`} />
-        <Stat title="Delivery Rate" value={`${deliveryRate}%`} />
-      </div>
-
-      <div style={analyticsCardWide}>
-        <h2 style={analyticsTitle}>🏆 Top Selling Items</h2>
-
-        {topSellingItems.length === 0 ? (
-          <p style={analyticsEmpty}>No sales yet.</p>
-        ) : (
-          topSellingItems.map((item, index) => (
-            <div
-              key={item.name}
-              style={{
-                ...analyticsRow,
-                borderBottom:
-                  index === topSellingItems.length - 1
-                    ? "none"
-                    : "1px solid #222",
-              }}
-            >
-              <strong>{item.name}</strong>
-
-              <span style={analyticsValue}>
-                {item.quantity} sold · ₹{item.revenue}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
-
-      <div style={analyticsGrid}>
-        <div style={analyticsCard}>
-          <h2 style={analyticsTitle}>📊 Sales by Category</h2>
-
-          {categoryRevenue.length === 0 ? (
-            <p style={analyticsEmpty}>No category sales yet.</p>
-          ) : (
-            categoryRevenue.map((item, index) => (
-              <div
-                key={item.category}
-                style={{
-                  ...analyticsRow,
-                  borderBottom:
-                    index === categoryRevenue.length - 1
-                      ? "none"
-                      : "1px solid #222",
-                }}
-              >
-                <span>{item.category}</span>
-                <strong>₹{item.revenue}</strong>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div style={analyticsCard}>
-          <h2 style={analyticsTitle}>📈 7-Day Order Trend</h2>
-
-          {last7Days.map((day) => {
-            const highestCount = Math.max(
-              ...last7Days.map((item) => item.count),
-              1
-            );
-
-            const widthPercentage = (day.count / highestCount) * 100;
-
-            return (
-              <div key={day.key} style={trendRow}>
-                <span style={trendLabel}>{day.label}</span>
-
-                <div style={trendBarWrap}>
-                  <div
-                    style={{
-                      ...trendBar,
-                      width: `${widthPercentage}%`,
-                    }}
+      <section className="day15-kitchen-board">
+        {COLUMNS.map(([status, label]) => {
+          const columnOrders = orders.filter((order) => order.order_status === status)
+          return (
+            <div className="day15-kitchen-column" key={status}>
+              <div className="day15-column-head"><strong>{label}</strong><span>{columnOrders.length}</span></div>
+              <div className="day15-column-body">
+                {columnOrders.length === 0 ? <p>No orders</p> : columnOrders.map((order) => (
+                  <KitchenCard
+                    key={order.id}
+                    order={order}
+                    busy={busyId === order.id}
+                    onMove={() => moveOrder(order, NEXT_STATUS[status])}
+                    onEta={(value) => changeEta(order, value)}
+                    onCancel={() => cancelOrder(order)}
+                    onPrint={() => printKot(order)}
                   />
-                </div>
-
-                <strong style={trendCount}>{day.count}</strong>
+                ))}
               </div>
-            );
-          })}
+            </div>
+          )
+        })}
+      </section>
+
+      <section className="day15-terminal-section">
+        <div className="day15-section-title"><h2>Completed activity</h2><span>Delivered orders post exactly once to the guest folio.</span></div>
+        <div className="day15-terminal-grid">
+          {terminalOrders.slice(0, 30).map((order) => (
+            <article key={order.id} className={`day15-terminal-card ${order.order_status}`}>
+              <div><strong>Room {order.rooms?.room_number || '—'}</strong><span>{order.guests?.full_name || 'Guest'}</span></div>
+              <div><Status status={order.order_status} /><strong>{money(order.total_amount, order.currency_code)}</strong></div>
+              {order.order_status === 'delivered' && (
+                <button disabled={busyId === order.id} onClick={() => reconcileFolio(order)}>{order.folio_item_id ? 'Verify folio' : 'Post to folio'}</button>
+              )}
+              <button disabled={busyId === order.id} onClick={() => printKot(order)}>Print KOT</button>
+            </article>
+          ))}
         </div>
-      </div>
+      </section>
 
-      {orders.length === 0 ? (
-        <div style={emptyCard}>
-          <h3>No food orders yet</h3>
-          <p>Guest food orders will appear here instantly.</p>
-        </div>
-      ) : (
-        <div style={card}>
-          <table style={table}>
-            <thead>
-              <tr>
-                <th style={th}>Room</th>
-                <th style={th}>Guest</th>
-                <th style={th}>Items</th>
-                <th style={th}>Amount</th>
-                <th style={th}>Status</th>
-                <th style={th}>Payment</th>
-                <th style={th}>Time</th>
-                <th style={th}>ETA</th>
-                <th style={th}>Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {orders.map((order) => {
-                const isNew = isRecentPendingOrder(order);
-                const isUpdating = updatingOrderId === order.id;
-
-                return (
-                  <tr key={order.id} style={isNew ? newOrderRow : undefined}>
-                    <td style={td}>
-                      Room {order.rooms?.room_number || "-"}
-
-                      {isNew && <span style={newBadge}>NEW</span>}
-                    </td>
-
-                    <td style={td}>{order.guests?.full_name || "-"}</td>
-
-                    <td style={td}>
-                      {order.food_order_items?.length > 0
-                        ? order.food_order_items.map((item, index) => (
-                            <div key={`${order.id}-${index}`}>
-                              {item.menu_items?.item_name || "Unknown Item"} x{" "}
-                              {item.quantity}
-                            </div>
-                          ))
-                        : "No items"}
-                    </td>
-
-                    <td style={td}>₹{order.total_amount || 0}</td>
-
-                    <td style={td}>
-                      <span style={badge(order.order_status)}>
-                        {formatStatus(order.order_status)}
-                      </span>
-                    </td>
-
-                    <td style={td}>
-                      <span style={paymentBadge(order.payment_status)}>
-                        {formatStatus(order.payment_status || "pending")}
-                      </span>
-                    </td>
-
-                    <td style={td}>
-                      {order.created_at
-                        ? new Date(order.created_at).toLocaleString("en-IN")
-                        : "-"}
-                    </td>
-
-                    <td style={td}>
-                      {order.order_status === "delivered" ? (
-                        <span style={deliveredText}>Delivered</span>
-                      ) : (
-                        <>
-                          <select
-                            value={order.estimated_minutes || ""}
-                            onChange={(event) =>
-                              updateETA(order, event.target.value)
-                            }
-                            style={etaSelect}
-                            disabled={isUpdating}
-                          >
-                            <option value="">Set ETA</option>
-                            <option value="10">10 min</option>
-                            <option value="20">20 min</option>
-                            <option value="30">30 min</option>
-                            <option value="45">45 min</option>
-                          </select>
-
-                          {order.estimated_delivery_time && (
-                            <div style={etaTime}>
-                              By{" "}
-                              {new Date(
-                                order.estimated_delivery_time
-                              ).toLocaleTimeString("en-IN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </div>
-                          )}
-
-                          {isUpdating && (
-                            <div style={updatingText}>Updating...</div>
-                          )}
-                        </>
-                      )}
-                    </td>
-
-                    <td style={td}>
-                      {order.order_status === "pending" && (
-                        <button
-                          style={btn}
-                          disabled={isUpdating}
-                          onClick={() => updateStatus(order, "accepted")}
-                        >
-                          Accept Order
-                        </button>
-                      )}
-
-                      {order.order_status === "accepted" && (
-                        <button
-                          style={btn}
-                          disabled={isUpdating}
-                          onClick={() => updateStatus(order, "preparing")}
-                        >
-                          Start Preparing
-                        </button>
-                      )}
-
-                      {order.order_status === "preparing" && (
-                        <button
-                          style={btn}
-                          disabled={isUpdating}
-                          onClick={() =>
-                            updateStatus(order, "out_for_delivery")
-                          }
-                        >
-                          Out for Delivery
-                        </button>
-                      )}
-
-                      {order.order_status === "out_for_delivery" && (
-                        <button
-                          style={btn}
-                          disabled={isUpdating}
-                          onClick={() => updateStatus(order, "delivered")}
-                        >
-                          Mark Delivered
-                        </button>
-                      )}
-
-                      {order.order_status === "delivered" && (
-                        <span style={deliveredText}>Delivered</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {Array.isArray(analytics.popular_items) && analytics.popular_items.length > 0 && (
+        <section className="day15-popular">
+          <div className="day15-section-title"><h2>Popular items today</h2></div>
+          {analytics.popular_items.map((item) => <div key={item.item_name}><span>{item.item_name}</span><strong>{item.quantity} sold · {money(item.revenue)}</strong></div>)}
+        </section>
       )}
+
+      {toast && <div className="day15-toast">{toast}</div>}
     </div>
-  );
+  )
 }
 
-function Stat({ title, value }) {
+function KitchenCard({ order, busy, onMove, onEta, onCancel, onPrint }) {
   return (
-    <div style={statCard}>
-      <span style={statLabel}>{title}</span>
-      <strong style={statValue}>{value}</strong>
-    </div>
-  );
+    <article className="day15-kitchen-card">
+      <div className="day15-order-head"><div><span>Room</span><strong>{order.rooms?.room_number || '—'}</strong></div><div><span>Order</span><strong>{String(order.id).slice(0, 6).toUpperCase()}</strong></div></div>
+      <p className="day15-guest-name">{order.guests?.full_name || 'Guest'} · {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+      <div className="day15-kitchen-items">
+        {(order.food_order_items || []).map((item) => (
+          <div key={item.id}><strong>{item.quantity} × {item.item_name_snapshot}</strong>{(item.food_order_item_modifiers || []).length > 0 && <span>{item.food_order_item_modifiers.map((modifier) => modifier.modifier_name_snapshot).join(', ')}</span>}</div>
+        ))}
+      </div>
+      <div className="day15-order-total"><span>Total</span><strong>{money(order.total_amount, order.currency_code)}</strong></div>
+      <label className="day15-eta">ETA<select value={order.estimated_minutes || ''} disabled={busy} onChange={(event) => onEta(event.target.value)}><option value="">Not set</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select></label>
+      <div className="day15-card-actions"><button disabled={busy} onClick={onPrint}>KOT</button><button className="primary" disabled={busy} onClick={onMove}>{busy ? 'Updating…' : `Move to ${String(NEXT_STATUS[order.order_status] || '').replaceAll('_', ' ')}`}</button></div>
+      {['pending', 'accepted'].includes(order.order_status) && <button className="day15-danger-link" disabled={busy} onClick={onCancel}>Cancel order</button>}
+    </article>
+  )
 }
 
-function isRecentPendingOrder(order) {
-  if (order.order_status !== "pending") return false;
-  if (!order.created_at) return false;
+function Metric({ label, value }) { return <div className="day15-metric"><span>{label}</span><strong>{value}</strong></div> }
+function Status({ status }) { return <span className={`day15-status ${status}`}>{String(status || '').replaceAll('_', ' ')}</span> }
+function money(value, currency = 'INR') { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: currency || 'INR', maximumFractionDigits: 2 }).format(Number(value || 0)) }
 
-  const createdAt = new Date(order.created_at).getTime();
-
-  if (Number.isNaN(createdAt)) return false;
-
-  return Date.now() - createdAt < 10 * 60 * 1000;
+function playKitchenBell() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext
+    if (!AudioContextClass) return
+    const context = new AudioContextClass()
+    const oscillator = context.createOscillator()
+    const gain = context.createGain()
+    oscillator.connect(gain)
+    gain.connect(context.destination)
+    oscillator.frequency.value = 880
+    gain.gain.setValueAtTime(0.001, context.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.22, context.currentTime + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.35)
+    oscillator.start()
+    oscillator.stop(context.currentTime + 0.36)
+  } catch (error) { console.warn('Kitchen alert unavailable:', error) }
 }
 
-function formatStatus(status) {
-  return String(status || "")
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+function renderKot(ticket, hotelName) {
+  const items = (ticket.items || []).map((item) => `<tr><td><strong>${escapeHtml(item.quantity)} × ${escapeHtml(item.item_name)}</strong>${(item.modifiers || []).length ? `<small>${item.modifiers.map(escapeHtml).join(', ')}</small>` : ''}</td></tr>`).join('')
+  return `<!doctype html><html><head><title>${escapeHtml(ticket.ticket_number)}</title><style>body{font-family:Arial,sans-serif;width:300px;margin:20px auto;color:#000}h1,h2,p{margin:4px 0;text-align:center}hr{border:0;border-top:1px dashed #000;margin:14px 0}table{width:100%;border-collapse:collapse}td{padding:9px 0;border-bottom:1px dashed #aaa}small{display:block;margin:4px 0 0 18px}.meta{display:flex;justify-content:space-between;margin:8px 0}.footer{margin-top:18px;font-size:11px;text-align:center}@media print{button{display:none}}</style></head><body><h1>${escapeHtml(hotelName)}</h1><h2>${escapeHtml(ticket.ticket_number)}</h2><p>Kitchen Order Ticket</p><hr><div class="meta"><span>Room</span><strong>${escapeHtml(ticket.room?.room_number || '—')}</strong></div><div class="meta"><span>Guest</span><strong>${escapeHtml(ticket.guest?.full_name || 'Guest')}</strong></div><div class="meta"><span>Order</span><strong>${escapeHtml(String(ticket.order_id).slice(0,8).toUpperCase())}</strong></div><hr><table>${items}</table><p class="footer">Printed through StayQR · Print ${escapeHtml(ticket.print_count)}</p></body></html>`
 }
-
-const page = {
-  padding: "32px",
-  color: "#fff",
-};
-
-const header = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "20px",
-  marginBottom: "25px",
-};
-
-const kicker = {
-  color: "#d4af37",
-  fontSize: "12px",
-  fontWeight: 900,
-  letterSpacing: "2px",
-  textTransform: "uppercase",
-  marginBottom: "8px",
-};
-
-const title = {
-  fontSize: "42px",
-  marginBottom: "8px",
-};
-
-const subtitle = {
-  color: "#aaa",
-};
-
-const refreshBtn = {
-  background: "#d4af37",
-  color: "#000",
-  border: "none",
-  borderRadius: "10px",
-  padding: "12px 18px",
-  fontWeight: 800,
-  cursor: "pointer",
-};
-
-const statsGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-  gap: "18px",
-  marginBottom: "28px",
-};
-
-const statCard = {
-  background: "#0f0f0f",
-  border: "1px solid #222",
-  borderRadius: "16px",
-  padding: "20px",
-};
-
-const statLabel = {
-  display: "block",
-  color: "#d4af37",
-  fontSize: "13px",
-  marginBottom: "10px",
-};
-
-const statValue = {
-  fontSize: "28px",
-};
-
-const analyticsGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-  gap: "20px",
-  marginBottom: "25px",
-};
-
-const analyticsCard = {
-  background: "#0f0f0f",
-  border: "1px solid #222",
-  borderRadius: "18px",
-  padding: "24px",
-};
-
-const analyticsCardWide = {
-  ...analyticsCard,
-  marginBottom: "25px",
-};
-
-const analyticsTitle = {
-  color: "#d4af37",
-  marginBottom: "18px",
-  fontSize: "22px",
-};
-
-const analyticsEmpty = {
-  color: "#888",
-};
-
-const analyticsRow = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "15px",
-  padding: "12px 0",
-};
-
-const analyticsValue = {
-  color: "#d4af37",
-  fontWeight: 700,
-};
-
-const trendRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: "12px",
-  padding: "10px 0",
-};
-
-const trendLabel = {
-  width: "45px",
-};
-
-const trendCount = {
-  width: "25px",
-  textAlign: "right",
-};
-
-const trendBarWrap = {
-  flex: 1,
-  height: "10px",
-  background: "#1a1a1a",
-  borderRadius: "999px",
-  overflow: "hidden",
-};
-
-const trendBar = {
-  height: "100%",
-  background: "#d4af37",
-  borderRadius: "999px",
-};
-
-const emptyCard = {
-  background: "#0f0f0f",
-  border: "1px solid #222",
-  borderRadius: "18px",
-  padding: "28px",
-  color: "#aaa",
-};
-
-const card = {
-  background: "#0f0f0f",
-  border: "1px solid #222",
-  borderRadius: "18px",
-  overflowX: "auto",
-};
-
-const table = {
-  width: "100%",
-  borderCollapse: "collapse",
-  minWidth: "1350px",
-};
-
-const th = {
-  padding: "18px",
-  color: "#d4af37",
-  textAlign: "left",
-  borderBottom: "1px solid #222",
-  whiteSpace: "nowrap",
-};
-
-const td = {
-  padding: "18px",
-  borderBottom: "1px solid #1f1f1f",
-  verticalAlign: "top",
-  position: "relative",
-};
-
-const btn = {
-  background: "#d4af37",
-  color: "#000",
-  border: "none",
-  padding: "9px 14px",
-  borderRadius: "8px",
-  marginRight: "8px",
-  marginBottom: "6px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const etaSelect = {
-  width: "115px",
-  background: "#080808",
-  color: "#fff",
-  border: "1px solid #333",
-  borderRadius: "8px",
-  padding: "8px 10px",
-  outline: "none",
-  cursor: "pointer",
-};
-
-const etaTime = {
-  color: "#d4af37",
-  fontSize: "12px",
-  fontWeight: 700,
-  marginTop: "7px",
-};
-
-const updatingText = {
-  color: "#888",
-  fontSize: "11px",
-  marginTop: "6px",
-};
-
-const deliveredText = {
-  color: "#2ecc71",
-  fontWeight: 700,
-};
-
-const newOrderBanner = {
-  position: "fixed",
-  top: "90px",
-  right: "28px",
-  zIndex: 999,
-  background: "#0f0f0f",
-  border: "1px solid #d4af37",
-  borderRadius: "16px",
-  padding: "16px 18px",
-  display: "flex",
-  gap: "14px",
-  alignItems: "center",
-  boxShadow: "0 18px 50px rgba(0,0,0,.45)",
-};
-
-const bannerIcon = {
-  width: "42px",
-  height: "42px",
-  borderRadius: "12px",
-  background: "rgba(212,175,55,.16)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "22px",
-};
-
-const bannerText = {
-  margin: "4px 0 0",
-  color: "#aaa",
-};
-
-const newBadge = {
-  display: "inline-block",
-  marginLeft: "8px",
-  background: "#d4af37",
-  color: "#000",
-  padding: "3px 7px",
-  borderRadius: "999px",
-  fontSize: "10px",
-  fontWeight: 900,
-};
-
-const newOrderRow = {
-  background: "rgba(212,175,55,.06)",
-};
-
-const badge = (status) => ({
-  display: "inline-block",
-  padding: "7px 12px",
-  borderRadius: "999px",
-  background:
-    status === "delivered"
-      ? "rgba(46,204,113,.18)"
-      : status === "out_for_delivery"
-      ? "rgba(155,89,182,.18)"
-      : status === "preparing"
-      ? "rgba(52,152,219,.18)"
-      : status === "accepted"
-      ? "rgba(212,175,55,.18)"
-      : "rgba(255,170,0,.18)",
-  color:
-    status === "delivered"
-      ? "#2ecc71"
-      : status === "out_for_delivery"
-      ? "#bb86fc"
-      : status === "preparing"
-      ? "#3498db"
-      : status === "accepted"
-      ? "#d4af37"
-      : "#ffaa00",
-  fontWeight: 700,
-  textTransform: "capitalize",
-  whiteSpace: "nowrap",
-});
-
-const paymentBadge = (status) => ({
-  display: "inline-block",
-  padding: "6px 10px",
-  borderRadius: "999px",
-  background:
-    status === "paid"
-      ? "rgba(46,204,113,.18)"
-      : "rgba(255,170,0,.18)",
-  color: status === "paid" ? "#2ecc71" : "#ffaa00",
-  fontWeight: 700,
-  fontSize: "12px",
-  whiteSpace: "nowrap",
-});
+function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]) }

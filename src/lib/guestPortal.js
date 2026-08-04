@@ -83,6 +83,21 @@ export async function resolveGuestPortal(root = 'guest') {
   return data || null
 }
 
+export async function getGuestServiceCatalog() {
+  const { hotelSlug, accessToken } = requireGuestAccess('guest')
+
+  const data = await callGuestRpc(
+    'get_guest_service_catalog',
+    {
+      p_hotel_slug: hotelSlug,
+      p_access_token: accessToken,
+    },
+    'Unable to load hotel services.'
+  )
+
+  return Array.isArray(data) ? data : []
+}
+
 export async function getGuestServiceRequests() {
   const { hotelSlug, accessToken } = requireGuestAccess('guest')
 
@@ -110,6 +125,39 @@ export async function createGuestServiceRequest(requestType) {
     },
     'Unable to create the service request.'
   )
+}
+
+export async function cancelGuestServiceRequest(
+  requestId,
+  reason = 'Cancelled by guest'
+) {
+  const { hotelSlug, accessToken } = requireGuestAccess('guest')
+
+  return callGuestRpc(
+    'cancel_guest_service_request',
+    {
+      p_hotel_slug: hotelSlug,
+      p_access_token: accessToken,
+      p_request_id: requestId,
+      p_reason: reason,
+    },
+    'Unable to cancel the service request.'
+  )
+}
+
+export async function getGuestNotifications() {
+  const { hotelSlug, accessToken } = requireGuestAccess('guest')
+
+  const data = await callGuestRpc(
+    'get_guest_notifications',
+    {
+      p_hotel_slug: hotelSlug,
+      p_access_token: accessToken,
+    },
+    'Unable to load guest notifications.'
+  )
+
+  return Array.isArray(data) ? data : []
 }
 
 export async function getGuestMenu() {
@@ -142,7 +190,7 @@ export async function getGuestFoodOrders() {
   return Array.isArray(data) ? data : []
 }
 
-export async function placeGuestFoodOrder(items) {
+export async function placeGuestFoodOrder(payload) {
   const { hotelSlug, accessToken } = requireGuestAccess('food')
 
   return callGuestRpc(
@@ -150,9 +198,24 @@ export async function placeGuestFoodOrder(items) {
     {
       p_hotel_slug: hotelSlug,
       p_access_token: accessToken,
-      p_items: items,
+      p_items: payload,
     },
     'Unable to place the food order.'
+  )
+}
+
+export async function cancelGuestFoodOrder(orderId, reason = 'Cancelled by guest') {
+  const { hotelSlug, accessToken } = requireGuestAccess('food')
+
+  return callGuestRpc(
+    'cancel_guest_food_order',
+    {
+      p_hotel_slug: hotelSlug,
+      p_access_token: accessToken,
+      p_order_id: orderId,
+      p_reason: reason,
+    },
+    'Unable to cancel the food order.'
   )
 }
 

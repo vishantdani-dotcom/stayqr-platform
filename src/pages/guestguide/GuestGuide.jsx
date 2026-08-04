@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  cancelGuestServiceRequest,
   createGuestServiceRequest,
   getGuestAccessContext,
+  getGuestServiceCatalog,
   getGuestServiceRequests,
   recordGuestGuideEvent,
   recordGuestReviewRewardAction,
@@ -14,6 +16,12 @@ import {
   getGuestGuideTranslation,
 } from '../../lib/guestGuideBuilder'
 import { getGuideCopy } from '../../lib/guestGuideI18n'
+import {
+  persistGuestLocale,
+  readPreferredGuestLocale,
+  replaceGuestLocaleInUrl,
+  withGuestLocale,
+} from '../../lib/guestLocale'
 import { getDirectLocaleTranslation, getFullItemCopy, getFullSectionCopy } from '../../lib/guestGuideFullCatalog'
 import './GuestGuide.css'
 
@@ -441,6 +449,7 @@ export default function GuestGuide() {
   const [portal, setPortal] = useState(null)
   const [locale, setLocale] = useState('en')
   const [requests, setRequests] = useState([])
+  const [serviceCatalog, setServiceCatalog] = useState([])
   const [requestLoading, setRequestLoading] = useState(false)
   const [feedbackRating, setFeedbackRating] = useState(5)
   const [feedbackMessage, setFeedbackMessage] = useState('')
@@ -463,6 +472,7 @@ export default function GuestGuide() {
   const clearGuestAccess = useCallback(() => {
     setPortal(null)
     setRequests([])
+    setServiceCatalog([])
     setSelectedMedia(null)
   }, [])
 
@@ -487,9 +497,15 @@ export default function GuestGuide() {
           nextPortal?.guest_content?.default_locale ||
           'en'
 
-        setLocale((currentLocale) =>
-          enabledLocales.includes(currentLocale) ? currentLocale : defaultLocale
-        )
+        const { hotelSlug } = getGuestAccessContext('guest')
+        const preferredLocale = readPreferredGuestLocale({
+          hotelSlug,
+          enabledLocales,
+          defaultLocale,
+        })
+        setLocale(preferredLocale)
+        persistGuestLocale(hotelSlug, preferredLocale)
+        replaceGuestLocaleInUrl(preferredLocale)
         return true
       } catch (error) {
         console.error('Premium guest portal access error:', error)
@@ -504,11 +520,16 @@ export default function GuestGuide() {
 
   const fetchMyRequests = useCallback(async () => {
     try {
-      const data = await getGuestServiceRequests()
-      setRequests(data)
+      const [requestRows, catalogRows] = await Promise.all([
+        getGuestServiceRequests(),
+        getGuestServiceCatalog().catch(() => []),
+      ])
+      setRequests(requestRows)
+      setServiceCatalog(catalogRows)
     } catch (error) {
       console.error('Guest service requests error:', error)
       setRequests([])
+      setServiceCatalog([])
     }
   }, [])
 
@@ -732,7 +753,10 @@ export default function GuestGuide() {
   }
 
   async function handleLocaleChange(nextLocale) {
+    const { hotelSlug } = getGuestAccessContext('guest')
     setLocale(nextLocale)
+    persistGuestLocale(hotelSlug, nextLocale)
+    replaceGuestLocaleInUrl(nextLocale)
     setFeedbackSubmitted(false)
     await recordEvent('language_selected', { metadata: { selected_locale: nextLocale } })
   }
@@ -768,6 +792,28 @@ export default function GuestGuide() {
     }
   }
 
+  async function cancelRequest(request) {
+    if (!request?.id || requestLoading || request.can_cancel === false) return
+
+    try {
+      setRequestLoading(true)
+      const accessStillValid = await fetchActivePortal()
+      if (!accessStillValid) throw new Error(copy.accessUnavailable)
+      await cancelGuestServiceRequest(
+        request.id,
+        'Cancelled by guest from the secure guide'
+      )
+      showToast(`${request.request_type || copy.requestService}: ${copy.cancelled}`)
+      await fetchMyRequests()
+    } catch (error) {
+      console.error('Cancel service request error:', error)
+      await fetchActivePortal()
+      showToast(error.message || copy.actionNotConfigured)
+    } finally {
+      setRequestLoading(false)
+    }
+  }
+
   async function openFoodMenu() {
     const accessStillValid = await fetchActivePortal()
     const { hotelSlug, accessToken } = getGuestAccessContext('guest')
@@ -776,7 +822,8 @@ export default function GuestGuide() {
       return
     }
     await recordEvent('food_clicked')
-    window.location.href = `/food/${encodeURIComponent(hotelSlug)}/${encodeURIComponent(accessToken)}`
+    const foodPath = `/food/${encodeURIComponent(hotelSlug)}/${encodeURIComponent(accessToken)}`
+    window.location.href = withGuestLocale(foodPath, locale)
   }
 
   function callPhone(value, eventType = 'call_clicked', metadata = {}) {
@@ -1137,12 +1184,18 @@ export default function GuestGuide() {
 
     if (section.section_type === 'services') {
       const serviceItems = items.filter((item) => item.action_type === 'service')
-      const fallbackRequests = [
-        ['Housekeeping', copy.housekeeping, 'housekeeping'],
-        ['Water', copy.drinkingWater, 'water'],
-        ['Towel', copy.freshTowels, 'towels'],
-        ['Toiletries', copy.toiletries, 'sparkles'],
-      ]
+      const fallbackRequests = serviceCatalog.length > 0
+        ? serviceCatalog.map((service) => [
+            service.code || service.name,
+            service.name,
+            getRequestIcon(service.code || service.name),
+          ])
+        : [
+            ['Housekeeping', copy.housekeeping, 'housekeeping'],
+            ['Water', copy.drinkingWater, 'water'],
+            ['Towel', copy.freshTowels, 'towels'],
+            ['Toiletries', copy.toiletries, 'sparkles'],
+          ]
       return (
         <section className="ag-section" id={sectionId} key={section.id}>
           <Heading section={section} />
@@ -1156,7 +1209,31 @@ export default function GuestGuide() {
             </div>
           )}
           {requests.length > 0 && (
-            <div className="ag-request-list"><h3>{copy.myRequests}</h3>{requests.slice(0, 6).map((request) => <article key={request.id}><span className="ag-icon"><GuideIcon name={getRequestIcon(request.request_type)} size={18} /></span><div><strong>{request.request_type}</strong><small>{requestStatusLabels[request.status] || request.status}</small></div></article>)}</div>
+            <div className="ag-request-list">
+              <h3>{copy.myRequests}</h3>
+              {requests.slice(0, 6).map((request) => (
+                <article key={request.id}>
+                  <span className="ag-icon">
+                    <GuideIcon name={getRequestIcon(request.request_type)} size={18} />
+                  </span>
+                  <div className="ag-request-summary">
+                    <strong>{request.request_type}</strong>
+                    <small>{requestStatusLabels[request.status] || request.status}</small>
+                  </div>
+                  {request.can_cancel !== false
+                    && ['pending', 'accepted'].includes(request.status) && (
+                    <button
+                      type="button"
+                      className="ag-request-cancel"
+                      onClick={() => void cancelRequest(request)}
+                      disabled={requestLoading}
+                    >
+                      {copy.cancelled}
+                    </button>
+                  )}
+                </article>
+              ))}
+            </div>
           )}
         </section>
       )

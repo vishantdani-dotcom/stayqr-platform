@@ -32,6 +32,7 @@ import AuthAction from './pages/auth/AuthAction'
 import HotelProfile from './pages/hotel/HotelProfile'
 import GuestGuideBuilder from './pages/guestbuilder/GuestGuideBuilder'
 import Reports from './pages/reports/Reports'
+import OperationsCenter from './pages/operationscenter/OperationsCenter'
 import Invoices from './pages/invoices/Invoices'
 import InvoiceVerification from './pages/invoices/InvoiceVerification'
 import QRGenerator from './pages/qr/QRGenerator'
@@ -385,6 +386,13 @@ export default function App() {
         return <GuestGuideBuilder />
       case 'reports':
         return <Reports />
+      case 'operationscenter':
+        return (
+          <OperationsCenter
+            hotel={tenantContext?.selectedHotel || null}
+            currentRole={currentRole}
+          />
+        )
       case 'invoices':
         return (
           <Invoices

@@ -21,10 +21,8 @@
                     "security:day14":  "node scripts/day14-guest-experience-source-check.mjs",
                     "security:day14builder":  "node scripts/day14-final-rev5-source-check.mjs",
                     "security:day15":  "node scripts/day15-food-service-source-check.mjs",
-                    "security:day15dining":  "node scripts/day15-premium-dining-source-check.mjs",
-                    "security:day15dining2":  "node scripts/day15-premium-dining-rev2-source-check.mjs",
-                    "security:day15diningfinal":  "node scripts/day15-premium-dining-final-source-check.mjs",
-                    "security:day16":  "node scripts/day16-reports-source-check.mjs"
+                    "security:day17frontend":  "node scripts/day17-complete-frontend-source-check.mjs",
+                    "security:day17m057":  "node scripts/day17-m057-frontend-hotfix-source-check.mjs"
                 },
     "dependencies":  {
                          "@dnd-kit/core":  "^6.3.1",

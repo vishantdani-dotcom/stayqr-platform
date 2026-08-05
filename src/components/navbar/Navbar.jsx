@@ -6,11 +6,11 @@ import { normalizeRole } from '../../lib/currentStaff'
 import { clearSelectedTenantHotel } from '../../lib/tenantContext'
 import HotelSwitcher from '../hotel/HotelSwitcher'
 import {
-  getNotifications,
-  getUnreadCount,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from '../../lib/notifications'
+  getNotificationInbox,
+  markInboxAllRead,
+  markInboxNotificationRead,
+  subscribeToNotificationInbox,
+} from '../../lib/day17Operations'
 import './Navbar.css'
 
 export default function Navbar({
@@ -36,7 +36,7 @@ export default function Navbar({
   const userName = currentStaff?.full_name || 'Admin'
   const hotelName = tenantContext?.selectedHotel?.hotel_name || currentStaff?.hotels?.hotel_name || currentStaff?.hotel_name || 'StayQR Hotel'
   const roleName = formatRole(normalizeRole(currentRole || currentStaff?.role || 'manager'))
-  const unreadCount = getUnreadCount(notifications)
+  const unreadCount = notifications.filter((item) => item.status === 'unread').length
   activeHotelIdRef.current = hotelId || null
 
   useEffect(() => {
@@ -47,24 +47,7 @@ export default function Navbar({
     if (!hotelId) return undefined
 
     loadNotifications(hotelId)
-
-    const channel = supabase
-      .channel(`notifications_${hotelId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `hotel_id=eq.${hotelId}`,
-        },
-        () => loadNotifications(hotelId)
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return subscribeToNotificationInbox(hotelId, () => loadNotifications(hotelId))
   }, [hotelId])
 
   useEffect(() => {
@@ -99,7 +82,7 @@ export default function Navbar({
 
     const requestId = notificationRequestRef.current + 1
     notificationRequestRef.current = requestId
-    const data = await getNotifications(id)
+    const data = await getNotificationInbox(id, 30)
 
     if (
       notificationRequestRef.current !== requestId ||
@@ -108,7 +91,7 @@ export default function Navbar({
       return
     }
 
-    setNotifications(data || [])
+    setNotifications(data?.items || [])
   }
 
   function handleOpenNotifications() {
@@ -118,13 +101,13 @@ export default function Navbar({
 
   async function handleMarkAllRead() {
     if (!hotelId) return
-    await markAllNotificationsRead(hotelId)
+    await markInboxAllRead(hotelId)
     await loadNotifications(hotelId)
   }
 
   async function handleNotificationClick(notification) {
-    if (!notification?.id || notification.is_read) return
-    await markNotificationRead(notification.id)
+    if (!notification?.id || notification.status === 'read') return
+    await markInboxNotificationRead(notification.id)
     await loadNotifications(hotelId)
   }
 
@@ -159,6 +142,7 @@ export default function Navbar({
     menu: 'Menu Management',
     staff: 'Staff',
     settings: 'Settings',
+    operationscenter: 'Operations Centre',
     superadmin: 'Super Admin',
     onboarding: 'Hotel Setup',
   }
@@ -239,12 +223,12 @@ export default function Navbar({
                 notifications.map((notification) => (
                   <button
                     key={notification.id}
-                    className={`notif-item ${notification.is_read ? 'read' : 'unread'}`}
+                    className={`notif-item ${notification.status === 'read' ? 'read' : 'unread'}`}
                     onClick={() => handleNotificationClick(notification)}
                     type="button"
                   >
-                    <div className={`notif-item-icon ${notification.type}`}>
-                      {getNotificationIcon(notification.type)}
+                    <div className={`notif-item-icon ${notification.severity || 'info'}`}>
+                      {getNotificationIcon(notification.severity || 'info')}
                     </div>
 
                     <div className="notif-item-body">
@@ -253,7 +237,7 @@ export default function Navbar({
                       <p className="notif-item-time">{timeAgo(notification.created_at)}</p>
                     </div>
 
-                    {!notification.is_read && <span className="notif-unread-dot" />}
+                    {notification.status === 'unread' && <span className="notif-unread-dot" />}
                   </button>
                 ))
               )}

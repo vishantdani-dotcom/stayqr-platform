@@ -45,6 +45,7 @@ const HOTEL_ADMIN_ACCESS = [
   'hotel',
   'guidebuilder',
   'reports',
+  'operationscenter',
   'invoices',
   'settings',
   'onboarding',
@@ -94,7 +95,7 @@ export const ROLE_ACCESS = {
   ],
   housekeeping: ['dashboard', 'rooms', 'housekeeping', 'maintenance', 'services'],
   restaurant: ['dashboard', 'menu', 'foodorders'],
-  accounts: ['dashboard', 'payments', 'folios', 'charges', 'reports', 'invoices'],
+  accounts: ['dashboard', 'payments', 'folios', 'charges', 'reports', 'invoices', 'operationscenter'],
   platform_admin: ['superadmin', ...HOTEL_ADMIN_ACCESS],
   super_admin: ['superadmin', ...HOTEL_ADMIN_ACCESS],
 }
@@ -123,6 +124,7 @@ const SECTION_PERMISSION = {
   reports: 'reports.view',
   invoices: 'invoices.view',
   settings: 'hotel.manage',
+  operationscenter: 'hotel.manage',
   superadmin: 'superadmin.manage',
   onboarding: 'hotel.manage',
 }

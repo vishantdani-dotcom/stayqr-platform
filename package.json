@@ -22,7 +22,11 @@
                     "security:day14builder":  "node scripts/day14-final-rev5-source-check.mjs",
                     "security:day15":  "node scripts/day15-food-service-source-check.mjs",
                     "security:day17frontend":  "node scripts/day17-complete-frontend-source-check.mjs",
-                    "security:day17m057":  "node scripts/day17-m057-frontend-hotfix-source-check.mjs"
+                    "security:day17m056":  "node scripts/day17-m056-source-check.mjs",
+                    "security:day17m057":  "node scripts/day17-m057-frontend-hotfix-source-check.mjs",
+                    "security:day17preflight":  "node scripts/day17-preflight-source-check.mjs",
+                    "security:day17final":  "node scripts/day17-final-source-check.mjs",
+                    "security:day17a070":  "node scripts/day17-a070-source-check.mjs"
                 },
     "dependencies":  {
                          "@dnd-kit/core":  "^6.3.1",

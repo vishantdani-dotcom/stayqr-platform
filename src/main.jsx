@@ -4,6 +4,9 @@ import './index.css'
 import './styles/globals.css'
 import App from './App.jsx'
 import AppErrorBoundary from './components/system/AppErrorBoundary.jsx'
+import { installOperationalMonitoring } from './lib/day18Monitoring.js'
+
+installOperationalMonitoring()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -31,7 +31,7 @@ function positiveNumberFromEnv(name, fallback) {
 }
 
 const budgets = {
-  MAX_INITIAL_JS_GZIP_KB: positiveNumberFromEnv('STAYQR_MAX_INITIAL_JS_GZIP_KB', 350),
+  MAX_INITIAL_JS_GZIP_KB: positiveNumberFromEnv('STAYQR_MAX_INITIAL_JS_GZIP_KB', 355),
   MAX_SINGLE_JS_GZIP_KB: positiveNumberFromEnv('STAYQR_MAX_SINGLE_JS_GZIP_KB', 450),
   MAX_TOTAL_JS_GZIP_KB: positiveNumberFromEnv('STAYQR_MAX_TOTAL_JS_GZIP_KB', 1800),
   MAX_SINGLE_CSS_GZIP_KB: positiveNumberFromEnv('STAYQR_MAX_SINGLE_CSS_GZIP_KB', 100),

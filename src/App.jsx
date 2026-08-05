@@ -10,6 +10,7 @@ import {
 } from './lib/tenantContext'
 import { canAccessSection } from './lib/currentStaff'
 import { NAVIGATE_EVENT } from './lib/bookingCalendar'
+import { setMonitoringContext } from './lib/day18Monitoring'
 
 import Sidebar from './components/sidebar/Sidebar'
 import Navbar from './components/navbar/Navbar'
@@ -93,6 +94,17 @@ export default function App() {
   const [switchingHotelId, setSwitchingHotelId] = useState(null)
   const [hotelSwitchError, setHotelSwitchError] = useState('')
   const [onboardingRequired, setOnboardingRequired] = useState(false)
+  const monitoringHotelId = tenantContext?.selectedHotelId || null
+  const monitoringUserId =
+    session?.user?.id || tenantContext?.user?.id || null
+
+  useEffect(() => {
+    setMonitoringContext({
+      hotelId: monitoringHotelId,
+      userId: monitoringUserId,
+      role: currentRole || null,
+    })
+  }, [currentRole, monitoringHotelId, monitoringUserId])
 
   const loadUserContext = useCallback(async () => {
     setAuthError('')

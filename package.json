@@ -29,7 +29,9 @@
     "security:day17a070": "node scripts/day17-a070-source-check.mjs",
     "security:day18frontend": "node scripts/day18-frontend-performance-source-check.mjs",
     "performance:day18": "node scripts/day18-performance-budget.mjs",
-    "validate:day18frontend": "npm run security:day17final && node scripts/day18-m058-source-check.mjs && npm run security:day18frontend && npm run build && npm run performance:day18 && npm run lint"
+    "validate:day18frontend": "npm run security:day17final && node scripts/day18-m058-source-check.mjs && npm run security:day18frontend && npm run build && npm run performance:day18 && npm run lint",
+    "security:day18monitoring": "node scripts/day18-monitoring-source-check.mjs",
+    "validate:day18monitoring": "npm run security:day17final && node scripts/day18-m058-source-check.mjs && npm run security:day18frontend && npm run security:day18monitoring && npm run build && npm run performance:day18 && npm run lint"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

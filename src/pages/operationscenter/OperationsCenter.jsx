@@ -21,6 +21,10 @@ import {
   subscribeToNotificationInbox,
   updateHotelSystemSettings,
 } from '../../lib/day17Operations'
+import {
+  getOperationalDiagnostics,
+  setOperationalIncidentStatus,
+} from '../../lib/day18Monitoring'
 import './OperationsCenter.css'
 
 const TABS = [
@@ -31,6 +35,7 @@ const TABS = [
   ['support', 'Support'],
   ['announcements', 'Announcements'],
   ['delivery', 'Delivery'],
+  ['diagnostics', 'Diagnostics'],
   ['settings', 'System settings'],
 ]
 
@@ -42,6 +47,23 @@ const emptyPreference = {
   quiet_hours_start: '',
   quiet_hours_end: '',
   event_overrides: {},
+}
+
+const emptyDiagnostics = {
+  health_status: 'unknown',
+  summary: {
+    total_in_window: 0,
+    open_count: 0,
+    acknowledged_count: 0,
+    resolved_count: 0,
+    ignored_count: 0,
+    critical_count: 0,
+    error_count: 0,
+    warning_count: 0,
+  },
+  items: [],
+  query_health: {},
+  delivery_health: {},
 }
 
 function isoStart(days = 7) {
@@ -101,7 +123,13 @@ export default function OperationsCenter({ hotel, currentRole }) {
     status: 'draft',
   })
   const [systemForm, setSystemForm] = useState({})
-
+  const [diagnostics, setDiagnostics] = useState(emptyDiagnostics)
+  const [diagnosticFilters, setDiagnosticFilters] = useState({
+    severity: '',
+    status: '',
+    source: '',
+    search: '',
+  })
   const showToast = useCallback((message) => {
     setToast(message)
     window.setTimeout(() => setToast(''), 2600)
@@ -123,6 +151,7 @@ export default function OperationsCenter({ hotel, currentRole }) {
         adapterData,
         whatsappData,
         activityData,
+        diagnosticData,
       ] = await Promise.all([
         getNotificationInbox(hotelId, 100),
         getHotelSystemSettings(hotelId),
@@ -134,6 +163,7 @@ export default function OperationsCenter({ hotel, currentRole }) {
         getEmailAdapters(hotelId),
         getWhatsAppTemplates(hotelId),
         getActivityTimeline(hotelId, isoStart(7), new Date().toISOString(), { limit: 200 }),
+        getOperationalDiagnostics(hotelId, { limit: 50 }),
       ])
 
       setInbox(inboxData)
@@ -145,7 +175,7 @@ export default function OperationsCenter({ hotel, currentRole }) {
       setAdapters(adapterData || [])
       setWhatsappTemplates(whatsappData || [])
       setActivity(activityData?.items || [])
-
+      setDiagnostics(diagnosticData || emptyDiagnostics)
       const savedPreference = settingsData?.notification_preferences
       setPreference(savedPreference ? {
         in_app_enabled: savedPreference.in_app_enabled,
@@ -255,6 +285,26 @@ export default function OperationsCenter({ hotel, currentRole }) {
     }
   }
 
+  async function refreshDiagnostics() {
+    setSaving('diagnostics')
+    setError('')
+
+    try {
+      const result = await getOperationalDiagnostics(hotelId, {
+        ...diagnosticFilters,
+        limit: 100,
+      })
+      setDiagnostics(result || emptyDiagnostics)
+      showToast('Operational diagnostics refreshed.')
+    } catch (err) {
+      setError(
+        err?.message || 'Operational diagnostics could not be refreshed.'
+      )
+    } finally {
+      setSaving('')
+    }
+  }
+
   if (!hotelId) {
     return <div className="d17-empty">Select a hotel to open Day 17 operations.</div>
   }
@@ -280,6 +330,16 @@ export default function OperationsCenter({ hotel, currentRole }) {
         <Metric label="Support tickets" value={support.tickets?.length || 0} />
         <Metric label="Announcements" value={announcements.length} />
         <Metric label="Failed deliveries" value={failures.length} danger={failures.length > 0} />
+        <Metric
+          label="Open incidents"
+          value={diagnostics.summary?.open_count || 0}
+          danger={(diagnostics.summary?.open_count || 0) > 0}
+        />
+        <Metric
+          label="Critical incidents"
+          value={diagnostics.summary?.critical_count || 0}
+          danger={(diagnostics.summary?.critical_count || 0) > 0}
+        />
       </div>
 
       <nav className="d17-tabs">
@@ -511,6 +571,232 @@ export default function OperationsCenter({ hotel, currentRole }) {
               <p className="d17-footnote">{whatsappTemplates.length} saved hotel template(s).</p>
             </Panel>
           </div>
+        </div>
+      )}
+
+      {!loading && tab === 'diagnostics' && (
+        <div className="d17-stack">
+          <Panel
+            title="Operational Health & Error Diagnostics"
+            subtitle="Sanitized, tenant-scoped incidents with query and delivery health."
+          >
+            <div
+              className={`d18-health-banner status-${diagnostics.health_status || 'unknown'}`}
+            >
+              <div>
+                <span>Current health</span>
+                <strong>{diagnostics.health_status || 'unknown'}</strong>
+              </div>
+              <div>
+                <span>Invalid indexes</span>
+                <strong>
+                  {diagnostics.query_health?.invalid_index_count ?? 'â€”'}
+                </strong>
+              </div>
+              <div>
+                <span>Day 18 indexes</span>
+                <strong>
+                  {diagnostics.query_health?.day18_index_count ?? 'â€”'}
+                </strong>
+              </div>
+              <div>
+                <span>Failed deliveries Â· 24h</span>
+                <strong>
+                  {diagnostics.delivery_health?.failed_24h ?? 0}
+                </strong>
+              </div>
+            </div>
+
+            <div className="d18-diagnostic-filters">
+              <Field label="Severity">
+                <select
+                  value={diagnosticFilters.severity}
+                  onChange={(event) =>
+                    setDiagnosticFilters((previous) => ({
+                      ...previous,
+                      severity: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">All severities</option>
+                  <option value="critical">Critical</option>
+                  <option value="error">Error</option>
+                  <option value="warning">Warning</option>
+                  <option value="info">Info</option>
+                </select>
+              </Field>
+              <Field label="Status">
+                <select
+                  value={diagnosticFilters.status}
+                  onChange={(event) =>
+                    setDiagnosticFilters((previous) => ({
+                      ...previous,
+                      status: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">All statuses</option>
+                  <option value="open">Open</option>
+                  <option value="acknowledged">Acknowledged</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="ignored">Ignored</option>
+                </select>
+              </Field>
+              <Field label="Source">
+                <select
+                  value={diagnosticFilters.source}
+                  onChange={(event) =>
+                    setDiagnosticFilters((previous) => ({
+                      ...previous,
+                      source: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">All sources</option>
+                  <option value="client">Client</option>
+                  <option value="edge_function">Edge function</option>
+                  <option value="webhook">Webhook</option>
+                  <option value="database">Database</option>
+                  <option value="deployment">Deployment</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </Field>
+              <Field label="Search incident, request or error">
+                <input
+                  value={diagnosticFilters.search}
+                  onChange={(event) =>
+                    setDiagnosticFilters((previous) => ({
+                      ...previous,
+                      search: event.target.value,
+                    }))
+                  }
+                  placeholder="Incident ID, request ID, error codeâ€¦"
+                />
+              </Field>
+              <button
+                type="button"
+                onClick={refreshDiagnostics}
+                disabled={saving === 'diagnostics'}
+              >
+                Apply diagnostics
+              </button>
+            </div>
+          </Panel>
+
+          <Panel
+            title="Structured Incident Ledger"
+            subtitle={`${diagnostics.summary?.total_in_window || 0} incident(s) in the selected diagnostic window.`}
+          >
+            <div className="d17-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Last seen</th>
+                    <th>Severity</th>
+                    <th>Incident</th>
+                    <th>Source</th>
+                    <th>Message</th>
+                    <th>Occurrences</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(diagnostics.items || []).map((row) => (
+                    <tr key={row.id}>
+                      <td>{formatDate(row.last_seen_at)}</td>
+                      <td>
+                        <span className={`d17-pill severity-${row.severity}`}>
+                          {row.severity}
+                        </span>
+                      </td>
+                      <td>
+                        <code>{row.incident_id}</code>
+                        <small className="d18-request-id">
+                          {row.request_id || 'No request ID'}
+                        </small>
+                      </td>
+                      <td>{row.source}</td>
+                      <td>
+                        <strong>{row.event_name}</strong>
+                        <p className="d18-message">{row.message}</p>
+                      </td>
+                      <td>{row.occurrence_count}</td>
+                      <td>
+                        <span className={`d17-pill status-${row.status}`}>
+                          {row.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="d18-incident-actions">
+                          {row.status === 'open' && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                runAction(
+                                  `incident-${row.id}-ack`,
+                                  () =>
+                                    setOperationalIncidentStatus(
+                                      hotelId,
+                                      row.id,
+                                      'acknowledged'
+                                    ),
+                                  'Incident acknowledged.'
+                                )
+                              }
+                            >
+                              Acknowledge
+                            </button>
+                          )}
+                          {!['resolved', 'ignored'].includes(row.status) && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                runAction(
+                                  `incident-${row.id}-resolve`,
+                                  () =>
+                                    setOperationalIncidentStatus(
+                                      hotelId,
+                                      row.id,
+                                      'resolved'
+                                    ),
+                                  'Incident resolved.'
+                                )
+                              }
+                            >
+                              Resolve
+                            </button>
+                          )}
+                          {['resolved', 'ignored'].includes(row.status) && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                runAction(
+                                  `incident-${row.id}-reopen`,
+                                  () =>
+                                    setOperationalIncidentStatus(
+                                      hotelId,
+                                      row.id,
+                                      'open'
+                                    ),
+                                  'Incident reopened.'
+                                )
+                              }
+                            >
+                              Reopen
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {(diagnostics.items || []).length === 0 ? (
+                <Empty text="No operational incidents match the active filters." />
+              ) : null}
+            </div>
+          </Panel>
         </div>
       )}
 

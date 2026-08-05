@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import {
   clearSelectedTenantHotel,
@@ -9,41 +9,72 @@ import {
   selectTenantHotel,
 } from './lib/tenantContext'
 import { canAccessSection } from './lib/currentStaff'
+import { NAVIGATE_EVENT } from './lib/bookingCalendar'
 
 import Sidebar from './components/sidebar/Sidebar'
 import Navbar from './components/navbar/Navbar'
 
-import Dashboard from './pages/dashboard/Dashboard'
-import Rooms from './pages/rooms/Rooms'
-import CheckIn from './pages/checkin/CheckIn'
-import Guests from './pages/guests/Guests'
-import GuestGuide from './pages/guestguide/GuestGuide'
-import FoodMenu from './pages/food/FoodMenu'
-import FoodOrders from './pages/foodorders/FoodOrders'
-import ServiceRequests from './pages/services/ServiceRequests'
-import Payments from './pages/payments/Payments'
-import FolioSettlement from './pages/folios/FolioSettlement'
-import Amenities from './pages/amenities/Amenities'
-import Charges from './pages/charges/Charges'
-import Housekeeping from './pages/housekeeping/Housekeeping'
-import Maintenance from './pages/maintenance/Maintenance'
-import Login from './pages/auth/Login'
-import AuthAction from './pages/auth/AuthAction'
-import HotelProfile from './pages/hotel/HotelProfile'
-import GuestGuideBuilder from './pages/guestbuilder/GuestGuideBuilder'
-import Reports from './pages/reports/Reports'
-import OperationsCenter from './pages/operationscenter/OperationsCenter'
-import Invoices from './pages/invoices/Invoices'
-import InvoiceVerification from './pages/invoices/InvoiceVerification'
-import QRGenerator from './pages/qr/QRGenerator'
-import SuperAdmin from './pages/superadmin/SuperAdmin'
-import MenuManagement from './pages/menumanagement/MenuManagement'
-import StaffManagement from './pages/staff/StaffManagement'
-import Reservations from './pages/reservations/Reservations'
-import BookingCalendar from './pages/calendar/BookingCalendar'
-import ReservationOperations from './pages/operations/ReservationOperations'
-import HotelOnboarding from './pages/onboarding/HotelOnboarding'
-import { NAVIGATE_EVENT } from './lib/bookingCalendar'
+import AppErrorBoundary from './components/system/AppErrorBoundary'
+import RouteLoadingFallback from './components/system/RouteLoadingFallback'
+
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'))
+const Rooms = lazy(() => import('./pages/rooms/Rooms'))
+const CheckIn = lazy(() => import('./pages/checkin/CheckIn'))
+const Guests = lazy(() => import('./pages/guests/Guests'))
+const GuestGuide = lazy(() => import('./pages/guestguide/GuestGuide'))
+const FoodMenu = lazy(() => import('./pages/food/FoodMenu'))
+const FoodOrders = lazy(() => import('./pages/foodorders/FoodOrders'))
+const ServiceRequests = lazy(() => import('./pages/services/ServiceRequests'))
+const Payments = lazy(() => import('./pages/payments/Payments'))
+const FolioSettlement = lazy(() => import('./pages/folios/FolioSettlement'))
+const Amenities = lazy(() => import('./pages/amenities/Amenities'))
+const Charges = lazy(() => import('./pages/charges/Charges'))
+const Housekeeping = lazy(() => import('./pages/housekeeping/Housekeeping'))
+const Maintenance = lazy(() => import('./pages/maintenance/Maintenance'))
+const Login = lazy(() => import('./pages/auth/Login'))
+const AuthAction = lazy(() => import('./pages/auth/AuthAction'))
+const HotelProfile = lazy(() => import('./pages/hotel/HotelProfile'))
+const GuestGuideBuilder = lazy(() => import('./pages/guestbuilder/GuestGuideBuilder'))
+const Reports = lazy(() => import('./pages/reports/Reports'))
+const OperationsCenter = lazy(() => import('./pages/operationscenter/OperationsCenter'))
+const Invoices = lazy(() => import('./pages/invoices/Invoices'))
+const InvoiceVerification = lazy(() => import('./pages/invoices/InvoiceVerification'))
+const QRGenerator = lazy(() => import('./pages/qr/QRGenerator'))
+const SuperAdmin = lazy(() => import('./pages/superadmin/SuperAdmin'))
+const MenuManagement = lazy(() => import('./pages/menumanagement/MenuManagement'))
+const StaffManagement = lazy(() => import('./pages/staff/StaffManagement'))
+const Reservations = lazy(() => import('./pages/reservations/Reservations'))
+const BookingCalendar = lazy(() => import('./pages/calendar/BookingCalendar'))
+const ReservationOperations = lazy(() => import('./pages/operations/ReservationOperations'))
+const HotelOnboarding = lazy(() => import('./pages/onboarding/HotelOnboarding'))
+
+const SECTION_TITLES = {
+  dashboard: 'dashboard',
+  rooms: 'rooms and inventory',
+  reservations: 'reservations',
+  calendar: 'booking calendar',
+  operations: 'front-desk operations',
+  checkin: 'check-in',
+  guests: 'guests',
+  services: 'service requests',
+  qr: 'QR management',
+  payments: 'payments',
+  folios: 'folio settlement',
+  foodorders: 'food orders',
+  charges: 'charges',
+  housekeeping: 'housekeeping',
+  maintenance: 'maintenance',
+  amenities: 'amenities',
+  hotel: 'hotel profile',
+  guidebuilder: 'guest guide builder',
+  reports: 'reports',
+  operationscenter: 'operations centre',
+  invoices: 'invoices',
+  menu: 'menu management',
+  staff: 'staff management',
+  superadmin: 'platform administration',
+  onboarding: 'hotel onboarding',
+}
 
 import './styles/globals.css'
 import './App.css'
@@ -202,57 +233,69 @@ export default function App() {
   }, [currentRole, tenantContext?.permissions])
 
   if (window.location.pathname.startsWith('/invoice/verify/')) {
-    return <InvoiceVerification />
+    return (
+      <StandaloneRouteBoundary routeKey="invoice-verification" label="invoice verification">
+        <InvoiceVerification />
+      </StandaloneRouteBoundary>
+    )
   }
 
   if (window.location.pathname.startsWith('/guest/')) {
-    return <GuestGuide />
+    return (
+      <StandaloneRouteBoundary routeKey="guest-guide" label="guest guide">
+        <GuestGuide />
+      </StandaloneRouteBoundary>
+    )
   }
 
   if (window.location.pathname.startsWith('/food/')) {
-    return <FoodMenu />
+    return (
+      <StandaloneRouteBoundary routeKey="guest-food-menu" label="food menu">
+        <FoodMenu />
+      </StandaloneRouteBoundary>
+    )
   }
 
   if (authLoading) {
-    return (
-      <div
-        style={{
-          height: '100vh',
-          background: '#050505',
-          color: '#fff',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: '18px',
-        }}
-      >
-        Loading StayQR...
-      </div>
-    )
+    return <RouteLoadingFallback fullScreen label="your secure StayQR session" />
   }
 
   const authPath = window.location.pathname
 
   if (authPath === '/auth/complete-invite') {
-    return <AuthAction mode="invite" session={session} />
+    return (
+      <StandaloneRouteBoundary routeKey="complete-invite" label="staff invitation">
+        <AuthAction mode="invite" session={session} />
+      </StandaloneRouteBoundary>
+    )
   }
 
   if (authPath === '/auth/reset-password') {
-    return <AuthAction mode="recovery" session={session} />
+    return (
+      <StandaloneRouteBoundary routeKey="reset-password" label="password recovery">
+        <AuthAction mode="recovery" session={session} />
+      </StandaloneRouteBoundary>
+    )
   }
 
   if (!session) {
-    return <Login />
+    return (
+      <StandaloneRouteBoundary routeKey="login" label="secure login">
+        <Login />
+      </StandaloneRouteBoundary>
+    )
   }
 
   if (onboardingRequired) {
     return (
-      <HotelOnboarding
-        session={session}
-        tenantContext={tenantContext}
-        onHotelReady={handleOnboardingReady}
-        standalone
-      />
+      <StandaloneRouteBoundary routeKey="required-onboarding" label="hotel onboarding">
+        <HotelOnboarding
+          session={session}
+          tenantContext={tenantContext}
+          onHotelReady={handleOnboardingReady}
+          standalone
+        />
+      </StandaloneRouteBoundary>
     )
   }
 
@@ -466,7 +509,20 @@ export default function App() {
           className="app-content"
           key={tenantContext?.selectedHotelId || 'no-selected-hotel'}
         >
-          {renderPage()}
+          <AppErrorBoundary
+            scope={`section:${activeSection}`}
+            resetKey={`${tenantContext?.selectedHotelId || 'none'}:${activeSection}:${navigationRequest?.requestId || 'default'}`}
+          >
+            <Suspense
+              fallback={
+                <RouteLoadingFallback
+                  label={SECTION_TITLES[activeSection] || activeSection}
+                />
+              }
+            >
+              {renderPage()}
+            </Suspense>
+          </AppErrorBoundary>
         </main>
       </div>
 
@@ -491,6 +547,18 @@ export default function App() {
         </div>
       )}
     </div>
+  )
+}
+
+function StandaloneRouteBoundary({ routeKey, label, children }) {
+  return (
+    <AppErrorBoundary scope={`route:${routeKey}`} resetKey={routeKey} fullScreen>
+      <Suspense
+        fallback={<RouteLoadingFallback fullScreen label={label} />}
+      >
+        {children}
+      </Suspense>
+    </AppErrorBoundary>
   )
 }
 

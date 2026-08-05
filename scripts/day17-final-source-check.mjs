@@ -47,7 +47,7 @@ const required = [
   ['operations centre route',
     app.includes("case 'operationscenter'")],
   ['operations centre import',
-    app.includes("import OperationsCenter from './pages/operationscenter/OperationsCenter'")],
+    (app.includes("import OperationsCenter from './pages/operationscenter/OperationsCenter'") || app.includes("const OperationsCenter = lazy(() => import('./pages/operationscenter/OperationsCenter'))"))],
   ['operations centre sidebar',
     sidebar.includes("id: 'operationscenter'")],
   ['operations centre role permission',

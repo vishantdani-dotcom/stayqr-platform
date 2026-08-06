@@ -68,15 +68,23 @@ for (const [name, expectation] of requiredHeaders) {
   console.log(`PASS header - ${name}`)
 }
 
-const scriptMatch = rootHtml.match(
-  /<script[^>]+src=["']([^"']+\/assets\/[^"']+\.js)["']/i
+const scriptSources = [...rootHtml.matchAll(
+  /<script[^>]+src=["']([^"']+)["']/gi
+)].map((match) => match[1])
+
+const builtScriptSource = scriptSources.find((source) =>
+  /(?:^|\/)assets\/[^/?#]+\.js(?:[?#].*)?$/i.test(source)
 )
 
-if (!scriptMatch) {
-  throw new Error('built JavaScript asset was not found in index HTML')
+if (!builtScriptSource) {
+  throw new Error(
+    `built JavaScript asset was not found in index HTML; script sources: ${scriptSources.join(', ') || 'none'}`
+  )
 }
 
-const assetUrl = new URL(scriptMatch[1], baseUrl)
+console.log(`PASS - built JavaScript asset discovered: ${builtScriptSource}`)
+
+const assetUrl = new URL(builtScriptSource, baseUrl)
 const assetResponse = await get(assetUrl)
 const assetCache = assetResponse.headers.get('cache-control') || ''
 

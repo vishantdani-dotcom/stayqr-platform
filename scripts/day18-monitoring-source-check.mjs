@@ -14,7 +14,7 @@ const files = {
   operationsPage: 'src/pages/operationscenter/OperationsCenter.jsx',
   operationsCss: 'src/pages/operationscenter/OperationsCenter.css',
   migration:
-    'supabase/migrations/202608050059_day18_monitoring_structured_logs_operational_diagnostics_REV1.sql',
+    'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608050059_day18_monitoring_structured_logs_operational_diagnostics_REV1.sql',
   runbook: 'docs/operations/DAY18_MONITORING_RUNBOOK.md',
   performanceBudget: 'scripts/day18-performance-budget.mjs',
   performanceDecision:

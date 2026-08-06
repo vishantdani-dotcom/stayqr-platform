@@ -8,7 +8,7 @@ const requiredFiles = [
   'src/pages/guestguide/GuestGuide.jsx',
   'src/pages/guestguide/GuestGuide.css',
   'src/pages/hotel/HotelProfile.jsx',
-  'supabase/migrations/202608010045_day14_guest_experience_content_foundation_REV1.sql',
+  'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608010045_day14_guest_experience_content_foundation_REV1.sql',
 ]
 
 const requiredContracts = [
@@ -24,10 +24,10 @@ const requiredContracts = [
   ['src/pages/hotel/HotelProfile.jsx', '"upsert_hotel_guest_content"'],
   ['src/pages/hotel/HotelProfile.jsx', 'MULTILINGUAL GUEST GUIDE'],
   ['src/pages/hotel/HotelProfile.jsx', 'हिन्दी'],
-  ['supabase/migrations/202608010045_day14_guest_experience_content_foundation_REV1.sql', 'create table if not exists public.hotel_guest_content'],
-  ['supabase/migrations/202608010045_day14_guest_experience_content_foundation_REV1.sql', 'create table if not exists public.guest_feedback'],
-  ['supabase/migrations/202608010045_day14_guest_experience_content_foundation_REV1.sql', 'create table if not exists public.guest_review_rewards'],
-  ['supabase/migrations/202608010045_day14_guest_experience_content_foundation_REV1.sql', 'resolve_guest_access_token'],
+  ['docs/database/legacy-migrations/pre-day18-canonical-baseline/202608010045_day14_guest_experience_content_foundation_REV1.sql', 'create table if not exists public.hotel_guest_content'],
+  ['docs/database/legacy-migrations/pre-day18-canonical-baseline/202608010045_day14_guest_experience_content_foundation_REV1.sql', 'create table if not exists public.guest_feedback'],
+  ['docs/database/legacy-migrations/pre-day18-canonical-baseline/202608010045_day14_guest_experience_content_foundation_REV1.sql', 'create table if not exists public.guest_review_rewards'],
+  ['docs/database/legacy-migrations/pre-day18-canonical-baseline/202608010045_day14_guest_experience_content_foundation_REV1.sql', 'resolve_guest_access_token'],
 ]
 
 const unsafePatterns = [

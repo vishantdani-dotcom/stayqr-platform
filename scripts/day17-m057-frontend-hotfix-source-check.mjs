@@ -5,7 +5,7 @@ const root = process.cwd()
 const sql = fs.readFileSync(
   path.join(
     root,
-    'supabase/migrations/202608050057_day17_rls_helper_trusted_config_rpc_hotfix_REV1.sql'
+    'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608050057_day17_rls_helper_trusted_config_rpc_hotfix_REV1.sql'
   ),
   'utf8'
 )

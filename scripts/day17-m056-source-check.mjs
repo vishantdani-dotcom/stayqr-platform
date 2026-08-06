@@ -4,7 +4,7 @@ import path from 'node:path'
 const root = process.cwd()
 const migration = path.join(
   root,
-  'supabase/migrations/202608050056_day17_notification_activity_support_settings_foundation_REV2_JSON_SYNTAX_FIX.sql'
+  'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608050056_day17_notification_activity_support_settings_foundation_REV2_JSON_SYNTAX_FIX.sql'
 )
 
 if (!fs.existsSync(migration)) {

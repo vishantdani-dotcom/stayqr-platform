@@ -13,7 +13,7 @@ const files = {
   guideCss: 'src/pages/guestguide/GuestGuide.css',
   lib: 'src/lib/guestGuideBuilder.js',
   portal: 'src/lib/guestPortal.js',
-  migration: 'supabase/migrations/202608030048_day14_payment_upi_regex_compatibility_FIX_REV1.sql',
+  migration: 'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608030048_day14_payment_upi_regex_compatibility_FIX_REV1.sql',
 }
 
 const source = Object.fromEntries(

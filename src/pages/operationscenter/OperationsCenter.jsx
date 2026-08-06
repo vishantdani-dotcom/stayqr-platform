@@ -590,17 +590,17 @@ export default function OperationsCenter({ hotel, currentRole }) {
               <div>
                 <span>Invalid indexes</span>
                 <strong>
-                  {diagnostics.query_health?.invalid_index_count ?? 'â€”'}
+                  {diagnostics.query_health?.invalid_index_count ?? 'N/A'}
                 </strong>
               </div>
               <div>
                 <span>Day 18 indexes</span>
                 <strong>
-                  {diagnostics.query_health?.day18_index_count ?? 'â€”'}
+                  {diagnostics.query_health?.day18_index_count ?? 'N/A'}
                 </strong>
               </div>
               <div>
-                <span>Failed deliveries Â· 24h</span>
+                <span>Failed deliveries - 24h</span>
                 <strong>
                   {diagnostics.delivery_health?.failed_24h ?? 0}
                 </strong>
@@ -670,7 +670,7 @@ export default function OperationsCenter({ hotel, currentRole }) {
                       search: event.target.value,
                     }))
                   }
-                  placeholder="Incident ID, request ID, error codeâ€¦"
+                  placeholder="Incident ID, request ID, error code..."
                 />
               </Field>
               <button

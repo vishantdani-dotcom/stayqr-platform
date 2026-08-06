@@ -11,7 +11,7 @@ const manager = read('src/pages/menumanagement/MenuManagement.jsx')
 const guestGuide = read('src/pages/guestguide/GuestGuide.jsx')
 const locale = read('src/lib/guestLocale.js')
 const i18n = read('src/lib/diningI18n.js')
-const migration = read('supabase/migrations/202608040054_day15_premium_dining_i18n_offer_performance_REV1.sql')
+const migration = read('docs/database/legacy-migrations/pre-day18-canonical-baseline/202608040054_day15_premium_dining_i18n_offer_performance_REV1.sql')
 const packageJson = read('package.json')
 const combined = [food, foodCss, manager, guestGuide, locale, i18n, migration, packageJson].join('\n')
 

@@ -6,7 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8')
 
 const sources = {
-  migration: read('supabase/migrations/202608040052_day15_trusted_food_service_workflows_REV1.sql'),
+  migration: read('docs/database/legacy-migrations/pre-day18-canonical-baseline/202608040052_day15_trusted_food_service_workflows_REV1.sql'),
   guestPortal: read('src/lib/guestPortal.js'),
   operations: read('src/lib/day15Operations.js'),
   foodGuest: read('src/pages/food/FoodMenu.jsx'),

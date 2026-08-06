@@ -4,7 +4,7 @@ import path from 'node:path'
 const root = process.cwd()
 const migrationPath = path.join(
   root,
-  'supabase/migrations/202608050058_day18_indexes_query_plans_trusted_pagination_REV1.sql'
+  'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608050058_day18_indexes_query_plans_trusted_pagination_REV1.sql'
 )
 
 if (!fs.existsSync(migrationPath)) {

@@ -14,7 +14,7 @@ const requiredFiles = [
   'src/App.jsx',
   'src/components/sidebar/Sidebar.jsx',
   'src/lib/currentStaff.js',
-  'supabase/migrations/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql',
+  'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql',
 ]
 
 const requiredContracts = [
@@ -55,12 +55,12 @@ const requiredContracts = [
   ['src/App.jsx', "case 'guidebuilder'"],
   ['src/components/sidebar/Sidebar.jsx', 'Guest Guide Builder'],
   ['src/lib/currentStaff.js', "guidebuilder: 'hotel.manage'"],
-  ['supabase/migrations/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', 'create table if not exists public.guest_guide_settings'],
-  ['supabase/migrations/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', 'create table if not exists public.guest_guide_media'],
-  ['supabase/migrations/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', 'create table if not exists public.guest_guide_greetings'],
-  ['supabase/migrations/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', 'create or replace function public.resolve_premium_guest_guide'],
-  ['supabase/migrations/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', 'create or replace function public.publish_guest_guide'],
-  ['supabase/migrations/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', "'en','hi','mr','ta','te','bn'"],
+  ['docs/database/legacy-migrations/pre-day18-canonical-baseline/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', 'create table if not exists public.guest_guide_settings'],
+  ['docs/database/legacy-migrations/pre-day18-canonical-baseline/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', 'create table if not exists public.guest_guide_media'],
+  ['docs/database/legacy-migrations/pre-day18-canonical-baseline/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', 'create table if not exists public.guest_guide_greetings'],
+  ['docs/database/legacy-migrations/pre-day18-canonical-baseline/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', 'create or replace function public.resolve_premium_guest_guide'],
+  ['docs/database/legacy-migrations/pre-day18-canonical-baseline/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', 'create or replace function public.publish_guest_guide'],
+  ['docs/database/legacy-migrations/pre-day18-canonical-baseline/202608020047_day14_premium_guest_guide_builder_foundation_REV1.sql', "'en','hi','mr','ta','te','bn'"],
 ]
 
 for (const file of requiredFiles) {

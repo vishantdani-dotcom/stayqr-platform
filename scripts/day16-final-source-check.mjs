@@ -6,7 +6,7 @@ const reportsJsx = path.join(root, 'src/pages/reports/Reports.jsx')
 const reportsCss = path.join(root, 'src/pages/reports/Reports.css')
 const migration = path.join(
   root,
-  'supabase/migrations/202608050055_day16_trusted_reporting_kernel_REV3_INVOICE_STATUS_FIX.sql'
+  'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608050055_day16_trusted_reporting_kernel_REV3_INVOICE_STATUS_FIX.sql'
 )
 const audit = path.join(
   root,

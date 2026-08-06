@@ -35,3 +35,4 @@ test-results/
 
 # Local Day 18 evidence and database dumps
 .stayqr-evidence/
+supabase/.temp/

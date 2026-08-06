@@ -4,7 +4,7 @@ import path from 'node:path'
 const root = process.cwd()
 const sqlPath = path.join(
   root,
-  'supabase/migrations/202608050055_day16_trusted_reporting_kernel_REV3_INVOICE_STATUS_FIX.sql'
+  'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608050055_day16_trusted_reporting_kernel_REV3_INVOICE_STATUS_FIX.sql'
 )
 
 if (!fs.existsSync(sqlPath)) {

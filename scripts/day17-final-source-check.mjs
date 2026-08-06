@@ -12,9 +12,9 @@ const files = {
   operations: 'src/lib/day17Operations.js',
   page: 'src/pages/operationscenter/OperationsCenter.jsx',
   css: 'src/pages/operationscenter/OperationsCenter.css',
-  m056: 'supabase/migrations/202608050056_day17_notification_activity_support_settings_foundation_REV2_JSON_SYNTAX_FIX.sql',
+  m056: 'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608050056_day17_notification_activity_support_settings_foundation_REV2_JSON_SYNTAX_FIX.sql',
   a070: 'supabase/audit/202608050070_day17_reversible_notification_runtime_acceptance_REV2_STATE_ORDER_FIX.sql',
-  m057: 'supabase/migrations/202608050057_day17_rls_helper_trusted_config_rpc_hotfix_REV1.sql',
+  m057: 'docs/database/legacy-migrations/pre-day18-canonical-baseline/202608050057_day17_rls_helper_trusted_config_rpc_hotfix_REV1.sql',
   a071: 'supabase/audit/202608050071_day17_final_consolidated_acceptance_REV1.sql',
   packageJson: 'package.json',
 }

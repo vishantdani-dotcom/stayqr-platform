@@ -1,0 +1,83 @@
+name: Day 18 Production Validation
+
+on:
+  pull_request:
+    branches:
+      - feature/day18-production-hardening
+  push:
+    branches:
+      - feature/day18-production-hardening
+  workflow_dispatch:
+    inputs:
+      deploy_url:
+        description: Optional HTTPS Netlify Deploy Preview URL for live smoke validation
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stayqr-day18-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Source, build, security and performance gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      VITE_SUPABASE_URL: https://stayqr-ci-staging.supabase.co
+      VITE_SUPABASE_ANON_KEY: ci-public-anon-shape-only-not-a-secret
+      VITE_APP_ENV: staging
+      VITE_APP_RELEASE: ${{ github.sha }}
+      STAYQR_STAGING_SUPABASE_URL: https://stayqr-ci-staging.supabase.co
+      STAYQR_PRODUCTION_SUPABASE_URL: https://stayqr-ci-production.supabase.co
+
+    steps:
+      - name: Checkout locked source
+        uses: actions/checkout@v6
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run Day 18 production validation
+        run: npm run validate:day18infra
+
+      - name: Upload immutable build evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: stayqr-day18-dist-${{ github.sha }}
+          path: |
+            dist
+            netlify.toml
+            docs/operations/DAY18_*.md
+          if-no-files-found: error
+          retention-days: 14
+
+  live-deploy-smoke:
+    name: Optional live Netlify deployment smoke
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_url != '' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      STAYQR_DEPLOY_URL: ${{ inputs.deploy_url }}
+
+    steps:
+      - name: Checkout validated source
+        uses: actions/checkout@v6
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Validate deployed SPA, assets and security headers
+        run: node scripts/day18-live-deploy-smoke.mjs

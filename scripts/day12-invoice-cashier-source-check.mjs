@@ -81,7 +81,7 @@ const required = [
   ['tax category manual', all.includes("{ value: 'manual', label: 'Manual charge' }")],
   ['tax category other', all.includes("{ value: 'other', label: 'Other' }")],
   ['role-aware management', all.includes('canManage')],
-  ['realtime invoice updates', all.includes("table,\n          filter: `hotel_id=eq.${currentHotelId}`")],
+  ['realtime invoice updates', /['"]postgres_changes['"][\s\S]{0,800}table,\s*filter:\s*`hotel_id=eq\.\$\{currentHotelId\}`/.test(all)],
   ['public verify RPC', all.includes("supabase.rpc('verify_invoice'")],
   ['verified hash language', all.includes('SHA-256')],
   ['responsive frontend CSS', all.includes('@media (max-width: 760px)')],

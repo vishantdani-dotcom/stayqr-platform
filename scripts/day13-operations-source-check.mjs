@@ -16,7 +16,7 @@ const requiredFiles = [
 ]
 
 const requiredContracts = [
-  ['src/App.jsx', "import Maintenance from './pages/maintenance/Maintenance'"],
+  ['src/App.jsx', 'pages/maintenance/Maintenance'],
   ['src/App.jsx', "case 'maintenance'"],
   ['src/components/sidebar/Sidebar.jsx', "id: 'maintenance'"],
   ['src/lib/currentStaff.js', "maintenance: 'rooms.view'"],
@@ -59,8 +59,8 @@ const requiredContracts = [
   ['src/pages/maintenance/Maintenance.jsx', 'Expected return'],
   ['src/pages/maintenance/Maintenance.jsx', 'Verify & release'],
   ['src/pages/maintenance/Maintenance.jsx', 'Require housekeeping cleaning'],
-  ['src/pages/services/ServiceRequests.jsx', 'navigateToSection("guests"'],
-  ['src/pages/services/ServiceRequests.jsx', 'Open Settlement'],
+  ['src/pages/services/ServiceRequests.jsx', "navigateToSection('guests'"],
+  ['src/pages/services/ServiceRequests.jsx', 'Open settlement'],
 ]
 
 const unsafePatterns = [

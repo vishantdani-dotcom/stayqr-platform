@@ -52,6 +52,8 @@ const approvedForwardMigrations = [
   '202608080064_day19_days15_18_acl_compatibility_repair_REV1.sql',
   '202608090065_day19_days15_18_acl_canonicalization_REV1.sql',
   '202608090066_day19_business_day_settings_invariant_REV1.sql',
+  '202608090067_day19_gate19c_anonymous_surface_storage_restoration_REV1.sql',
+  '202608090069_day19_hotel_onboarding_cross_tenant_rls_hardening_REV1.sql',
 ]
 
 const expectedActive = [
@@ -439,6 +441,146 @@ for (const [label, pattern] of businessDayInvariantContracts) {
 
 pass(
   `Day 19 business-day settings invariant source contract (${businessDayInvariantContracts.length} required controls)`
+)
+
+// ============================================================================
+// DAY 19 MIGRATION 067 - GATE 19C ANON SURFACE + STORAGE SOURCE CONTRACT
+// ============================================================================
+
+const gate19cSecurityName = approvedForwardMigrations[5]
+const gate19cSecurity = read(
+  `supabase/migrations/${gate19cSecurityName}`
+)
+
+if (!gate19cSecurity.trim()) {
+  fail('Day 19 Gate 19C security migration is empty')
+}
+
+const gate19cSecurityContracts = [
+  [
+    'Gate 19C security migration is transactional',
+    /\bbegin\s*;/i,
+  ],
+  [
+    'Gate 19C closes anonymous direct public tables globally',
+    /revoke\s+all\s+privileges\s+on\s+all\s+tables\s+in\s+schema\s+public\s+from\s+public\s*,\s*anon\s*;/i,
+  ],
+  [
+    'Gate 19C closes PUBLIC and anon function execute globally',
+    /revoke\s+execute\s+on\s+all\s+functions\s+in\s+schema\s+public\s+from\s+public\s*,\s*anon\s*;/i,
+  ],
+  [
+    'Gate 19C hardens future PUBLIC function defaults',
+    /alter\s+default\s+privileges[\s\S]*?revoke\s+execute\s+on\s+functions\s+from\s+public\s*;/i,
+  ],
+  [
+    'Gate 19C restores exact signed guest surface',
+    /grant\s+execute\s+on\s+function[\s\S]*?cancel_guest_food_order[\s\S]*?verify_invoice[\s\S]*?to\s+anon\s*;/i,
+  ],
+  [
+    'Gate 19C restores private hotel-assets bucket',
+    /'hotel-assets'[\s\S]*?false[\s\S]*?10485760/i,
+  ],
+  [
+    'Gate 19C restores private guest-documents bucket',
+    /'guest-documents'[\s\S]*?false[\s\S]*?15728640/i,
+  ],
+  [
+    'Gate 19C preserves public guest-guide-media delivery',
+    /'guest-guide-media'[\s\S]*?true[\s\S]*?8388608/i,
+  ],
+  [
+    'Gate 19C uses latest guest-document permission matrix',
+    /stayqr_guest_documents_select[\s\S]*?user_has_any_permission[\s\S]*?checkout\.manage/i,
+  ],
+  [
+    'Gate 19C restores guest-guide-media tenant write policies',
+    /stayqr_guest_guide_media_insert[\s\S]*?stayqr_guest_guide_media_delete/i,
+  ],
+  [
+    'Gate 19C verifies anonymous table closure',
+    /anon retains effective DML/i,
+  ],
+  [
+    'Gate 19C contains post-COMMIT verification',
+    /M067_POSTCOMMIT/i,
+  ],
+]
+
+for (const [label, pattern] of gate19cSecurityContracts) {
+  if (!pattern.test(gate19cSecurity)) {
+    fail(label)
+  }
+}
+
+pass(
+  `Day 19 Gate 19C anonymous surface + Storage source contract (${gate19cSecurityContracts.length} required controls)`
+)
+
+// ============================================================================
+// DAY 19 MIGRATION 069 - HOTEL ONBOARDING CROSS-TENANT RLS HARDENING
+// ============================================================================
+
+const gate19cOnboardingRlsName = approvedForwardMigrations[6]
+const gate19cOnboardingRls = read(
+  `supabase/migrations/${gate19cOnboardingRlsName}`
+)
+
+if (!gate19cOnboardingRls.trim()) {
+  fail('Day 19 Gate 19C hotel_onboarding RLS migration is empty')
+}
+
+const gate19cOnboardingRlsContracts = [
+  [
+    'Gate 19C hotel_onboarding RLS migration is transactional',
+    /\bbegin\s*;/i,
+  ],
+  [
+    'Gate 19C hotel_onboarding RLS replaces INSERT policy',
+    /drop\s+policy\s+if\s+exists\s+stayqr_hotel_onboarding_insert[\s\S]*?create\s+policy\s+stayqr_hotel_onboarding_insert/i,
+  ],
+  [
+    'Gate 19C hotel_onboarding INSERT is same-hotel hotel.manage scoped',
+    /create\s+policy\s+stayqr_hotel_onboarding_insert[\s\S]*?user_has_permission\s*\(\s*hotel_id\s*,\s*'hotel\.manage'\s*\)/i,
+  ],
+  [
+    'Gate 19C hotel_onboarding RLS replaces UPDATE policy',
+    /drop\s+policy\s+if\s+exists\s+stayqr_hotel_onboarding_update[\s\S]*?create\s+policy\s+stayqr_hotel_onboarding_update/i,
+  ],
+  [
+    'Gate 19C hotel_onboarding UPDATE is same-hotel hotel.manage scoped',
+    /create\s+policy\s+stayqr_hotel_onboarding_update[\s\S]*?using\s*\([\s\S]*?user_has_permission\s*\(\s*hotel_id\s*,\s*'hotel\.manage'\s*\)[\s\S]*?with\s+check\s*\([\s\S]*?user_has_permission\s*\(\s*hotel_id\s*,\s*'hotel\.manage'\s*\)/i,
+  ],
+  [
+    'Gate 19C hotel_onboarding RLS verifies INSERT owner bypass is absent',
+    /owner_user_id remains in direct INSERT authorization/i,
+  ],
+  [
+    'Gate 19C hotel_onboarding RLS verifies UPDATE owner bypass is absent',
+    /owner_user_id remains in direct UPDATE authorization/i,
+  ],
+  [
+    'Gate 19C hotel_onboarding RLS preserves bootstrap RPC boundary',
+    /public\.bootstrap_hotel_onboarding\s*\(\s*jsonb\s*\)/i,
+  ],
+  [
+    'Gate 19C hotel_onboarding RLS preserves resumable-step RPC boundary',
+    /public\.save_hotel_onboarding_step\s*\(\s*uuid\s*,\s*text\s*,\s*jsonb\s*\)/i,
+  ],
+  [
+    'Gate 19C hotel_onboarding RLS contains post-COMMIT evidence',
+    /M069_POSTCOMMIT/i,
+  ],
+]
+
+for (const [label, pattern] of gate19cOnboardingRlsContracts) {
+  if (!pattern.test(gate19cOnboardingRls)) {
+    fail(label)
+  }
+}
+
+pass(
+  `Day 19 Gate 19C hotel_onboarding RLS source contract (${gate19cOnboardingRlsContracts.length} required controls)`
 )
 
 const canonicalRunbook = read(

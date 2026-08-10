@@ -252,7 +252,10 @@ export default function App() {
     )
   }
 
-  if (window.location.pathname.startsWith('/guest/')) {
+  if (
+  window.location.pathname.startsWith('/guest/') ||
+  window.location.pathname.startsWith('/g/')
+) {
     return (
       <StandaloneRouteBoundary routeKey="guest-guide" label="guest guide">
         <GuestGuide />

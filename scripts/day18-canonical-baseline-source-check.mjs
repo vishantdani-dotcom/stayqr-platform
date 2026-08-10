@@ -55,6 +55,7 @@ const approvedForwardMigrations = [
   '202608090067_day19_gate19c_anonymous_surface_storage_restoration_REV1.sql',
   '202608090069_day19_hotel_onboarding_cross_tenant_rls_hardening_REV1.sql',
   '202608101020_day19_housekeeping_template_onboarding_repair.sql',
+  '202608101021_day19_checkout_settlement_folio_repair.sql',
 ]
 
 const expectedActive = [
@@ -764,3 +765,22 @@ console.log(
     `(${activeFiles.length} active migrations; ${archivedFiles.length} archived migrations; ` +
     `empty-target guard; default privileges hardened)`
 )
+
+
+// DAY19F_CHECKOUT_SETTLEMENT_FOLIO_REPAIR_SOURCE_CONTRACT_REV1
+const day19fCheckoutSettlementFolioRepair =
+  read('supabase/migrations/202608101021_day19_checkout_settlement_folio_repair.sql')
+
+const day19fCheckoutSettlementFolioRepairContracts = [
+  ['Day 19F checkout-settlement folio repair is transactional', /\bbegin\s*;/i],
+  ['Day 19F checkout-settlement payment trigger is guarded', /payment_type[\s\S]*?checkout_settlement/i],
+  ['Day 19F checkout-settlement remains collection-backed', /day11_sync_payment_collection\(new\.id\)/i],
+  ['Day 19F checkout-settlement prevents duplicate folio charge', /must not be a folio charge/i],
+  ['Day 19F checkout-settlement repair verifies residue', /posted settlement-as-charge residue/i],
+  ['Day 19F checkout-settlement repair commits', /\bcommit\s*;/i],
+]
+
+for (const [label, pattern] of day19fCheckoutSettlementFolioRepairContracts) {
+  if (!pattern.test(day19fCheckoutSettlementFolioRepair)) fail(label)
+  pass(`required - ${label}`)
+}

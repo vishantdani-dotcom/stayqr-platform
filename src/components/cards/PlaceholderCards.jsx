@@ -68,7 +68,7 @@ export default function PlaceholderCards() {
                   <span className={`pc-badge pc-badge--${card.badgeColor}`}>{card.badge}</span>
                 </div>
               </div>
-              <button className="pc-more-btn">
+              <button className="pc-more-btn" type="button" aria-label="More options">
                 <MoreIcon />
               </button>
             </div>

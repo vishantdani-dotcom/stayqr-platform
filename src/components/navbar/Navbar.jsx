@@ -160,7 +160,12 @@ export default function Navbar({
       style={{ left: sidebarCollapsed ? 64 : 'var(--sidebar-w)' }}
     >
       <div className="navbar-left">
-        <button className="navbar-menu-btn" onClick={onMobileMenuToggle} type="button">
+        <button
+  className="navbar-menu-btn"
+  onClick={onMobileMenuToggle}
+  type="button"
+  aria-label="Toggle navigation menu"
+>
           <MenuIcon />
         </button>
 

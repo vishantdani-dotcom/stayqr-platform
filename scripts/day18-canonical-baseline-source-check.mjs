@@ -54,6 +54,7 @@ const approvedForwardMigrations = [
   '202608090066_day19_business_day_settings_invariant_REV1.sql',
   '202608090067_day19_gate19c_anonymous_surface_storage_restoration_REV1.sql',
   '202608090069_day19_hotel_onboarding_cross_tenant_rls_hardening_REV1.sql',
+  '202608101020_day19_housekeeping_template_onboarding_repair.sql',
 ]
 
 const expectedActive = [
@@ -67,6 +68,27 @@ if (JSON.stringify(activeFiles) !== JSON.stringify(expectedActive)) {
 }
 
 pass('canonical Day 18 foundation plus approved Day 19 forward migration chain')
+
+// DAY19F_HOUSEKEEPING_TEMPLATE_REPAIR_SOURCE_CONTRACT_REV2
+const day19fHousekeepingRepair =
+  read('supabase/migrations/202608101020_day19_housekeeping_template_onboarding_repair.sql')
+
+const day19fHousekeepingRepairContracts = [
+  ['Day 19F housekeeping repair is transactional', /\bbegin\s*;/i],
+  ['Day 19F housekeeping repair backfills hotels', /ensure_default_housekeeping_template\(hotel_row\.id\)/i],
+  ['Day 19F housekeeping repair installs future-hotel trigger', /hotels_day19_default_housekeeping_template/i],
+  ['Day 19F housekeeping repair preserves existing active template', /if\s+existing_template_id\s+is\s+not\s+null\s+then/i],
+  ['Day 19F housekeeping repair includes eight-item baseline', /'final-condition'[\s\S]*?'sort_order'\s*,\s*80/i],
+  ['Day 19F housekeeping repair blocks browser helper execution', /revoke\s+all\s+on\s+function[\s\S]*?ensure_default_housekeeping_template\(uuid\)[\s\S]*?from\s+public\s*,\s*anon\s*,\s*authenticated\s*;/i],
+  ['Day 19F housekeeping repair verifies missing-template coverage', /one or more hotels still lack an active room-cleaning template/i],
+  ['Day 19F housekeeping repair commits after verification', /\bcommit\s*;/i],
+]
+
+for (const [label, pattern] of day19fHousekeepingRepairContracts) {
+  if (!pattern.test(day19fHousekeepingRepair)) fail(label)
+  pass(`required - ${label}`)
+}
+
 
 const versions = activeFiles.map((name) => name.slice(0, 14))
 if (new Set(versions).size !== versions.length) {

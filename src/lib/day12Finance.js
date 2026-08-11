@@ -327,10 +327,10 @@ export function closeNightAudit(
   requestId
 ) {
   return invoke('close_night_audit', {
-    target_hotel_id: hotelId,
+    h: hotelId,
     business_date_value: businessDate,
     acknowledge_exceptions: Boolean(acknowledgeExceptions),
-    close_notes_value: notes || null,
+    notes_value: notes || null,
     request_id_value: requestId,
   })
 }

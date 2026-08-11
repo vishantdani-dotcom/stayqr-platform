@@ -938,8 +938,27 @@ export default function Guests({
           0
         );
 
-      const previouslyPaidAmount =
+      const legacyCheckoutPaidAmount =
         collectionPaidAmount + legacyPaidAmount;
+
+      // DAY19_R3_CHECKOUT_FOLIO_RECONCILIATION_REV1
+      // Folio & Settlement is authoritative for direct/split collections.
+      const {
+        data: checkoutFolio,
+        error: checkoutFolioError,
+      } = await supabase
+        .from("folios")
+        .select("collection_amount, balance_amount")
+        .eq("hotel_id", session.hotel_id)
+        .eq("guest_session_id", session.id)
+        .maybeSingle();
+
+      if (checkoutFolioError) throw checkoutFolioError;
+
+      const previouslyPaidAmount = Math.max(
+        legacyCheckoutPaidAmount,
+        Number(checkoutFolio?.collection_amount || 0)
+      );
 
       const roomAmount = (payments || [])
         .filter(

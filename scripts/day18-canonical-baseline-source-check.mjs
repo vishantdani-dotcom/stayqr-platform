@@ -1,4 +1,4 @@
-import crypto from 'node:crypto'
+﻿import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
@@ -56,14 +56,15 @@ const approvedForwardMigrations = [
   '202608090069_day19_hotel_onboarding_cross_tenant_rls_hardening_REV1.sql',
   '202608101020_day19_housekeeping_template_onboarding_repair.sql',
   '202608101021_day19_checkout_settlement_folio_repair.sql',
+  '202608110067_day19_guest_guide_future_hotel_bootstrap_repair_REV1.sql',
+  '202608110068_day19_checkout_folio_collection_reconciliation_REV1.sql',
+  '202608110069_day19_checkout_folio_no_synthetic_payment_status_REV1.sql',
 ]
-
 const expectedActive = [
   baselineName,
   hardeningName,
   ...approvedForwardMigrations,
 ]
-
 if (JSON.stringify(activeFiles) !== JSON.stringify(expectedActive)) {
   fail(`active migration set differs: ${activeFiles.join(', ')}`)
 }
@@ -784,3 +785,37 @@ for (const [label, pattern] of day19fCheckoutSettlementFolioRepairContracts) {
   if (!pattern.test(day19fCheckoutSettlementFolioRepair)) fail(label)
   pass(`required - ${label}`)
 }
+
+
+// DAY19_R3_CHECKOUT_FOLIO_SOURCE_CONTRACT_REV1
+const day19R3CheckoutFolioSource =
+  read('supabase/migrations/202608110068_day19_checkout_folio_collection_reconciliation_REV1.sql')
+const day19R3GuestsSource =
+  read('src/pages/guests/Guests.jsx')
+
+const day19R3CheckoutFolioContracts = [
+  ['Day19 R3 checkout uses authoritative folio collections in DB', /from public\.folios f/i.test(day19R3CheckoutFolioSource)],
+  ['Day19 R3 checkout merges proven folio paid amount', /previously_paid := greatest\(previously_paid, folio_paid_amount\)/i.test(day19R3CheckoutFolioSource)],
+  ['Day19 R3 checkout UI reads folio collection amount', /from\(["']folios["']\)[\s\S]{0,220}collection_amount/i.test(day19R3GuestsSource)],
+  ['Day19 R3 checkout UI retains legacy compatibility', /legacyCheckoutPaidAmount[\s\S]{0,220}legacyPaidAmount/i.test(day19R3GuestsSource)],
+]
+
+for (const [label, ok] of day19R3CheckoutFolioContracts) {
+  if (!ok) fail(label)
+  pass(`required - ${label}`)
+}
+
+// DAY19_R3_CHECKOUT_FOLIO_NO_SYNTHETIC_SOURCE_CONTRACT_REV1
+const day19R3NoSyntheticCheckout =
+  read('supabase/migrations/202608110069_day19_checkout_folio_no_synthetic_payment_status_REV1.sql')
+
+if (!/DAY19_R3_CHECKOUT_FOLIO_NO_SYNTHETIC_PAYMENT_STATUS_REV1/i.test(day19R3NoSyntheticCheckout)) {
+  fail('Day19 R3 checkout no-synthetic-payment-status repair source contract')
+}
+if (!/v_def := replace\(v_def, v_old_loop, v_new_loop\)/i.test(day19R3NoSyntheticCheckout)) {
+  fail('Day19 R3 checkout repair must replace the synthetic payment-status block')
+}
+if (!/DAY19_R3_CHECKOUT_FOLIO_NO_SYNTHETIC_PAYMENT_STATUS_REV1/i.test(day19R3NoSyntheticCheckout)) {
+  fail('Day19 R3 checkout repair corrective runtime marker must be present')
+}
+pass('required - Day19 R3 checkout no-synthetic-payment-status repair source contract')

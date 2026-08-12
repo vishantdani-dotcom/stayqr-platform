@@ -1,4 +1,4 @@
-﻿import crypto from 'node:crypto'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
@@ -59,6 +59,7 @@ const approvedForwardMigrations = [
   '202608110067_day19_guest_guide_future_hotel_bootstrap_repair_REV1.sql',
   '202608110068_day19_checkout_folio_collection_reconciliation_REV1.sql',
   '202608110069_day19_checkout_folio_no_synthetic_payment_status_REV1.sql',
+  '202608120070_day20_guest_guide_publication_readiness_hardening_REV1.sql',
 ]
 const expectedActive = [
   baselineName,
@@ -819,3 +820,30 @@ if (!/DAY19_R3_CHECKOUT_FOLIO_NO_SYNTHETIC_PAYMENT_STATUS_REV1/i.test(day19R3NoS
   fail('Day19 R3 checkout repair corrective runtime marker must be present')
 }
 pass('required - Day19 R3 checkout no-synthetic-payment-status repair source contract')
+
+// ============================================================================
+// DAY 20 GATE 20A-3 - QR / PUBLISHED GUEST GUIDE SOURCE CONTRACT REV1
+// ============================================================================
+const day20QrPublicationReadiness =
+  read('supabase/migrations/202608120070_day20_guest_guide_publication_readiness_hardening_REV1.sql')
+
+const day20QrPublicationContracts = [
+  ['Day 20 QR readiness hardening is transactional', /\bbegin\s*;/i],
+  ['Day 20 published-version helper resolves immutable version', /join\s+public\.guest_guide_versions[\s\S]*?s\.published_version\s*>=\s*1/i],
+  ['Day 20 QR readiness requires immutable published version', /qr_ready\s*:=\s*[\s\S]*?day20_guest_guide_has_published_version_20260812\s*\(\s*target_hotel_id\s*\)/i],
+  ['Day 20 readiness refresh prevents publication deadlock', /non_qr_ready[\s\S]*?ensure_guest_guide_foundation_20260811/i],
+  ['Day 20 premium resolver fails closed when unpublished', /raise\s+exception\s+'Guest Guide is not published yet\.'/i],
+  ['Day 20 premium resolver does not render live draft fallback', !/if\s+v_snapshot\s+is\s+null\s+then[\s\S]{0,220}?v_snapshot\s*:=\s*private\.day14_build_guide_snapshot/i.test(day20QrPublicationReadiness)],
+  ['Day 20 completed-hotel publication invariant is verified', /completed hotel has no immutable published Guest Guide version/i],
+  ['Day 20 QR readiness hardening commits after verification', /\bcommit\s*;/i],
+]
+
+for (const [label, contract] of day20QrPublicationContracts) {
+  const ok =
+    contract instanceof RegExp
+      ? contract.test(day20QrPublicationReadiness)
+      : contract
+
+  if (!ok) fail(label)
+  pass(`required - ${label}`)
+}

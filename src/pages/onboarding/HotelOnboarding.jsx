@@ -670,28 +670,50 @@ export default function HotelOnboarding({
   }
 
   async function handleFinishOnboarding() {
-    if (!readiness?.ready) {
-      setError('Complete every missing readiness item before finishing.')
-      return
-    }
+  if (!readiness?.ready) {
+    setError('Complete every missing readiness item before finishing.')
+    return
+  }
 
-    const result = await runAction('Completing onboarding', async () => {
-      const response = await saveHotelOnboardingStep(hotelId, 'review', {
-        complete: true,
-        completed_from: 'day8_frontend_wizard',
-      })
-      await loadSnapshot(hotelId)
-      return response
+  const result = await runAction('Completing onboarding', async () => {
+    const response = await saveHotelOnboardingStep(hotelId, 'review', {
+      complete: true,
+      completed_from: 'day8_frontend_wizard',
     })
 
-    if (result) {
-      clearOnboardingDraft(user?.id)
-      resetOnboardingRequestId(user?.id)
-      setSuccess(
-        'Hotel onboarding is complete. The property is operational and QR-ready.'
+    const nextSnapshot = await loadSnapshot(hotelId)
+
+    return {
+      response,
+      nextSnapshot,
+    }
+  })
+
+  if (result) {
+    const completedOnboarding =
+      result.response?.onboarding ||
+      result.nextSnapshot?.onboarding ||
+      null
+
+    if (completedOnboarding) {
+      setSnapshot((current) =>
+        current
+          ? {
+              ...current,
+              onboarding: completedOnboarding,
+            }
+          : current
       )
     }
+
+    clearOnboardingDraft(user?.id)
+    resetOnboardingRequestId(user?.id)
+
+    setSuccess(
+      'Hotel onboarding is complete. The property is operational and QR-ready.'
+    )
   }
+}
 
   function switchToNewHotel() {
     setMode('new')
@@ -1270,9 +1292,23 @@ function OperationsStep({
   )
 }
 
-function ReadinessStep({ readiness, snapshot, busy, onRefresh, onFinish }) {
+function ReadinessStep({
+  readiness,
+  snapshot,
+  busy,
+  onRefresh,
+  onFinish,
+}) {
   const checklist = readiness?.checklist || {}
   const entries = Object.entries(checklist)
+
+  const completedSteps = Array.isArray(
+    snapshot?.onboarding?.completed_steps
+  )
+    ? snapshot.onboarding.completed_steps
+    : []
+
+  const onboardingFinished = completedSteps.includes('review')
 
   return (
     <div className="onboarding-form">
@@ -1282,29 +1318,105 @@ function ReadinessStep({ readiness, snapshot, busy, onRefresh, onFinish }) {
         description="StayQR calculates this checklist from authoritative hotel data. The wizard cannot mark an incomplete property as operational."
       />
 
-      <div className={`readiness-banner ${readiness?.ready ? 'ready' : ''}`}>
-        <div><span>{readiness?.ready ? '✓' : '!'}</span><div><strong>{readiness?.ready ? 'Hotel is operational' : 'Setup is not complete yet'}</strong><p>{readiness?.ready ? 'The property has passed every Day 8 readiness check.' : 'Complete the missing items shown below.'}</p></div></div>
-        <button type="button" className="ghost-button" onClick={onRefresh} disabled={Boolean(busy)}>Refresh</button>
+      <div
+        className={`readiness-banner ${
+          readiness?.ready ? 'ready' : ''
+        }`}
+      >
+        <div>
+          <span>{readiness?.ready ? '✓' : '!'}</span>
+
+          <div>
+            <strong>
+              {onboardingFinished
+                ? 'Onboarding complete'
+                : readiness?.ready
+                  ? 'Hotel is operational'
+                  : 'Setup is not complete yet'}
+            </strong>
+
+            <p>
+              {onboardingFinished
+                ? 'The property onboarding has been finalized and is QR-ready.'
+                : readiness?.ready
+                  ? 'The property has passed every Day 8 readiness check.'
+                  : 'Complete the missing items shown below.'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={onRefresh}
+          disabled={Boolean(busy)}
+        >
+          Refresh
+        </button>
       </div>
 
       <div className="readiness-grid">
         {entries.map(([key, value]) => (
-          <div key={key} className={`readiness-item ${value ? 'passed' : 'missing'}`}><span>{value ? '✓' : '×'}</span><strong>{formatChecklistLabel(key)}</strong></div>
+          <div
+            key={key}
+            className={`readiness-item ${
+              value ? 'passed' : 'missing'
+            }`}
+          >
+            <span>{value ? '✓' : '×'}</span>
+            <strong>{formatChecklistLabel(key)}</strong>
+          </div>
         ))}
       </div>
 
-      {readiness?.missing?.length > 0 && <div className="missing-list"><strong>Still required</strong><div>{readiness.missing.map((item) => <span key={item}>{formatChecklistLabel(item)}</span>)}</div></div>}
+      {readiness?.missing?.length > 0 && (
+        <div className="missing-list">
+          <strong>Still required</strong>
+
+          <div>
+            {readiness.missing.map((item) => (
+              <span key={item}>
+                {formatChecklistLabel(item)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="final-summary-grid">
-        <Stat label="Rooms" value={snapshot?.rooms.length || 0} />
-        <Stat label="Room types" value={snapshot?.roomTypes.length || 0} />
-        <Stat label="Menu items" value={snapshot?.menuItems.length || 0} />
-        <Stat label="Subscription" value={snapshot?.subscription?.status || 'Missing'} />
+        <Stat
+          label="Rooms"
+          value={snapshot?.rooms.length || 0}
+        />
+
+        <Stat
+          label="Room types"
+          value={snapshot?.roomTypes.length || 0}
+        />
+
+        <Stat
+          label="Menu items"
+          value={snapshot?.menuItems.length || 0}
+        />
+
+        <Stat
+          label="Subscription"
+          value={snapshot?.subscription?.status || 'Missing'}
+        />
       </div>
 
-      <div className="panel-actions">
-        <button type="button" className="primary-button" disabled={Boolean(busy) || !readiness?.ready} onClick={onFinish}>{busy || 'Complete onboarding'}</button>
-      </div>
+      {!onboardingFinished && (
+        <div className="panel-actions">
+          <button
+            type="button"
+            className="primary-button"
+            disabled={Boolean(busy) || !readiness?.ready}
+            onClick={onFinish}
+          >
+            {busy || 'Complete onboarding'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

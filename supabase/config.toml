@@ -5,3 +5,12 @@
 
 [functions.manage-staff-user]
 verify_jwt = false
+
+[functions.cashfree-health]
+verify_jwt = false
+
+[functions.cashfree-create-payment-link]
+verify_jwt = false
+
+[functions.cashfree-webhook]
+verify_jwt = false

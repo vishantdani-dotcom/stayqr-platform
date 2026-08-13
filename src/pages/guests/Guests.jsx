@@ -842,28 +842,10 @@ export default function Guests({
       }
 
       /*
-       * Prevent duplicate invoice for this stay.
+       * Day 20 checkout:
+       * Existing immutable invoices are validated and safely reused by the
+       * authoritative checkout RPC. Do not block checkout client-side.
        */
-      const {
-        data: existingInvoice,
-        error: existingInvoiceError,
-      } = await supabase
-        .from("invoices")
-        .select("id, invoice_number")
-        .eq("hotel_id", session.hotel_id)
-        .eq("guest_session_id", session.id)
-        .limit(1)
-        .maybeSingle();
-
-      if (existingInvoiceError) {
-        throw existingInvoiceError;
-      }
-
-      if (existingInvoice) {
-        throw new Error(
-          `Invoice already exists for this stay: ${existingInvoice.invoice_number}`
-        );
-      }
 
       /*
        * Fetch payment demand records.

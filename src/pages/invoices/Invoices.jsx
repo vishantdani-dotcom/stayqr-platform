@@ -570,6 +570,7 @@ export default function Invoices({ hotel, permissions = [], currentRole = '' }) 
       {activeTab === 'invoices' && (
         <InvoiceTab
           invoices={filteredInvoices}
+          folios={workspace.folios}
           search={search}
           setSearch={setSearch}
           canManage={canManage}
@@ -699,8 +700,41 @@ export default function Invoices({ hotel, permissions = [], currentRole = '' }) 
   )
 }
 
+function getLiveInvoiceSettlement(invoice, folios = []) {
+  const folio = folios.find((item) => item.id === invoice.folio_id)
+
+  const invoiceTotal = Number(invoice.total_amount || 0)
+
+  // If an authoritative folio exists, its balance is the current
+  // settlement truth. The immutable invoice snapshot remains untouched.
+  if (folio) {
+    const liveBalance = Math.max(Number(folio.balance_amount || 0), 0)
+
+    const livePaid = Math.max(
+      0,
+      Math.min(invoiceTotal, invoiceTotal - liveBalance)
+    )
+
+    return {
+      liveBalance,
+      livePaid,
+      settled:
+        folio.status === 'settled' ||
+        liveBalance <= 0.005,
+    }
+  }
+
+  // Legacy/fallback invoices without a folio continue using
+  // their stored invoice values.
+  return {
+    liveBalance: Math.max(Number(invoice.pending_amount || 0), 0),
+    livePaid: Math.max(Number(invoice.paid_amount || 0), 0),
+    settled: Number(invoice.pending_amount || 0) <= 0.005,
+  }
+}
 function InvoiceTab({
   invoices,
+  folios,
   search,
   setSearch,
   canManage,
@@ -755,7 +789,11 @@ function InvoiceTab({
                 <td>{formatMoney(invoice.taxable_amount || invoice.subtotal_amount)}</td>
                 <td>{formatMoney(invoice.tax_amount)}</td>
                 <td>{formatMoney(invoice.total_amount)}</td>
-                <td>{formatMoney(invoice.pending_amount)}</td>
+                <td>
+  {formatMoney(
+    getLiveInvoiceSettlement(invoice, folios).liveBalance
+  )}
+</td>
                 <td>
                   <StatusBadge
                     value={invoice.finalized_at ? 'immutable' : invoice.invoice_status}

@@ -161,20 +161,39 @@ export default function Sidebar({
             </div>
           </div>
 
-          <a
-            href="/privacy"
-            target="_blank"
-            rel="noreferrer"
+          <div
             style={{
-              display: 'block',
+              display: 'flex',
+              gap: '10px',
+              flexWrap: 'wrap',
               marginTop: '10px',
-              color: '#a1a1aa',
-              fontSize: '12px',
-              textDecoration: 'none',
             }}
           >
-            Privacy Policy
-          </a>
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                color: '#a1a1aa',
+                fontSize: '12px',
+                textDecoration: 'none',
+              }}
+            >
+              Privacy Policy
+            </a>
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                color: '#a1a1aa',
+                fontSize: '12px',
+                textDecoration: 'none',
+              }}
+            >
+              Terms of Service
+            </a>
+          </div>
         </div>
       )}
     </aside>

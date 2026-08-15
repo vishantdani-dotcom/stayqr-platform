@@ -49,6 +49,7 @@ const BookingCalendar = lazy(() => import('./pages/calendar/BookingCalendar'))
 const ReservationOperations = lazy(() => import('./pages/operations/ReservationOperations'))
 const HotelOnboarding = lazy(() => import('./pages/onboarding/HotelOnboarding'))
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
+const TermsOfService = lazy(() => import('./pages/legal/TermsOfService'))
 
 const SECTION_TITLES = {
   dashboard: 'dashboard',
@@ -249,6 +250,14 @@ export default function App() {
     return (
       <StandaloneRouteBoundary routeKey="privacy-policy" label="privacy policy">
         <PrivacyPolicy />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (window.location.pathname === '/terms') {
+    return (
+      <StandaloneRouteBoundary routeKey="terms-of-service" label="terms of service">
+        <TermsOfService />
       </StandaloneRouteBoundary>
     )
   }

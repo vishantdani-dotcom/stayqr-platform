@@ -55,10 +55,12 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
   const [kycUploading, setKycUploading] = useState(false);
   const [openingDocumentId, setOpeningDocumentId] = useState(null);
   const [reviewingDocumentId, setReviewingDocumentId] = useState(null);
+  const [deletingDocumentId, setDeletingDocumentId] = useState(null);
   const [kycPermissions, setKycPermissions] = useState({
     canView: false,
     canUpload: false,
     canReview: false,
+    canDelete: false,
   });
 
   useEffect(() => {
@@ -93,6 +95,8 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
           ),
         canReview:
           isPlatformAdmin || permissions.includes("guests.manage"),
+        canDelete:
+          isPlatformAdmin || permissions.includes("guests.manage"),
       });
     } catch (error) {
       console.error("KYC permission load error:", error);
@@ -100,6 +104,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
         canView: false,
         canUpload: false,
         canReview: false,
+        canDelete: false,
       });
     }
   }
@@ -742,6 +747,60 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     }
   }
 
+  async function deleteGuestDocument(documentRecord) {
+    if (
+      !kycPermissions.canDelete ||
+      !currentHotel?.id ||
+      !selectedGuest?.id ||
+      !documentRecord?.id
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Permanently delete this KYC file? The private storage object will be removed and the document record will be soft-deleted."
+    );
+
+    if (!confirmed) return;
+
+    setDeletingDocumentId(documentRecord.id);
+
+    try {
+      const storageBucket = documentRecord.storage_bucket || KYC_BUCKET;
+      const storagePath = documentRecord.storage_path;
+
+      if (storagePath) {
+        const { error: storageError } = await supabase.storage
+          .from(storageBucket)
+          .remove([storagePath]);
+
+        if (storageError) throw storageError;
+      }
+
+      const { error: metadataError } = await supabase
+        .from("guest_documents")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("hotel_id", currentHotel.id)
+        .eq("guest_id", selectedGuest.id)
+        .eq("id", documentRecord.id)
+        .is("deleted_at", null);
+
+      if (metadataError) throw metadataError;
+
+      onNotice?.("success", "KYC document permanently removed.");
+
+      await Promise.all([openProfile(selectedGuest), loadDirectory()]);
+    } catch (error) {
+      console.error("Guest KYC delete error:", error);
+      onNotice?.(
+        "error",
+        error.message || "Unable to permanently remove the KYC document."
+      );
+    } finally {
+      setDeletingDocumentId(null);
+    }
+  }
+
   const profileSummary = useMemo(() => {
     const roomCharges = profile.payments
       .filter((payment) => payment.payment_type === "room_charge")
@@ -1255,7 +1314,8 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                         );
                         const busy =
                           openingDocumentId === documentRecord.id ||
-                          reviewingDocumentId === documentRecord.id;
+                          reviewingDocumentId === documentRecord.id ||
+                          deletingDocumentId === documentRecord.id;
 
                         return (
                           <article key={documentRecord.id}>
@@ -1379,6 +1439,19 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                     </button>
                                   )}
                                 </>
+                              )}
+
+                              {kycPermissions.canDelete && (
+                                <button
+                                  type="button"
+                                  className="danger"
+                                  disabled={busy}
+                                  onClick={() => deleteGuestDocument(documentRecord)}
+                                >
+                                  {deletingDocumentId === documentRecord.id
+                                    ? "Deleting..."
+                                    : "Delete KYC"}
+                                </button>
                               )}
                             </div>
                           </article>

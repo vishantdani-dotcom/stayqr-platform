@@ -160,6 +160,21 @@ export default function Sidebar({
               <span className="user-role">{userRole}</span>
             </div>
           </div>
+
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: 'block',
+              marginTop: '10px',
+              color: '#a1a1aa',
+              fontSize: '12px',
+              textDecoration: 'none',
+            }}
+          >
+            Privacy Policy
+          </a>
         </div>
       )}
     </aside>

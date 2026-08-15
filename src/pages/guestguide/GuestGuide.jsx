@@ -1380,7 +1380,7 @@ export default function GuestGuide() {
 
       <div className="ag-content">{sections.map((section) => renderSection(section))}</div>
 
-      <footer className="ag-footer"><div className="ag-footer-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR — Simplifying check-in" /><div><span>{copy.poweredBy}</span><p>{copy.stayqrTagline}</p></div></div><small>{hotelName}</small></footer>
+      <footer className="ag-footer"><div className="ag-footer-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR — Simplifying check-in" /><div><span>{copy.poweredBy}</span><p>{copy.stayqrTagline}</p></div></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}><a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Privacy Policy</a><small>{hotelName}</small></div></footer>
 
       <nav className="ag-sticky" aria-label="Guest quick actions"><button type="button" onClick={() => callPhone(receptionPhone)}><GuideIcon name="phone" size={18} /><span>{copy.call}</span></button><button type="button" onClick={() => openWhatsApp(whatsappItem?.action_value || receptionPhone)}><GuideIcon name="whatsapp" size={18} /><span>{copy.whatsapp}</span></button><button type="button" onClick={() => scrollToSection('wifi')}><GuideIcon name="wifi" size={18} /><span>{copy.wifi}</span></button><button type="button" onClick={() => scrollToSection('guest_services')}><GuideIcon name="service" size={18} /><span>{copy.services}</span></button></nav>
 

@@ -48,6 +48,7 @@ const Reservations = lazy(() => import('./pages/reservations/Reservations'))
 const BookingCalendar = lazy(() => import('./pages/calendar/BookingCalendar'))
 const ReservationOperations = lazy(() => import('./pages/operations/ReservationOperations'))
 const HotelOnboarding = lazy(() => import('./pages/onboarding/HotelOnboarding'))
+const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
 
 const SECTION_TITLES = {
   dashboard: 'dashboard',
@@ -243,6 +244,14 @@ export default function App() {
     window.addEventListener(NAVIGATE_EVENT, handleExternalNavigation)
     return () => window.removeEventListener(NAVIGATE_EVENT, handleExternalNavigation)
   }, [currentRole, tenantContext?.permissions])
+
+  if (window.location.pathname === '/privacy') {
+    return (
+      <StandaloneRouteBoundary routeKey="privacy-policy" label="privacy policy">
+        <PrivacyPolicy />
+      </StandaloneRouteBoundary>
+    )
+  }
 
   if (window.location.pathname.startsWith('/invoice/verify/')) {
     return (

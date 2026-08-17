@@ -4,7 +4,6 @@ import { getCurrentHotel } from '../../lib/currentHotel'
 import HotelOverviewCard from '../../components/cards/HotelOverviewCard'
 import RoomsTable from '../../components/table/RoomsTable'
 import QuickActions from '../../components/buttons/QuickActions'
-import PlaceholderCards from '../../components/cards/PlaceholderCards'
 import AddRoomModal from '../../components/modals/AddRoomModal'
 import './Dashboard.css'
 
@@ -255,9 +254,6 @@ export default function Dashboard({ hotel = null, staff = null }) {
         />
       </section>
 
-      <section className="dash-section">
-        <PlaceholderCards />
-      </section>
     </div>
   )
 }

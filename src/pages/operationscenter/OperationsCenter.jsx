@@ -73,9 +73,10 @@ function isoStart(days = 7) {
   return d.toISOString()
 }
 
-export default function OperationsCenter({ hotel, currentRole }) {
+export default function OperationsCenter({ hotel, currentRole, initialTab = 'notifications' }) {
   const hotelId = hotel?.id
-  const [tab, setTab] = useState('notifications')
+  const safeInitialTab = TABS.some(([id]) => id === initialTab) ? initialTab : 'notifications'
+  const [tab, setTab] = useState(safeInitialTab)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [error, setError] = useState('')
@@ -130,6 +131,11 @@ export default function OperationsCenter({ hotel, currentRole }) {
     source: '',
     search: '',
   })
+  useEffect(() => {
+    const nextTab = TABS.some(([id]) => id === initialTab) ? initialTab : 'notifications'
+    setTab(nextTab)
+  }, [initialTab])
+
   const showToast = useCallback((message) => {
     setToast(message)
     window.setTimeout(() => setToast(''), 2600)

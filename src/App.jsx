@@ -539,6 +539,14 @@ export default function App() {
             currentRole={currentRole}
           />
         )
+      case 'settings':
+        return (
+          <OperationsCenter
+            hotel={tenantContext?.selectedHotel || null}
+            currentRole={currentRole}
+            initialTab="settings"
+          />
+        )
       case 'invoices':
         return (
           <Invoices

@@ -324,7 +324,7 @@ export default function App() {
     )
   }
 
-  if (window.location.pathname === '/cookies') {
+  if (['/cookies', '/cookie-notice'].includes(window.location.pathname)) {
     return (
       <StandaloneRouteBoundary routeKey="cookie-browser-storage-notice" label="cookie and browser storage notice">
         <CookieBrowserStorageNotice />

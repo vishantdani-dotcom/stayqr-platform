@@ -251,6 +251,20 @@ export default function Sidebar({
               >
                 SLA / Service Commitments
               </a>
+              <a
+                href="/legal"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: '#e8c75c',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  marginTop: '3px',
+                }}
+              >
+                View all Legal &amp; Policies →
+              </a>
             </div>
           </details>
         </div>

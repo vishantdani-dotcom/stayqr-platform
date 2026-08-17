@@ -216,7 +216,7 @@ export default function DataProcessingAgreement() {
         </article>
 
         <p className="sq-dpa-note">
-          Related documents: <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="/sla">SLA / Service Commitments</a>
+          Related documents: <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="/security">Security + Responsible Disclosure</a> · <a href="/legal">Legal &amp; Policies</a>
         </p>
       </div>
     </main>

@@ -160,7 +160,7 @@ export default function ServiceCommitments() {
         </article>
 
         <p className="sq-sla-note">
-          Related documents: <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="/dpa">DPA</a>
+          Related documents: <a href="/support">Support + Escalation Policy</a> · <a href="/subscription-policy">Subscription / Cancellation / Refund Policy</a> · <a href="/legal">Legal &amp; Policies</a>
         </p>
       </div>
     </main>

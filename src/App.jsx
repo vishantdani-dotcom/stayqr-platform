@@ -52,6 +52,12 @@ const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/legal/TermsOfService'))
 const DataProcessingAgreement = lazy(() => import('./pages/legal/DataProcessingAgreement'))
 const ServiceCommitments = lazy(() => import('./pages/legal/ServiceCommitments'))
+const LegalPoliciesHub = lazy(() => import('./pages/legal/LegalPoliciesHub'))
+const AcceptableUsePolicy = lazy(() => import('./pages/legal/AcceptableUsePolicy'))
+const SupportEscalationPolicy = lazy(() => import('./pages/legal/SupportEscalationPolicy'))
+const SubscriptionPolicy = lazy(() => import('./pages/legal/SubscriptionPolicy'))
+const SecurityResponsibleDisclosure = lazy(() => import('./pages/legal/SecurityResponsibleDisclosure'))
+const CookieBrowserStorageNotice = lazy(() => import('./pages/legal/CookieBrowserStorageNotice'))
 
 const SECTION_TITLES = {
   dashboard: 'dashboard',
@@ -274,6 +280,54 @@ export default function App() {
     return (
       <StandaloneRouteBoundary routeKey="service-commitments" label="service commitments">
         <ServiceCommitments />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (window.location.pathname === '/legal') {
+    return (
+      <StandaloneRouteBoundary routeKey="legal-policies" label="legal and policies">
+        <LegalPoliciesHub />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (window.location.pathname === '/aup') {
+    return (
+      <StandaloneRouteBoundary routeKey="acceptable-use-policy" label="acceptable use policy">
+        <AcceptableUsePolicy />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (window.location.pathname === '/support') {
+    return (
+      <StandaloneRouteBoundary routeKey="support-escalation-policy" label="support and escalation policy">
+        <SupportEscalationPolicy />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (window.location.pathname === '/subscription-policy') {
+    return (
+      <StandaloneRouteBoundary routeKey="subscription-policy" label="subscription cancellation and refund policy">
+        <SubscriptionPolicy />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (window.location.pathname === '/security') {
+    return (
+      <StandaloneRouteBoundary routeKey="security-responsible-disclosure" label="security and responsible disclosure policy">
+        <SecurityResponsibleDisclosure />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (window.location.pathname === '/cookies') {
+    return (
+      <StandaloneRouteBoundary routeKey="cookie-browser-storage-notice" label="cookie and browser storage notice">
+        <CookieBrowserStorageNotice />
       </StandaloneRouteBoundary>
     )
   }

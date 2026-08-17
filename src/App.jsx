@@ -581,7 +581,7 @@ export default function App() {
             <span className="tenant-switch-spinner" />
             <div>
               <strong>Switching property</strong>
-              <span>Reloading authoritative hotel dataÃ¢â‚¬Â¦</span>
+              <span>Reloading authoritative hotel data…</span>
             </div>
           </div>
         </div>
@@ -591,7 +591,7 @@ export default function App() {
         <div className="tenant-switch-error" role="alert">
           <span>{hotelSwitchError}</span>
           <button type="button" onClick={() => setHotelSwitchError('')}>
-            Ãƒâ€”
+            ×
           </button>
         </div>
       )}
@@ -622,7 +622,7 @@ function TenantAccessError({ message }) {
   return (
     <div className="coming-soon-page">
       <div className="cs-content">
-        <div className="cs-icon">Ã¢Å¡ Ã¯Â¸Â</div>
+        <div className="cs-icon">⚠️</div>
         <h2 className="cs-title gold-text">Hotel Access Required</h2>
         <p className="cs-sub">{message}</p>
         <button
@@ -650,7 +650,7 @@ function AccessDenied({ section }) {
   return (
     <div className="coming-soon-page">
       <div className="cs-content">
-        <div className="cs-icon">Ã°Å¸â€â€™</div>
+        <div className="cs-icon">🔒</div>
         <h2 className="cs-title gold-text">Access Restricted</h2>
         <p className="cs-sub">
           You do not have permission to open the {section} section.
@@ -664,7 +664,7 @@ function ComingSoonPage({ section }) {
   return (
     <div className="coming-soon-page">
       <div className="cs-content">
-        <div className="cs-icon">Ã°Å¸Å¡Â§</div>
+        <div className="cs-icon">🚧</div>
         <h2 className="cs-title gold-text">Coming Soon</h2>
         <p className="cs-sub">
           The {section} module is being prepared for StayQR v1.0.

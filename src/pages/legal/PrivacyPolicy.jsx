@@ -149,7 +149,7 @@ export default function PrivacyPolicy() {
           This policy is intended for StayQR's website, SaaS platform and guest-facing QR services.
         </p>
         <p style={{ marginTop: '10px', color: '#8f8f98', fontSize: '12px', textAlign: 'center' }}>
-          Related documents: <a href="/terms" style={{ color: '#c7a94b' }}>Terms of Service</a> Ã‚Â· <a href="/dpa" style={{ color: '#c7a94b' }}>Data Processing Agreement</a> Â· <a href="/sla" style={{ color: '#c7a94b' }}>SLA / Service Commitments</a>
+          Related documents: <a href="/terms" style={{ color: '#c7a94b' }}>Terms of Service</a> · <a href="/dpa" style={{ color: '#c7a94b' }}>Data Processing Agreement</a> · <a href="/sla" style={{ color: '#c7a94b' }}>SLA / Service Commitments</a>
         </p>      </div>
     </main>
   )

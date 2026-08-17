@@ -14,8 +14,8 @@ const NAV_ITEMS = [
       { id: 'rooms', label: 'Rooms', icon: DoorIcon, badge: null },
       { id: 'guests', label: 'Guests', icon: UsersIcon, badge: '3' },
       { id: 'checkin', label: 'Check-In/Out', icon: KeyIcon, badge: null },
-      { id: 'menu', label: 'Menu Management', icon: 'ðŸ½ï¸', badge: null },
-      { id: 'staff', label: 'Staff', icon: 'ðŸ‘¥', badge: null },
+      { id: 'menu', label: 'Menu Management', icon: '🍽️', badge: null },
+      { id: 'staff', label: 'Staff', icon: '👥', badge: null },
     ],
   },
   {
@@ -161,63 +161,98 @@ export default function Sidebar({
             </div>
           </div>
 
-          <div
+          <details
             style={{
-              display: 'flex',
-              gap: '10px',
-              flexWrap: 'wrap',
               marginTop: '10px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              paddingTop: '8px',
             }}
           >
-            <a
-              href="/privacy"
-              target="_blank"
-              rel="noreferrer"
+            <summary
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
                 color: '#a1a1aa',
                 fontSize: '12px',
-                textDecoration: 'none',
+                cursor: 'pointer',
+                listStyle: 'none',
+                userSelect: 'none',
+                padding: '4px 0',
               }}
             >
-              Privacy Policy
-            </a>
-            <a
-              href="/terms"
-              target="_blank"
-              rel="noreferrer"
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                }}
+              >
+                <LegalDocumentIcon />
+                <span>Legal &amp; Policies</span>
+              </span>
+              <DownChevronIcon />
+            </summary>
+
+            <div
               style={{
-                color: '#a1a1aa',
-                fontSize: '12px',
-                textDecoration: 'none',
+                display: 'grid',
+                gap: '7px',
+                marginTop: '8px',
+                padding: '2px 0 2px 23px',
               }}
             >
-              Terms of Service
-            </a>
-            <a
-              href="/dpa"
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                color: '#a1a1aa',
-                fontSize: '12px',
-                textDecoration: 'none',
-              }}
-            >
-              Data Processing Agreement
-            </a>
-            <a
-              href="/sla"
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                color: '#a1a1aa',
-                fontSize: '12px',
-                textDecoration: 'none',
-              }}
-            >
-              SLA / Service Commitments
-            </a>
-          </div>
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: '#a1a1aa',
+                  fontSize: '11px',
+                  textDecoration: 'none',
+                }}
+              >
+                Privacy Policy
+              </a>
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: '#a1a1aa',
+                  fontSize: '11px',
+                  textDecoration: 'none',
+                }}
+              >
+                Terms of Service
+              </a>
+              <a
+                href="/dpa"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: '#a1a1aa',
+                  fontSize: '11px',
+                  textDecoration: 'none',
+                }}
+              >
+                Data Processing Agreement
+              </a>
+              <a
+                href="/sla"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: '#a1a1aa',
+                  fontSize: '11px',
+                  textDecoration: 'none',
+                }}
+              >
+                SLA / Service Commitments
+              </a>
+            </div>
+          </details>
         </div>
       )}
     </aside>
@@ -361,6 +396,44 @@ function QrSquareIcon() {
       <rect x="14" y="2" width="8" height="8" rx="1" />
       <rect x="2" y="14" width="8" height="8" rx="1" />
       <path d="M14 14h2v2h-2z M18 14h2 M14 18h2 M18 18h2v2h-2z M20 16v2" />
+    </svg>
+  )
+}
+
+function LegalDocumentIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 2h9l5 5v15H6z" />
+      <path d="M14 2v6h6" />
+      <path d="M9 13h6M9 17h6" />
+    </svg>
+  )
+}
+
+function DownChevronIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   )
 }

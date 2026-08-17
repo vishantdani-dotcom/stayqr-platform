@@ -50,6 +50,7 @@ const ReservationOperations = lazy(() => import('./pages/operations/ReservationO
 const HotelOnboarding = lazy(() => import('./pages/onboarding/HotelOnboarding'))
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/legal/TermsOfService'))
+const DataProcessingAgreement = lazy(() => import('./pages/legal/DataProcessingAgreement'))
 
 const SECTION_TITLES = {
   dashboard: 'dashboard',
@@ -258,6 +259,13 @@ export default function App() {
     return (
       <StandaloneRouteBoundary routeKey="terms-of-service" label="terms of service">
         <TermsOfService />
+      </StandaloneRouteBoundary>
+    )
+  }
+  if (window.location.pathname === '/dpa') {
+    return (
+      <StandaloneRouteBoundary routeKey="data-processing-agreement" label="data processing agreement">
+        <DataProcessingAgreement />
       </StandaloneRouteBoundary>
     )
   }
@@ -565,7 +573,7 @@ export default function App() {
             <span className="tenant-switch-spinner" />
             <div>
               <strong>Switching property</strong>
-              <span>Reloading authoritative hotel data…</span>
+              <span>Reloading authoritative hotel dataâ€¦</span>
             </div>
           </div>
         </div>
@@ -575,7 +583,7 @@ export default function App() {
         <div className="tenant-switch-error" role="alert">
           <span>{hotelSwitchError}</span>
           <button type="button" onClick={() => setHotelSwitchError('')}>
-            ×
+            Ã—
           </button>
         </div>
       )}
@@ -606,7 +614,7 @@ function TenantAccessError({ message }) {
   return (
     <div className="coming-soon-page">
       <div className="cs-content">
-        <div className="cs-icon">⚠️</div>
+        <div className="cs-icon">âš ï¸</div>
         <h2 className="cs-title gold-text">Hotel Access Required</h2>
         <p className="cs-sub">{message}</p>
         <button
@@ -634,7 +642,7 @@ function AccessDenied({ section }) {
   return (
     <div className="coming-soon-page">
       <div className="cs-content">
-        <div className="cs-icon">🔒</div>
+        <div className="cs-icon">ðŸ”’</div>
         <h2 className="cs-title gold-text">Access Restricted</h2>
         <p className="cs-sub">
           You do not have permission to open the {section} section.
@@ -648,7 +656,7 @@ function ComingSoonPage({ section }) {
   return (
     <div className="coming-soon-page">
       <div className="cs-content">
-        <div className="cs-icon">🚧</div>
+        <div className="cs-icon">ðŸš§</div>
         <h2 className="cs-title gold-text">Coming Soon</h2>
         <p className="cs-sub">
           The {section} module is being prepared for StayQR v1.0.

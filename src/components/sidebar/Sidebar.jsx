@@ -1,4 +1,4 @@
-// src/components/sidebar/Sidebar.jsx
+﻿// src/components/sidebar/Sidebar.jsx
 import './Sidebar.css'
 import { normalizeRole, canAccessSection } from '../../lib/currentStaff'
 import HotelSwitcher from '../hotel/HotelSwitcher'
@@ -14,8 +14,8 @@ const NAV_ITEMS = [
       { id: 'rooms', label: 'Rooms', icon: DoorIcon, badge: null },
       { id: 'guests', label: 'Guests', icon: UsersIcon, badge: '3' },
       { id: 'checkin', label: 'Check-In/Out', icon: KeyIcon, badge: null },
-      { id: 'menu', label: 'Menu Management', icon: '🍽️', badge: null },
-      { id: 'staff', label: 'Staff', icon: '👥', badge: null },
+      { id: 'menu', label: 'Menu Management', icon: 'ðŸ½ï¸', badge: null },
+      { id: 'staff', label: 'Staff', icon: 'ðŸ‘¥', badge: null },
     ],
   },
   {
@@ -192,6 +192,18 @@ export default function Sidebar({
               }}
             >
               Terms of Service
+            </a>
+            <a
+              href="/dpa"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                color: '#a1a1aa',
+                fontSize: '12px',
+                textDecoration: 'none',
+              }}
+            >
+              Data Processing Agreement
             </a>
           </div>
         </div>

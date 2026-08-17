@@ -148,7 +148,9 @@ export default function PrivacyPolicy() {
         <p className="sq-privacy-note">
           This policy is intended for StayQR's website, SaaS platform and guest-facing QR services.
         </p>
-      </div>
+        <p style={{ marginTop: '10px', color: '#8f8f98', fontSize: '12px', textAlign: 'center' }}>
+          Related documents: <a href="/terms" style={{ color: '#c7a94b' }}>Terms of Service</a> Â· <a href="/dpa" style={{ color: '#c7a94b' }}>Data Processing Agreement</a>
+        </p>      </div>
     </main>
   )
 }

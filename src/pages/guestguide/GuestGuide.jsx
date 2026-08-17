@@ -25,7 +25,7 @@ import {
 import { getDirectLocaleTranslation, getFullItemCopy, getFullSectionCopy } from '../../lib/guestGuideFullCatalog'
 import './GuestGuide.css'
 
-// PRIVATE FEEDBACK â€” retained source-gate marker for the private hotel feedback workflow.
+// PRIVATE FEEDBACK Ã¢â‚¬â€ retained source-gate marker for the private hotel feedback workflow.
 
 const ACCESS_RECHECK_INTERVAL_MS = 15000
 const REQUEST_RECHECK_INTERVAL_MS = 20000
@@ -99,31 +99,31 @@ const DEFAULT_QUICK_ACTIONS = [
 
 
 const ICON_ALIASES = {
-  'ðŸ§¹': 'housekeeping',
-  'ðŸ’§': 'water',
-  'ðŸ§º': 'towels',
-  'ðŸ½ï¸': 'food',
-  'ðŸšª': 'checkout',
-  'ðŸ“ž': 'phone',
-  'â˜Žï¸': 'phone',
-  'ðŸ’¬': 'whatsapp',
-  'â—Ž': 'instagram',
-  'ðŸŒ': 'globe',
-  'ðŸ´': 'restaurant',
-  'ðŸ¥': 'medical',
-  'ðŸ§': 'atm',
-  'ðŸ›ï¸': 'shopping',
-  'ðŸ“': 'map',
-  'ðŸš•': 'taxi',
-  'â„ï¸': 'snowflake',
-  'ðŸ“º': 'tv',
-  'ðŸš¿': 'shower',
-  'ðŸ”': 'safe',
-  'âœ¨': 'sparkles',
-  'ðŸ“¶': 'wifi',
-  'â­': 'star',
-  'ðŸš¨': 'shield',
-  'âœ‰ï¸': 'email',
+  'Ã°Å¸Â§Â¹': 'housekeeping',
+  'Ã°Å¸â€™Â§': 'water',
+  'Ã°Å¸Â§Âº': 'towels',
+  'Ã°Å¸ÂÂ½Ã¯Â¸Â': 'food',
+  'Ã°Å¸Å¡Âª': 'checkout',
+  'Ã°Å¸â€œÅ¾': 'phone',
+  'Ã¢ËœÅ½Ã¯Â¸Â': 'phone',
+  'Ã°Å¸â€™Â¬': 'whatsapp',
+  'Ã¢â€”Å½': 'instagram',
+  'Ã°Å¸Å’Â': 'globe',
+  'Ã°Å¸ÂÂ´': 'restaurant',
+  'Ã°Å¸ÂÂ¥': 'medical',
+  'Ã°Å¸ÂÂ§': 'atm',
+  'Ã°Å¸â€ºÂÃ¯Â¸Â': 'shopping',
+  'Ã°Å¸â€œÂ': 'map',
+  'Ã°Å¸Å¡â€¢': 'taxi',
+  'Ã¢Ââ€žÃ¯Â¸Â': 'snowflake',
+  'Ã°Å¸â€œÂº': 'tv',
+  'Ã°Å¸Å¡Â¿': 'shower',
+  'Ã°Å¸â€Â': 'safe',
+  'Ã¢Å“Â¨': 'sparkles',
+  'Ã°Å¸â€œÂ¶': 'wifi',
+  'Ã¢Â­Â': 'star',
+  'Ã°Å¸Å¡Â¨': 'shield',
+  'Ã¢Å“â€°Ã¯Â¸Â': 'email',
 }
 
 function getLocaleLabel(localeCode) {
@@ -413,7 +413,7 @@ function formatMoney(value, currencyCode = 'INR') {
       maximumFractionDigits: 2,
     }).format(Number.isFinite(amount) ? amount : 0)
   } catch {
-    return `â‚¹${Number.isFinite(amount) ? amount.toFixed(2) : '0.00'}`
+    return `Ã¢â€šÂ¹${Number.isFinite(amount) ? amount.toFixed(2) : '0.00'}`
   }
 }
 
@@ -1001,7 +1001,7 @@ export default function GuestGuide() {
               {item.disclaimer && <small>{item.disclaimer}</small>}
               {item.action_type && item.action_type !== 'none' && (
                 <button type="button" onClick={() => void runItemAction(item)}>
-                  {item.button_label || copy.open}<span aria-hidden="true">â†’</span>
+                  {item.button_label || copy.open}<span aria-hidden="true">Ã¢â€ â€™</span>
                 </button>
               )}
             </div>
@@ -1033,7 +1033,7 @@ export default function GuestGuide() {
           <Heading section={section} />
           <div className="ag-glance-grid">
             {[
-              ['bed', copy.roomNumber, room.room_number || 'â€”'],
+              ['bed', copy.roomNumber, room.room_number || 'Ã¢â‚¬â€'],
               ['sparkles', copy.roomType, room.room_type || copy.guestRoom],
               ['document', copy.checkIn, displayInfo.checkin_time || copy.askReception],
               ['checkout', copy.checkOut, displayInfo.checkout_time || copy.askReception],
@@ -1133,7 +1133,7 @@ export default function GuestGuide() {
                   <button type="button" className="ag-accordion-trigger" onClick={() => setExpandedInstructionId(isOpen ? '' : item.id)} aria-expanded={isOpen}>
                     <span className="ag-icon"><GuideIcon name={item.icon || item.item_key} size={20} /></span>
                     <span><strong>{item.title}</strong><small>{item.description}</small></span>
-                    <b>{isOpen ? 'âˆ’' : '+'}</b>
+                    <b>{isOpen ? 'Ã¢Ë†â€™' : '+'}</b>
                   </button>
                   {isOpen && (
                     <div className="ag-accordion-body">
@@ -1291,9 +1291,9 @@ export default function GuestGuide() {
       return (
         <section className="ag-section" id={sectionId} key={section.id}>
           <Heading section={section} />
-          {feedbackSubmitted ? <article className="ag-feedback-success"><span>âœ“</span><div><h3>{copy.feedbackThanks}</h3><p>{copy.feedbackSent}</p></div></article> : (
+          {feedbackSubmitted ? <article className="ag-feedback-success"><span>Ã¢Å“â€œ</span><div><h3>{copy.feedbackThanks}</h3><p>{copy.feedbackSent}</p></div></article> : (
             <form className="ag-feedback-form" onSubmit={handleFeedbackSubmit}>
-              <fieldset><legend>{copy.rateStay}</legend><div>{[1,2,3,4,5].map((rating) => <button type="button" key={rating} className={feedbackRating >= rating ? 'active' : ''} onClick={() => setFeedbackRating(rating)} aria-label={`${rating} stars`}>â˜…</button>)}</div></fieldset>
+              <fieldset><legend>{copy.rateStay}</legend><div>{[1,2,3,4,5].map((rating) => <button type="button" key={rating} className={feedbackRating >= rating ? 'active' : ''} onClick={() => setFeedbackRating(rating)} aria-label={`${rating} stars`}>Ã¢Ëœâ€¦</button>)}</div></fieldset>
               <label>{copy.messageHotel}<textarea value={feedbackMessage} onChange={(event) => setFeedbackMessage(event.target.value)} maxLength={4000} placeholder={copy.feedbackPlaceholder} /></label>
               <label className="ag-consent"><input type="checkbox" checked={feedbackConsent} onChange={(event) => setFeedbackConsent(event.target.checked)} />{copy.consent}</label>
               <button type="submit" disabled={feedbackSubmitting}>{feedbackSubmitting ? copy.sending : copy.sendFeedback}</button>
@@ -1328,7 +1328,7 @@ export default function GuestGuide() {
         <section className="ag-thankyou" id={sectionId} key={section.id}>
           <p>{section.label}</p><h2>{section.title || copy.thankYou}</h2><span>{section.subtitle || displayInfo.footer_message || copy.thankYouBody}</span>
           <div><button type="button" onClick={() => callPhone(displayInfo.reception_phone)}><GuideIcon name="phone" size={18} />{copy.callReception}</button><button type="button" className="outline" onClick={() => openWhatsApp(displayInfo.reception_phone)}><GuideIcon name="whatsapp" size={18} />{copy.whatsapp}</button></div>
-          <article className="ag-stayqr-signature"><img src="/assets/stayqr-official-logo.png" alt="StayQR â€” Simplifying check-in" /><div><p>{copy.poweredBy}</p><span>{copy.stayqrTagline}</span></div></article>
+          <article className="ag-stayqr-signature"><img src="/assets/stayqr-official-logo.png" alt="StayQR Ã¢â‚¬â€ Simplifying check-in" /><div><p>{copy.poweredBy}</p><span>{copy.stayqrTagline}</span></div></article>
         </section>
       )
     }
@@ -1359,7 +1359,7 @@ export default function GuestGuide() {
   return (
     <main className="ag-page" style={pageStyle}>
       <div className="ag-progress" style={{ width: `${scrollProgress}%` }} />
-      <header className="ag-topbar"><div className="ag-topbar-inner"><div className="ag-brand">{logoMedia ? <img src={getGuestGuideMediaUrl(logoMedia.object_path)} alt={`${hotelName} logo`} /> : <span>{hotelName.charAt(0).toUpperCase()}</span>}<div><strong>{hotelName}</strong><small>{displayInfo.address || hotel.location || copy.digitalGuide}</small></div></div><div className="ag-top-actions">{enabledLocales.length > 1 && <select aria-label="Guest guide language" value={locale} onChange={(event) => void handleLocaleChange(event.target.value)}>{enabledLocales.map((code) => <option key={code} value={code}>{getLocaleLabel(code)}</option>)}</select>}<span>{copy.room} {room.room_number || 'â€”'}</span></div></div></header>
+      <header className="ag-topbar"><div className="ag-topbar-inner"><div className="ag-brand">{logoMedia ? <img src={getGuestGuideMediaUrl(logoMedia.object_path)} alt={`${hotelName} logo`} /> : <span>{hotelName.charAt(0).toUpperCase()}</span>}<div><strong>{hotelName}</strong><small>{displayInfo.address || hotel.location || copy.digitalGuide}</small></div></div><div className="ag-top-actions">{enabledLocales.length > 1 && <select aria-label="Guest guide language" value={locale} onChange={(event) => void handleLocaleChange(event.target.value)}>{enabledLocales.map((code) => <option key={code} value={code}>{getLocaleLabel(code)}</option>)}</select>}<span>{copy.room} {room.room_number || 'Ã¢â‚¬â€'}</span></div></div></header>
 
       <section className="ag-hero" style={heroImageUrl ? { backgroundImage: `url(${heroImageUrl})` } : undefined}>
         <div className="ag-hero-overlay" /><div className="ag-hero-glow" />
@@ -1367,7 +1367,7 @@ export default function GuestGuide() {
           <div className="ag-hero-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR" /><span>{copy.digitalGuide}</span></div>
           <p className="ag-eyebrow">{heroEyebrow}</p>
           <h1><span>{copy.welcomeTo}</span><strong>{heroTitle}</strong></h1>
-          <div className="ag-room-chip"><small>{copy.yourRoom}</small><b>{room.room_number || 'â€”'}</b><span>{room.room_type || copy.guestRoom}</span></div>
+          <div className="ag-room-chip"><small>{copy.yourRoom}</small><b>{room.room_number || 'Ã¢â‚¬â€'}</b><span>{room.room_type || copy.guestRoom}</span></div>
           <p className="ag-hero-message">{heroMessage}</p>
           <p className="ag-personal-greeting">{greetingText}{copy.greetingNameSeparator} <strong>{guestName}</strong></p>
           <div className="ag-hero-actions"><button type="button" onClick={() => callPhone(receptionPhone)}><GuideIcon name="phone" size={18} />{copy.callReception}</button><button type="button" className="outline" onClick={() => openWhatsApp(whatsappItem?.action_value || receptionPhone, `${greetingText} ${hotelName}, ${copy.room} ${room.room_number || ''}.`)}><GuideIcon name="whatsapp" size={18} />{copy.whatsapp}</button>{mapsItem && <button type="button" className="outline" onClick={() => void runItemAction(mapsItem)}><GuideIcon name="map" size={18} />{copy.location}</button>}</div>
@@ -1376,16 +1376,16 @@ export default function GuestGuide() {
         <div className="ag-scroll-cue"><span /></div>
       </section>
 
-      {offer.enabled && <section className="ag-offer-band"><article>{offerMedia && <img src={getGuestGuideMediaUrl(offerMedia.object_path)} alt={offerMedia.alt_text || offer.title} />}<div><span>{offer.badge}</span><h2>{offer.title}</h2><p>{offer.description}</p></div><button type="button" onClick={() => void runOfferAction()}>{offer.button_label}<b>â†’</b></button></article></section>}
+      {offer.enabled && <section className="ag-offer-band"><article>{offerMedia && <img src={getGuestGuideMediaUrl(offerMedia.object_path)} alt={offerMedia.alt_text || offer.title} />}<div><span>{offer.badge}</span><h2>{offer.title}</h2><p>{offer.description}</p></div><button type="button" onClick={() => void runOfferAction()}>{offer.button_label}<b>Ã¢â€ â€™</b></button></article></section>}
 
       <div className="ag-content">{sections.map((section) => renderSection(section))}</div>
 
-      <footer className="ag-footer"><div className="ag-footer-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR â€” Simplifying check-in" /><div><span>{copy.poweredBy}</span><p>{copy.stayqrTagline}</p></div></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}><a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Privacy Policy</a><a href="/terms" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Terms of Service</a><a href="/dpa" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>DPA</a><small>{hotelName}</small></div></footer>
+      <footer className="ag-footer"><div className="ag-footer-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR Ã¢â‚¬â€ Simplifying check-in" /><div><span>{copy.poweredBy}</span><p>{copy.stayqrTagline}</p></div></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}><a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Privacy Policy</a><a href="/terms" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Terms of Service</a><a href="/dpa" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>DPA</a><a href="/sla" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>SLA</a><small>{hotelName}</small></div></footer>
 
       <nav className="ag-sticky" aria-label="Guest quick actions"><button type="button" onClick={() => callPhone(receptionPhone)}><GuideIcon name="phone" size={18} /><span>{copy.call}</span></button><button type="button" onClick={() => openWhatsApp(whatsappItem?.action_value || receptionPhone)}><GuideIcon name="whatsapp" size={18} /><span>{copy.whatsapp}</span></button><button type="button" onClick={() => scrollToSection('wifi')}><GuideIcon name="wifi" size={18} /><span>{copy.wifi}</span></button><button type="button" onClick={() => scrollToSection('guest_services')}><GuideIcon name="service" size={18} /><span>{copy.services}</span></button></nav>
 
-      {selectedMedia && <div className="ag-lightbox" role="dialog" aria-modal="true" aria-label="Image preview"><button type="button" onClick={() => setSelectedMedia(null)} aria-label="Close image preview">Ã—</button><img src={getGuestGuideMediaUrl(selectedMedia.object_path)} alt={selectedMedia.alt_text || selectedMedia.title || hotelName} />{(selectedMedia.title || selectedMedia.caption) && <div><strong>{selectedMedia.title}</strong><p>{selectedMedia.caption}</p></div>}</div>}
-      {toast && <div className="ag-toast" role="status">âœ“ {toast}</div>}
+      {selectedMedia && <div className="ag-lightbox" role="dialog" aria-modal="true" aria-label="Image preview"><button type="button" onClick={() => setSelectedMedia(null)} aria-label="Close image preview">Ãƒâ€”</button><img src={getGuestGuideMediaUrl(selectedMedia.object_path)} alt={selectedMedia.alt_text || selectedMedia.title || hotelName} />{(selectedMedia.title || selectedMedia.caption) && <div><strong>{selectedMedia.title}</strong><p>{selectedMedia.caption}</p></div>}</div>}
+      {toast && <div className="ag-toast" role="status">Ã¢Å“â€œ {toast}</div>}
     </main>
   )
 }

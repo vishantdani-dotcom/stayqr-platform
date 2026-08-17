@@ -1,4 +1,4 @@
-﻿// src/components/sidebar/Sidebar.jsx
+// src/components/sidebar/Sidebar.jsx
 import './Sidebar.css'
 import { normalizeRole, canAccessSection } from '../../lib/currentStaff'
 import HotelSwitcher from '../hotel/HotelSwitcher'
@@ -204,6 +204,18 @@ export default function Sidebar({
               }}
             >
               Data Processing Agreement
+            </a>
+            <a
+              href="/sla"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                color: '#a1a1aa',
+                fontSize: '12px',
+                textDecoration: 'none',
+              }}
+            >
+              SLA / Service Commitments
             </a>
           </div>
         </div>

@@ -171,7 +171,7 @@ const required = [
       && a071.includes('announcements_real_authorized_read')],
   ['Audit 071 JWT restoration',
     a071.includes("current_setting('request.jwt.claim.sub', true)")
-      && a071.includes("set_config(\n    'request.jwt.claim.sub'")],
+      && /set_config\(\s*['"]request\.jwt\.claim\.sub['"]/.test(a071)],
   ['package JSON valid',
     (() => {
       try {

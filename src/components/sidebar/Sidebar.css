@@ -26,6 +26,20 @@
   flex-shrink: 0;
 }
 
+.sidebar-logo-image {
+  width: 104px;
+  height: 50px;
+  object-fit: contain;
+  object-position: left center;
+  flex-shrink: 0;
+}
+
+.sidebar-logo-image.compact {
+  width: 36px;
+  height: 36px;
+  object-position: center;
+}
+
 .sidebar-logo-icon {
   width: 36px;
   height: 36px;

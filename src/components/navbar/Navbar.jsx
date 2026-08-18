@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { normalizeRole } from '../../lib/currentStaff'
 import { clearSelectedTenantHotel } from '../../lib/tenantContext'
 import HotelSwitcher from '../hotel/HotelSwitcher'
+import GlobalSearch from '../search/GlobalSearch'
 import {
   getNotificationInbox,
   markInboxAllRead,
@@ -23,7 +24,9 @@ export default function Navbar({
   onHotelChange,
   switchingHotelId,
   hotelSwitchError,
+  onNavigate,
 }) {
+  const [searchOpen, setSearchOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
@@ -75,6 +78,19 @@ export default function Navbar({
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
+  }, [])
+
+  useEffect(() => {
+    const handleSearchShortcut = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setSearchOpen(true)
+        setNotifOpen(false)
+        setUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('keydown', handleSearchShortcut)
+    return () => document.removeEventListener('keydown', handleSearchShortcut)
   }, [])
 
   async function loadNotifications(id) {
@@ -183,7 +199,17 @@ export default function Navbar({
       </div>
 
       <div className="navbar-right">
-        <button className="navbar-icon-btn" title="Search" type="button">
+        <button
+          className="navbar-icon-btn"
+          title="Search (Ctrl/Command + K)"
+          type="button"
+          onClick={() => {
+            setSearchOpen(true)
+            setNotifOpen(false)
+            setUserMenuOpen(false)
+          }}
+          aria-label="Search hotel workspace"
+        >
           <SearchIcon />
         </button>
 
@@ -304,6 +330,12 @@ export default function Navbar({
           )}
         </div>
       </div>
+      <GlobalSearch
+        open={searchOpen}
+        hotelId={hotelId}
+        onClose={() => setSearchOpen(false)}
+        onNavigate={onNavigate}
+      />
     </header>
   )
 }

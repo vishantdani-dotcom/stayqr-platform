@@ -766,8 +766,18 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     setDeletingDocumentId(documentRecord.id);
 
     try {
-      const storageBucket = documentRecord.storage_bucket || KYC_BUCKET;
-      const storagePath = documentRecord.storage_path;
+      const { data: deletionResult, error: metadataError } = await supabase.rpc(
+        "soft_delete_guest_document",
+        {
+          target_hotel_id: currentHotel.id,
+          target_document_id: documentRecord.id,
+        }
+      );
+
+      if (metadataError) throw metadataError;
+
+      const storageBucket = deletionResult?.storage_bucket || documentRecord.storage_bucket || KYC_BUCKET;
+      const storagePath = deletionResult?.storage_path || documentRecord.storage_path;
 
       if (storagePath) {
         const { error: storageError } = await supabase.storage
@@ -776,16 +786,6 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
 
         if (storageError) throw storageError;
       }
-
-      const { error: metadataError } = await supabase
-        .from("guest_documents")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("hotel_id", currentHotel.id)
-        .eq("guest_id", selectedGuest.id)
-        .eq("id", documentRecord.id)
-        .is("deleted_at", null);
-
-      if (metadataError) throw metadataError;
 
       onNotice?.("success", "KYC document permanently removed.");
 

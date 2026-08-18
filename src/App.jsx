@@ -48,6 +48,7 @@ const Reservations = lazy(() => import('./pages/reservations/Reservations'))
 const BookingCalendar = lazy(() => import('./pages/calendar/BookingCalendar'))
 const ReservationOperations = lazy(() => import('./pages/operations/ReservationOperations'))
 const HotelOnboarding = lazy(() => import('./pages/onboarding/HotelOnboarding'))
+const SubscriptionCheckout = lazy(() => import('./pages/acquisition/SubscriptionCheckout'))
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/legal/TermsOfService'))
 const DataProcessingAgreement = lazy(() => import('./pages/legal/DataProcessingAgreement'))
@@ -384,7 +385,37 @@ export default function App() {
   if (!session) {
     return (
       <StandaloneRouteBoundary routeKey="login" label="secure login">
-        <Login />
+        <Login initialMode={authPath === '/signup' ? 'signup' : 'login'} />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (['/checkout', '/checkout/success', '/checkout/recover'].includes(authPath)) {
+    return (
+      <StandaloneRouteBoundary routeKey={authPath} label="subscription checkout">
+        <SubscriptionCheckout
+          session={session}
+          routeMode={
+            authPath === '/checkout/success'
+              ? 'success'
+              : authPath === '/checkout/recover'
+                ? 'recover'
+                : 'checkout'
+          }
+        />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (authPath === '/setup' && tenantContext?.selectedHotel) {
+    return (
+      <StandaloneRouteBoundary routeKey="hotel-setup" label="hotel setup">
+        <HotelOnboarding
+          session={session}
+          tenantContext={tenantContext}
+          onHotelReady={handleOnboardingReady}
+          standalone
+        />
       </StandaloneRouteBoundary>
     )
   }
@@ -448,13 +479,20 @@ export default function App() {
     }
   }
 
-  const handleNavigate = (section) => {
+  const handleNavigate = (section, detail = null) => {
     if (!canAccessSection(currentRole, section, tenantContext?.permissions || [])) {
       alert('You do not have access to this section.')
       return
     }
 
-    setNavigationRequest(null)
+    setNavigationRequest(
+      detail
+        ? {
+            ...detail,
+            requestId: `${Date.now()}-${detail.entityId || section}`,
+          }
+        : null
+    )
     setActiveSection(section)
     setMobileMenuOpen(false)
   }
@@ -614,6 +652,7 @@ export default function App() {
           onHotelChange={handleHotelChange}
           switchingHotelId={switchingHotelId}
           hotelSwitchError={hotelSwitchError}
+          onNavigate={handleNavigate}
         />
 
         <main

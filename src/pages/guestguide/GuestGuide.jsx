@@ -794,6 +794,10 @@ export default function GuestGuide() {
 
   async function cancelRequest(request) {
     if (!request?.id || requestLoading || request.can_cancel === false) return
+    const confirmed = window.confirm(
+      `${copy.cancel} ${request.request_type || copy.requestService}?`
+    )
+    if (!confirmed) return
 
     try {
       setRequestLoading(true)
@@ -1228,7 +1232,7 @@ export default function GuestGuide() {
                       onClick={() => void cancelRequest(request)}
                       disabled={requestLoading}
                     >
-                      {copy.cancelled}
+                      {copy.cancel}
                     </button>
                   )}
                 </article>

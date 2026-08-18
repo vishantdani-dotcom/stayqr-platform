@@ -21,8 +21,8 @@ const MODE_CONTENT = {
   },
 }
 
-export default function Login() {
-  const [mode, setMode] = useState('login')
+export default function Login({ initialMode = 'login' }) {
+  const [mode, setMode] = useState(initialMode)
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,6 +32,34 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState('')
 
   const content = MODE_CONTENT[mode]
+
+  function getPostAuthTarget() {
+    const params = new URLSearchParams(window.location.search)
+    const requestedNext = params.get('next')
+    if (requestedNext?.startsWith('/') && !requestedNext.startsWith('//')) {
+      return requestedNext
+    }
+
+    if (['/checkout/success', '/checkout/recover'].includes(window.location.pathname)) {
+      return `${window.location.pathname}${window.location.search}`
+    }
+
+    const acquisitionRequested =
+      window.location.pathname === '/signup' ||
+      window.location.pathname === '/checkout' ||
+      params.has('plan') ||
+      params.has('mode')
+
+    if (!acquisitionRequested) return '/'
+
+    const checkoutParams = new URLSearchParams()
+    for (const key of ['plan', 'billing', 'mode']) {
+      const value = params.get(key)
+      if (value) checkoutParams.set(key, value)
+    }
+    const query = checkoutParams.toString()
+    return `/checkout${query ? `?${query}` : ''}`
+  }
 
   function changeMode(nextMode) {
     setMode(nextMode)
@@ -59,7 +87,7 @@ export default function Login() {
       return
     }
 
-    window.location.replace('/')
+    window.location.replace(getPostAuthTarget())
   }
 
   async function handleSignup(event) {
@@ -95,7 +123,7 @@ export default function Login() {
           full_name: normalizedName,
           account_type: 'hotel_owner',
         },
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}${getPostAuthTarget()}`,
       },
     })
 
@@ -107,7 +135,7 @@ export default function Login() {
     }
 
     if (data.session) {
-      window.location.replace('/')
+      window.location.replace(getPostAuthTarget())
       return
     }
 

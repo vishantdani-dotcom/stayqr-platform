@@ -12,5 +12,8 @@ verify_jwt = false
 [functions.cashfree-create-payment-link]
 verify_jwt = false
 
+[functions.cashfree-create-self-service-checkout]
+verify_jwt = false
+
 [functions.cashfree-webhook]
 verify_jwt = false

@@ -95,8 +95,50 @@
   color: var(--gold-light);
 }
 
-.notif-wrapper { position: relative; }
-.notif-btn     { position: relative; }
+.notif-wrapper {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.notif-btn {
+  position: relative;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.notif-btn > svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+.notif-live-count {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  z-index: 2;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 2px solid var(--surface-1);
+  border-radius: 999px;
+  background: var(--gold);
+  color: #050505;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
 
 .notif-dot {
   position: absolute;
@@ -248,6 +290,15 @@
   .navbar-menu-btn  { display: flex; }
   .navbar-center    { display: none; }
   .navbar-user-info { display: none; }
+
+  .notif-live-count {
+    top: 1px;
+    right: 1px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 3px;
+    font-size: 8px;
+  }
 }
 .navbar-profile-wrapper {
   position: relative;

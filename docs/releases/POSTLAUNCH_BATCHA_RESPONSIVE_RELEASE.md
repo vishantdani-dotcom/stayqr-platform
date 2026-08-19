@@ -29,7 +29,7 @@ Expected final gates:
 - Day 7–18 security/source gates: PASS
 - Local QR engine: PASS 5/5
 - Batch A source acceptance: PASS 43/43
-- Responsive platform source acceptance: PASS 42/42
+- Responsive platform source acceptance: PASS 46/46
 - Production build: PASS
 
 ## Staging viewport matrix
@@ -49,3 +49,5 @@ Validate at least: Login, Dashboard, Reservations, Calendar, Rooms, Guests, Chec
 The runtime gate passes only when every viewport has no page-level horizontal scrollbar, invisible text, overlapping navigation, clipped dialog action or unreachable control.
 
 Tablet portrait uses the compact off-canvas navigation shell at widths up to 900px so the fixed desktop sidebar cannot squeeze operational content.
+
+The navbar notification counter is rendered as a compact, high-contrast badge on desktop, tablet and mobile. Counts above nine are displayed as `9+`, while the full unread count remains available to assistive technology.

@@ -219,10 +219,13 @@ export default function Navbar({
             onClick={handleOpenNotifications}
             title="Notifications"
             type="button"
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+            aria-expanded={notifOpen}
+            aria-haspopup="dialog"
           >
             <BellIcon />
             {unreadCount > 0 && (
-              <span className="notif-live-count">
+              <span className="notif-live-count" aria-hidden="true">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}

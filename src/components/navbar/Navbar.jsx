@@ -38,7 +38,9 @@ export default function Navbar({
   const hotelId = tenantContext?.selectedHotelId || currentStaff?.hotel_id || currentStaff?.hotels?.id
   const userName = currentStaff?.full_name || 'Admin'
   const hotelName = tenantContext?.selectedHotel?.hotel_name || currentStaff?.hotels?.hotel_name || currentStaff?.hotel_name || 'StayQR Hotel'
-  const roleName = formatRole(normalizeRole(currentRole || currentStaff?.role || 'manager'))
+  const normalizedRole = normalizeRole(currentRole || currentStaff?.role || 'manager')
+  const isPlatformAdmin = normalizedRole === 'platform_admin'
+  const roleName = formatRole(normalizedRole)
   const unreadCount = notifications.filter((item) => item.status === 'unread').length
   activeHotelIdRef.current = hotelId || null
 
@@ -300,7 +302,7 @@ export default function Navbar({
                     }}
                   >
                     Open notification centre
-                    <span aria-hidden="true">→</span>
+                    <span aria-hidden="true">ΓåÆ</span>
                   </button>
                 </div>
               )}
@@ -344,14 +346,23 @@ export default function Navbar({
               </div>
 
               <div className="navbar-user-menu-section">
-                <span className="navbar-user-menu-label">Active property</span>
-                <HotelSwitcher
-                  tenantContext={tenantContext}
-                  onHotelChange={onHotelChange}
-                  switchingHotelId={switchingHotelId}
-                  error={hotelSwitchError}
-                  variant="navbar"
-                />
+                {isPlatformAdmin ? (
+                  <div className="navbar-platform-scope">
+                    <strong>StayQR platform scope</strong>
+                    <span>Hotel access requires a timed, audited support session.</span>
+                  </div>
+                ) : (
+                  <>
+                    <span className="navbar-user-menu-label">Active property</span>
+                    <HotelSwitcher
+                      tenantContext={tenantContext}
+                      onHotelChange={onHotelChange}
+                      switchingHotelId={switchingHotelId}
+                      error={hotelSwitchError}
+                      variant="navbar"
+                    />
+                  </>
+                )}
               </div>
 
               <button className="navbar-logout-btn" onClick={handleLogout} type="button">
@@ -375,18 +386,18 @@ export default function Navbar({
 function getNotificationIcon(type) {
   const normalizedType = String(type || '').toLowerCase()
   const icons = {
-    service_status: '🛎️',
-    service_request: '🛎️',
-    checkout: '🚪',
-    food_order: '🍽️',
-    payment: '💳',
-    housekeeping: '🧹',
-    review: '⭐',
-    general: '🔔',
+    service_status: '≡ƒ¢Ä∩╕Å',
+    service_request: '≡ƒ¢Ä∩╕Å',
+    checkout: '≡ƒÜ¬',
+    food_order: '≡ƒì╜∩╕Å',
+    payment: '≡ƒÆ│',
+    housekeeping: '≡ƒº╣',
+    review: 'Γ¡É',
+    general: '≡ƒöö',
   }
 
   const matchedType = Object.keys(icons).find((key) => normalizedType.includes(key))
-  return icons[matchedType] || '🔔'
+  return icons[matchedType] || '≡ƒöö'
 }
 
 function getNotificationTone(notification) {

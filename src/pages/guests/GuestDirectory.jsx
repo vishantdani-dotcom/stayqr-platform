@@ -264,6 +264,83 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     };
   }, [directoryRows]);
 
+  function exportGuestDirectory() {
+    if (visibleRows.length === 0) {
+      onNotice?.("error", "There are no guest records to export.");
+      return;
+    }
+
+    const headings = [
+      "Guest name",
+      "Phone",
+      "Email",
+      "Preferred language",
+      "Nationality",
+      "Current status",
+      "Current room",
+      "Check-in",
+      "Check-out",
+      "Total stays",
+      "Last stay",
+      "Created at",
+    ];
+    const rows = visibleRows.map(({ guest, activeStay, lastStay, totalStays }) => [
+      guest.full_name,
+      guest.phone,
+      guest.email,
+      guest.preferred_language,
+      guest.nationality,
+      activeStay ? "In-house" : "Not in-house",
+      activeStay?.rooms?.room_number,
+      activeStay?.checkin_time,
+      activeStay?.checkout_time,
+      totalStays,
+      lastStay?.checkin_time,
+      guest.created_at,
+    ]);
+    const csv = [headings, ...rows]
+      .map((row) => row.map(escapeCsvValue).join(","))
+      .join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const hotelName = sanitizeDownloadFileName(currentHotel?.name || "hotel");
+    anchor.href = url;
+    anchor.download = `${hotelName}-guest-directory-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    onNotice?.("success", `Exported ${visibleRows.length} guest record(s).`);
+  }
+
+  function openWhatsApp(row) {
+    const phone = String(row?.guest?.phone || row?.guest?.normalized_phone || "").replace(/\D/g, "");
+    if (!phone) {
+      onNotice?.("error", "This guest does not have a phone number.");
+      return;
+    }
+
+    const destination = phone.length === 10 ? `91${phone}` : phone;
+    if (destination.length < 10) {
+      onNotice?.("error", "The guest phone number is not valid for WhatsApp.");
+      return;
+    }
+
+    const hasConsent = window.confirm(
+      "Confirm the guest has consented to receive this message on WhatsApp."
+    );
+    if (!hasConsent) return;
+
+    const hotelName = currentHotel?.name || "the hotel";
+    const message = `Hello ${row.guest.full_name || "Guest"}, this is ${hotelName}. We would like to share an update with you.`;
+    window.open(
+      `https://wa.me/${destination}?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
+
   async function openProfile(guest) {
     setSelectedGuest(guest);
     setProfileLoading(true);
@@ -858,9 +935,17 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Search name, phone, email, ID or room..."
           />
+          <button type="button" className="secondary" onClick={exportGuestDirectory}>
+            Export CSV
+          </button>
           <button type="button" onClick={loadDirectory}>Refresh directory</button>
         </div>
       </div>
+
+      <p className="guest-directory-policy-note">
+        CSV exports exclude identity documents. WhatsApp opens only after confirming guest consent;
+        automated broadcasts are not sent by StayQR.
+      </p>
 
       <div className="guest-directory-metrics">
         <Metric label="Guest profiles" value={metrics.total} />
@@ -926,9 +1011,14 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                     </span>
                   </td>
                   <td>
-                    <button type="button" onClick={() => openProfile(row.guest)}>
-                      View profile
-                    </button>
+                    <div className="guest-directory-row-actions">
+                      <button type="button" className="secondary" onClick={() => openWhatsApp(row)}>
+                        WhatsApp
+                      </button>
+                      <button type="button" onClick={() => openProfile(row.guest)}>
+                        View profile
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1554,7 +1644,8 @@ function maskDocumentValue(value) {
 
 function escapeCsvValue(value) {
   const normalized = String(value ?? "");
-  return `"${normalized.replace(/"/g, '""')}"`;
+  const safeValue = /^[=+\-@]/.test(normalized.trimStart()) ? `'${normalized}` : normalized;
+  return `"${safeValue.replace(/"/g, '""')}"`;
 }
 
 function sanitizeDownloadFileName(value) {

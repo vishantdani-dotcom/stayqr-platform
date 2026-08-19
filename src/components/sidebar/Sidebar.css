@@ -293,3 +293,23 @@
 .sidebar-hotel-switcher-wrap .hotel-switcher-panel {
   max-height: 330px;
 }
+
+.sidebar-platform-scope {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid rgba(226, 181, 48, 0.3);
+  border-radius: 10px;
+  background: rgba(226, 181, 48, 0.06);
+}
+
+.sidebar-platform-scope strong {
+  color: var(--gold, #e2b530);
+  font-size: 12px;
+}
+
+.sidebar-platform-scope span {
+  color: var(--text-muted, #969696);
+  font-size: 10px;
+  line-height: 1.45;
+}

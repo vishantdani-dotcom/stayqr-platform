@@ -62,6 +62,86 @@
   cursor: not-allowed;
 }
 
+.staff-self-profile {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(520px, 1.4fr);
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 22px;
+  border: 1px solid rgba(212, 175, 55, 0.26);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(212, 175, 55, 0.08), #0d0d0d 52%);
+}
+
+.staff-self-profile-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.staff-self-profile-heading h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.staff-self-profile-heading span {
+  display: block;
+  margin-top: 7px;
+  color: #aaa;
+  font-size: 12px;
+}
+
+.staff-profile-photo {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 20px;
+  background: #d4af37;
+  color: #050505;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.staff-profile-photo img,
+.staff-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.staff-self-profile-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.staff-self-profile-fields label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: #d4af37;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.staff-self-profile-fields input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 11px 12px;
+  border: 1px solid #333;
+  border-radius: 12px;
+  background: #080808;
+  color: #fff;
+}
+
 .staff-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -221,6 +301,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 900;
+  overflow: hidden;
 }
 
 .staff-person strong {
@@ -447,6 +528,32 @@
 
   .staff-header-actions button {
     flex: 1;
+  }
+
+  .staff-self-profile {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-self-profile-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .staff-page {
+    padding: 18px;
+  }
+
+  .staff-header h1 {
+    font-size: 32px;
+  }
+
+  .staff-self-profile-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-self-profile-fields .staff-primary-btn {
+    width: 100%;
   }
 }
 .staff-alert {

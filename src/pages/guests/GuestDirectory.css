@@ -66,6 +66,25 @@
   white-space: nowrap;
 }
 
+.guest-directory-actions button.secondary,
+.guest-directory-table button.secondary {
+  background: #151515;
+  color: #f0d36f;
+}
+
+.guest-directory-policy-note {
+  margin: -6px 2px 0;
+  color: #aaa;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.guest-directory-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .guest-inline-form button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -394,6 +413,10 @@
   .guest-profile-header {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .guest-directory-row-actions button {
+    flex: 1 1 auto;
   }
 }
 

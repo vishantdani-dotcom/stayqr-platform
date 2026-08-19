@@ -1212,6 +1212,20 @@ export default function GuestGuide() {
               ))}
             </div>
           )}
+          <button
+            type="button"
+            className="ag-escalation-cta"
+            onClick={() => void createRequest('Management Escalation')}
+            disabled={requestLoading}
+          >
+            <span className="ag-icon">
+              <GuideIcon name={getRequestIcon('Management Escalation')} size={20} />
+            </span>
+            <span>
+              <strong>Escalate to hotel management</strong>
+              <small>Raise a service or staff concern with the hotel management team.</small>
+            </span>
+          </button>
           {requests.length > 0 && (
             <div className="ag-request-list">
               <h3>{copy.myRequests}</h3>

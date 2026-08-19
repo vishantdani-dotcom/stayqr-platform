@@ -21,7 +21,7 @@ const EMPTY_ANALYTICS = {
   checkOutsDue: 0,
 }
 
-export default function Dashboard({ hotel = null, staff = null }) {
+export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
   const [rooms, setRooms] = useState([])
   const [currentHotel, setCurrentHotel] = useState(hotel)
   const [analytics, setAnalytics] = useState(EMPTY_ANALYTICS)
@@ -162,12 +162,22 @@ export default function Dashboard({ hotel = null, staff = null }) {
     }
 
     if (actionId === 'checkin') {
-      alert('Go to Check-In / Out from sidebar')
+      onNavigate?.('checkin')
       return
     }
 
     if (actionId === 'generateqr') {
-      alert('Open QR Guides from sidebar')
+      onNavigate?.('qr')
+      return
+    }
+
+    if (actionId === 'guests') {
+      onNavigate?.('guests')
+      return
+    }
+
+    if (actionId === 'support' || actionId === 'reportissue') {
+      onNavigate?.('operationscenter')
       return
     }
 
@@ -244,6 +254,18 @@ export default function Dashboard({ hotel = null, staff = null }) {
       <section className="dash-section dash-main-grid">
         <div className="dash-actions-col">
           <QuickActions onAction={handleAction} />
+        </div>
+      </section>
+
+      <section className="dash-section dash-support-panel glass-card gold-border" aria-label="StayQR support">
+        <div>
+          <p className="dash-support-kicker">STAYQR SUPPORT</p>
+          <h2>Need assistance?</h2>
+          <p>Support hours: 09:00–19:00 IST, Monday–Saturday.</p>
+        </div>
+        <div className="dash-support-actions">
+          <button type="button" onClick={() => onNavigate?.('operationscenter')}>Operations Centre</button>
+          <button type="button" onClick={() => onNavigate?.('operationscenter')}>Report an issue</button>
         </div>
       </section>
 

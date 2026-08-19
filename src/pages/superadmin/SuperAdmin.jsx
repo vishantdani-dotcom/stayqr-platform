@@ -10,6 +10,7 @@ import {
   extendTrial,
   getActiveSupportSessions,
   getCommercialData,
+  getPostlaunchBatch2PlatformMetrics,
   getHotelUsage,
   getPlatformAnnouncements,
   reactivateSubscription,
@@ -47,6 +48,7 @@ const EMPTY_DATA = {
 
 export default function SuperAdmin({ onNavigate }) {
   const [data, setData] = useState(EMPTY_DATA)
+  const [platformMetrics, setPlatformMetrics] = useState({})
   const [announcements, setAnnouncements] = useState([])
   const [supportSessions, setSupportSessions] = useState([])
   const [activeTab, setActiveTab] = useState('overview')
@@ -63,14 +65,16 @@ export default function SuperAdmin({ onNavigate }) {
     setError('')
 
     try {
-      const [commercial, announcementRows, sessionRows] = await Promise.all([
+      const [commercial, announcementRows, sessionRows, metricRows] = await Promise.all([
         getCommercialData(150),
         getPlatformAnnouncements(),
         getActiveSupportSessions(),
+        getPostlaunchBatch2PlatformMetrics(),
       ])
       setData(commercial)
       setAnnouncements(announcementRows)
       setSupportSessions(sessionRows)
+      setPlatformMetrics(metricRows || {})
     } catch (loadError) {
       setError(
         loadError?.message ||
@@ -287,6 +291,7 @@ export default function SuperAdmin({ onNavigate }) {
         <OverviewTab
           data={data}
           summary={summary}
+          platformMetrics={platformMetrics}
           onOpenTab={setActiveTab}
           onCreateLink={(hotel) => openDialog('payment-link', { hotel })}
           onManageHotel={(hotel) => openDialog('hotel-actions', { hotel })}
@@ -446,7 +451,14 @@ export default function SuperAdmin({ onNavigate }) {
   )
 }
 
-function OverviewTab({ data, summary, onOpenTab, onCreateLink, onManageHotel }) {
+function OverviewTab({
+  data,
+  summary,
+  platformMetrics,
+  onOpenTab,
+  onCreateLink,
+  onManageHotel,
+}) {
   const hotels = summary.hotels || {}
   const subscriptions = summary.subscriptions || {}
   const revenue = summary.revenue || {}
@@ -501,6 +513,30 @@ function OverviewTab({ data, summary, onOpenTab, onCreateLink, onManageHotel }) 
           }
           meta={`${usage.hotels_over_room_limit || 0} room · ${usage.hotels_over_staff_limit || 0} staff`}
           tone="warning"
+        />
+        <MetricCard
+          label="Total guests"
+          value={platformMetrics.total_guests || 0}
+          meta={`${platformMetrics.active_stays || 0} active stays`}
+          tone="blue"
+        />
+        <MetricCard
+          label="Guest document scans"
+          value={platformMetrics.document_scans || 0}
+          meta="Private hotel-scoped records"
+          tone="neutral"
+        />
+        <MetricCard
+          label="Reservations"
+          value={platformMetrics.reservations || 0}
+          meta={`${platformMetrics.rooms || 0} rooms across platform`}
+          tone="green"
+        />
+        <MetricCard
+          label="Hotel staff"
+          value={platformMetrics.staff || 0}
+          meta="Active and inactive records"
+          tone="neutral"
         />
       </div>
 

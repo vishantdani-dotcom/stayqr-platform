@@ -143,6 +143,7 @@ async function fetchTenantContext() {
         full_name,
         email,
         phone,
+        avatar_path,
         role,
         status,
         auth_user_id,

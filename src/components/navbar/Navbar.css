@@ -786,3 +786,24 @@
     height: 34px;
   }
 }
+
+/* Post-launch Batch B: platform-admin scope treatment */
+.navbar-platform-scope {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(226, 181, 48, 0.28);
+  border-radius: 10px;
+  background: rgba(226, 181, 48, 0.06);
+}
+
+.navbar-platform-scope strong {
+  color: var(--gold, #e2b530);
+  font-size: 12px;
+}
+
+.navbar-platform-scope span {
+  color: var(--text-muted, #a8a8a8);
+  font-size: 11px;
+  line-height: 1.45;
+}

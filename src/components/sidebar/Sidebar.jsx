@@ -62,6 +62,7 @@ export default function Sidebar({
   hotelSwitchError,
 }) {
   const role = normalizeRole(currentRole || currentStaff?.role)
+  const isPlatformAdmin = role === 'platform_admin'
   const userName = currentStaff?.full_name || 'Admin'
   const userRole = currentStaff?.role || role
 
@@ -95,13 +96,20 @@ export default function Sidebar({
 
       {!collapsed && (
         <div className="sidebar-hotel-switcher-wrap">
-          <HotelSwitcher
-            tenantContext={tenantContext}
-            onHotelChange={onHotelChange}
-            switchingHotelId={switchingHotelId}
-            error={hotelSwitchError}
-            variant="sidebar"
-          />
+          {isPlatformAdmin ? (
+            <div className="sidebar-platform-scope">
+              <strong>StayQR platform</strong>
+              <span>Use Super Admin for timed hotel support access.</span>
+            </div>
+          ) : (
+            <HotelSwitcher
+              tenantContext={tenantContext}
+              onHotelChange={onHotelChange}
+              switchingHotelId={switchingHotelId}
+              error={hotelSwitchError}
+              variant="sidebar"
+            />
+          )}
         </div>
       )}
 

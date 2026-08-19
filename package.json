@@ -9,6 +9,7 @@
                     "lint":  "eslint .",
                     "preview":  "vite preview",
                     "test:postlaunch-batch1":  "node scripts/validate-postlaunch-batch1.mjs",
+                    "test:postlaunch-batch2":  "node scripts/validate-postlaunch-batch2.mjs",
                     "smoke:postlaunch-batch1":  "node scripts/postlaunch-batch1-live-smoke.mjs",
                     "test:responsive-platform":  "node scripts/validate-responsive-platform.mjs",
                     "check":  "npm run lint \u0026\u0026 npm run source:imports \u0026\u0026 npm run security:day7 \u0026\u0026 npm run security:day8 \u0026\u0026 npm run security:day9 \u0026\u0026 npm run security:day10 \u0026\u0026 npm run security:day11 \u0026\u0026 npm run security:day12 \u0026\u0026 npm run security:day13 \u0026\u0026 npm run security:day14 \u0026\u0026 npm run security:day14builder \u0026\u0026 npm run security:day15 \u0026\u0026 npm run security:day17final \u0026\u0026 npm run security:day18frontend \u0026\u0026 npm run security:day18monitoring \u0026\u0026 npm run security:day18infra \u0026\u0026 npm run test:qr \u0026\u0026 npm run test:postlaunch-batch1 \u0026\u0026 npm run test:responsive-platform \u0026\u0026 npm run build",

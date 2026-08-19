@@ -516,6 +516,7 @@ export default function App() {
           <Dashboard
             hotel={tenantContext?.selectedHotel || null}
             staff={currentStaff}
+            onNavigate={handleNavigate}
           />
         )
       case 'rooms':

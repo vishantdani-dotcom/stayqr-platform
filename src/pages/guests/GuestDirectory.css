@@ -14,6 +14,11 @@
   background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(15, 15, 15, 0.96) 42%);
 }
 
+.guest-directory-toolbar > div:first-child {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
 .guest-directory-toolbar h2,
 .guest-profile-header h2 {
   margin: 3px 0 6px;
@@ -36,21 +41,36 @@
 
 .guest-directory-actions {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 10px;
-  min-width: min(100%, 520px);
+  flex: 0 1 640px;
+  min-width: 0;
+  width: min(100%, 640px);
+}
+
+.guest-directory-actions input {
+  flex: 1 1 300px;
+  min-width: 180px;
+  width: auto;
 }
 
 .guest-directory-actions input,
 .guest-inline-form input,
 .guest-inline-form textarea,
 .guest-inline-form select {
-  width: 100%;
   border: 1px solid #333;
   border-radius: 10px;
   background: #111;
   color: #fff;
   padding: 11px 12px;
   font: inherit;
+}
+
+.guest-inline-form input,
+.guest-inline-form textarea,
+.guest-inline-form select {
+  width: 100%;
 }
 
 .guest-directory-actions button,
@@ -70,6 +90,21 @@
 .guest-directory-table button.secondary {
   background: #151515;
   color: #f0d36f;
+}
+
+.guest-directory-actions .guest-directory-export-btn,
+.guest-directory-actions .guest-directory-refresh-btn {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding-inline: 16px;
+}
+
+.guest-directory-actions .guest-directory-export-btn {
+  min-width: 116px;
+}
+
+.guest-directory-actions .guest-directory-refresh-btn {
+  min-width: 148px;
 }
 
 .guest-directory-policy-note {
@@ -381,12 +416,18 @@
   gap: 7px;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1180px) {
   .guest-directory-toolbar,
   .guest-profile-section.two-column {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .guest-directory-actions {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
   }
 
   .guest-directory-metrics,
@@ -407,6 +448,18 @@
   .guest-history-grid {
     grid-template-columns: 1fr;
     flex-direction: column;
+  }
+
+  .guest-directory-actions {
+    align-items: stretch;
+  }
+
+  .guest-directory-actions input,
+  .guest-directory-actions .guest-directory-export-btn,
+  .guest-directory-actions .guest-directory-refresh-btn {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
   }
 
   .guest-profile-content,

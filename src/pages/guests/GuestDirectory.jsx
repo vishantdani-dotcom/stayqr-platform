@@ -935,10 +935,20 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Search name, phone, email, ID or room..."
           />
-          <button type="button" className="secondary" onClick={exportGuestDirectory}>
+          <button
+            type="button"
+            className="secondary guest-directory-export-btn"
+            onClick={exportGuestDirectory}
+          >
             Export CSV
           </button>
-          <button type="button" onClick={loadDirectory}>Refresh directory</button>
+          <button
+            type="button"
+            className="guest-directory-refresh-btn"
+            onClick={loadDirectory}
+          >
+            Refresh directory
+          </button>
         </div>
       </div>
 

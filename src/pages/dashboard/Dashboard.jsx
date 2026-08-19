@@ -176,8 +176,16 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
       return
     }
 
-    if (actionId === 'support' || actionId === 'reportissue') {
-      onNavigate?.('operationscenter')
+    if (actionId === 'support') {
+      onNavigate?.('operationscenter', { initialTab: 'support' })
+      return
+    }
+
+    if (actionId === 'reportissue') {
+      onNavigate?.('operationscenter', {
+        initialTab: 'support',
+        initialAction: 'create-ticket',
+      })
       return
     }
 
@@ -264,8 +272,21 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
           <p>Support hours: 09:00–19:00 IST, Monday–Saturday.</p>
         </div>
         <div className="dash-support-actions">
-          <button type="button" onClick={() => onNavigate?.('operationscenter')}>Operations Centre</button>
-          <button type="button" onClick={() => onNavigate?.('operationscenter')}>Report an issue</button>
+          <button
+            type="button"
+            onClick={() => onNavigate?.('operationscenter')}
+          >
+            Operations Centre
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate?.('operationscenter', {
+              initialTab: 'support',
+              initialAction: 'create-ticket',
+            })}
+          >
+            Report an issue
+          </button>
         </div>
       </section>
 

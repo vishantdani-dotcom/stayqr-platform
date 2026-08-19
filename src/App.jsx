@@ -576,6 +576,9 @@ export default function App() {
           <OperationsCenter
             hotel={tenantContext?.selectedHotel || null}
             currentRole={currentRole}
+            initialTab={navigationRequest?.initialTab || 'notifications'}
+            initialAction={navigationRequest?.initialAction || null}
+            navigationRequestId={navigationRequest?.requestId || null}
           />
         )
       case 'settings':

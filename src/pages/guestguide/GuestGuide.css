@@ -327,7 +327,7 @@
 .ag-footer-brand > div { display: grid; gap: 3px; }
 .ag-footer-brand span { color: #f4efe5; }
 .ag-footer-brand p { margin: 0; }
-.ag-toast { position: fixed; right: 22px; bottom: 92px; z-index: 80; max-width: min(420px, calc(100vw - 32px)); box-shadow: 0 18px 55px rgba(0,0,0,.42); }
+.ag-toast { position: fixed; top: auto; right: 22px; bottom: 92px; z-index: 1000; width: max-content; max-width: min(420px, calc(100vw - 32px)); height: auto; min-height: 0; line-height: 1.45; overflow-wrap: anywhere; box-shadow: 0 18px 55px rgba(0,0,0,.42); }
 @media (max-width: 640px) {
   .ag-content { width: min(100% - 24px, 930px); }
   .ag-section { padding-block: 54px; }
@@ -337,4 +337,5 @@
   .ag-footer { align-items: flex-start; }
   .ag-footer-brand { align-items: flex-start; }
   .ag-footer-brand > img { width: 78px; height: 50px; }
+  .ag-toast { left: 12px; right: 12px; bottom: 80px; width: auto; max-width: none; text-align: center; }
 }

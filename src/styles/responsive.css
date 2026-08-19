@@ -1,84 +1,915 @@
-/* Shared post-launch responsive and contrast safety layer. */
+/* StayQR post-launch responsive, touch and contrast safety layer.
+   Imported last so these cross-product rules normalize legacy page styles. */
 
 :root {
-  --text-secondary: #d0ccc2;
+  --text-secondary: #d6d2c8;
   --text-muted: #b8b5ad;
   --text-dim: #9d9a92;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --touch-target: 44px;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scrollbar-gutter: stable;
+}
+
+body {
+  min-width: 320px;
+  overscroll-behavior-x: none;
+}
+
+button,
+[role="button"],
+a,
+input,
+select,
+textarea {
+  min-width: 0;
+}
+
+button,
+[role="button"],
+a {
+  -webkit-tap-highlight-color: rgba(226, 185, 52, 0.18);
+  touch-action: manipulation;
+}
+
+img,
+video,
+canvas {
+  max-width: 100%;
 }
 
 .app-shell,
 .app-main,
 .app-content,
-.app-content > * {
+.app-content > *,
+.app-content section,
+.app-content article,
+.app-content form,
+.app-content fieldset {
   min-width: 0;
   max-width: 100%;
 }
 
-.app-content { overflow-x: clip; }
+.app-content {
+  overflow-x: clip;
+  padding-bottom: var(--safe-bottom);
+}
 
-.app-content h1,
-.app-content h2,
-.app-content h3,
-.app-content h4 { color: inherit; }
+.app-content :where(h1, h2, h3, h4, p, label, span, strong, small) {
+  overflow-wrap: anywhere;
+}
 
-.app-content input,
-.app-content select,
-.app-content textarea,
-.app-content table { max-width: 100%; }
+.app-content :where(h1, h2, h3, h4) {
+  color: inherit;
+  text-wrap: balance;
+}
 
-.d17-page h1,
-.d17-page h2,
-.d17-page h3,
-.d17-page h4 { color: #f7f3e8; }
+.app-content :where(input, select, textarea, table) {
+  max-width: 100%;
+}
+
+.app-content :where(
+  .dash-main-grid,
+  .checkin-grid,
+  .calendar-modal-grid,
+  .guest-directory-metrics,
+  .guest-detail-grid,
+  .guest-document-grid,
+  .guest-history-grid,
+  .service-metrics,
+  .service-request-grid,
+  .service-type-grid,
+  .day15-stat-grid,
+  .day15-terminal-grid,
+  .menu15-metrics,
+  .menu15-top-grid,
+  .menu15-form-grid,
+  .menu15-experience-grid,
+  .d17-kpis,
+  .d17-two-column,
+  .d17-form-grid,
+  .day12-stats,
+  .day12-card-grid,
+  .day12-form-grid,
+  .reports-kpi-grid,
+  .reports-two-column,
+  .reports-three-column,
+  .reservation-stat-grid,
+  .reservation-form-grid,
+  .staff-stats-grid,
+  .staff-form-grid,
+  .commercial-metrics-grid,
+  .commercial-overview-grid,
+  .quick-hotel-grid,
+  .plans-grid,
+  .simple-form-grid,
+  .simple-two-column,
+  .simple-media-grid,
+  .form-grid,
+  .operations-grid,
+  .final-summary-grid,
+  .secure-qr-grid,
+  .secure-qr-pair-grid,
+  .folio-stat-grid,
+  .folio-form-grid,
+  .operations-summary-grid
+) > * {
+  min-width: 0;
+}
+
+/* Every wide operational surface remains usable by touch without squeezing data. */
+.app-content :where(
+  .calendar-timeline-scroll,
+  .guest-directory-table-wrap,
+  .day13-table-wrap,
+  .rooms-table-wrap,
+  .day12-table-wrap,
+  .reports-table-wrap,
+  .reservation-table-wrap,
+  .staff-table-wrap,
+  .commercial-table-wrap,
+  .mini-table-wrap,
+  .folio-table-wrap,
+  .folio-detail-table-wrap,
+  .operations-table-wrap,
+  .d17-table-wrap,
+  .day15-kitchen-board,
+  .menu15-translation-scroll
+) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.app-content :where(
+  .calendar-timeline-scroll,
+  .guest-directory-table-wrap,
+  .day13-table-wrap,
+  .rooms-table-wrap,
+  .day12-table-wrap,
+  .reports-table-wrap,
+  .reservation-table-wrap,
+  .staff-table-wrap,
+  .commercial-table-wrap,
+  .mini-table-wrap,
+  .folio-table-wrap,
+  .folio-detail-table-wrap,
+  .operations-table-wrap,
+  .d17-table-wrap
+) table {
+  max-width: none;
+}
+
+/* Raise muted text to a readable contrast level across old and new modules. */
+.app-content :where(
+  .dash-page-sub,
+  .calendar-eyebrow,
+  .reservation-muted,
+  .guest-muted,
+  .menu15-muted,
+  .menu15-help,
+  .d17-footnote,
+  .d18-request-id,
+  .day12-subtitle,
+  .reports-hero-meta,
+  .staff-note,
+  .table-subtext,
+  .folio-page-subtitle,
+  .field-help,
+  .food-secure-note
+) {
+  color: var(--text-muted) !important;
+}
+
+.d17-page :where(h1, h2, h3, h4) {
+  color: #f7f3e8;
+}
 
 .d17-notification-copy small,
 .d17-ticket small,
-.d17-announcement small,
-.d17-footnote,
-.d18-request-id { color: #929292; }
+.d17-announcement small {
+  color: var(--text-dim);
+}
+
+/* Tablet and compact desktop: preserve full capability while reducing density. */
+@media (max-width: 1180px) {
+  .app-content :where(
+    .dashboard-page,
+    .booking-calendar-page,
+    .checkin-page,
+    .day13-page,
+    .rooms-page,
+    .guest-directory-shell,
+    .service-day15-page,
+    .day15-foodops,
+    .menu15-page,
+    .d17-page,
+    .day12-page,
+    .reports-page,
+    .reservations-page,
+    .staff-page,
+    .commercial-shell,
+    .simple-builder-page,
+    .onboarding-shell,
+    .reservation-operations-page,
+    .folio-page,
+    .secure-qr-page
+  ) {
+    padding-inline: clamp(18px, 2.4vw, 28px);
+  }
+
+  .amenities-page,
+  .hotel-profile-page,
+  .payments-page,
+  .charges-page {
+    padding-inline: clamp(18px, 2.4vw, 28px) !important;
+  }
+
+  .app-content :where(
+    .dash-page-header,
+    .calendar-page-header,
+    .rooms-header,
+    .service-day15-header,
+    .day15-page-header,
+    .menu15-header,
+    .d17-hero,
+    .day12-header,
+    .reports-hero,
+    .reservations-header,
+    .staff-header,
+    .commercial-hero,
+    .simple-builder-hero,
+    .onboarding-hero,
+    .operations-header,
+    .folio-page-header,
+    .secure-qr-header
+  ) {
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .app-content :where(
+    .dash-page-title,
+    .d17-hero h1,
+    .day12-header h1,
+    .reports-hero h1,
+    .commercial-hero h1,
+    .onboarding-hero h1
+  ) {
+    font-size: clamp(2rem, 4vw, 2.7rem);
+    line-height: 1.08;
+  }
+
+  .app-content :where(
+    .service-metrics,
+    .day15-stat-grid,
+    .menu15-metrics,
+    .d17-kpis,
+    .day12-stats,
+    .reports-kpi-grid,
+    .reservation-stat-grid,
+    .staff-stats-grid,
+    .commercial-metrics-grid
+  ) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-content :where(
+    .commercial-overview-grid,
+    .d17-two-column,
+    .reports-three-column,
+    .food-content-grid
+  ) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .calendar-details-drawer,
+  .reservation-drawer,
+  .guest-profile-panel,
+  .folio-drawer {
+    width: min(560px, 92vw);
+  }
+}
 
 @media (max-width: 900px) {
-  .navbar { gap: 8px; }
-  .navbar-breadcrumb { min-width: 0; }
+  .navbar {
+    gap: 8px;
+  }
+
+  .navbar-breadcrumb {
+    min-width: 0;
+  }
+
   .breadcrumb-current {
-    max-width: 36vw;
+    max-width: 32vw;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  .app-content :where(
+    .dash-main-grid,
+    .calendar-workspace,
+    .service-department-report,
+    .menu15-top-grid,
+    .day12-tax-layout,
+    .reports-two-column,
+    .simple-two-column,
+    .csv-layout,
+    .folio-service-layout
+  ) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
+/* Mobile shell: Android, iOS and small tablets. */
 @media (max-width: 768px) {
-  :root { --navbar-h: 60px; }
+  :root {
+    --navbar-h: 60px;
+  }
+
   html,
   body,
-  #root { overflow-x: hidden; }
-  .app-main { margin-left: 0 !important; }
-  .navbar { left: 0 !important; }
-  .app-content { min-height: 100svh; overflow-x: hidden; }
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .app-shell,
+  .app-main {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+  }
+
+  .navbar {
+    left: 0 !important;
+    min-height: calc(var(--navbar-h) + var(--safe-top));
+    padding-top: var(--safe-top);
+    padding-right: max(10px, var(--safe-right));
+    padding-left: max(10px, var(--safe-left));
+  }
+
+  .app-content {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    padding-bottom: max(16px, var(--safe-bottom));
+  }
+
+  .sidebar {
+    width: min(304px, 88vw);
+    max-width: min(304px, 88vw);
+    height: 100vh;
+    height: 100dvh;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+  }
+
+  .sidebar-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-overlay {
+    height: 100vh;
+    height: 100dvh;
+  }
+
   .navbar-icon-btn,
-  .navbar-menu-btn { width: 40px; height: 40px; }
-  .navbar-divider { display: none; }
-  .sidebar { max-width: min(286px, 88vw); }
-  .d17-hero-actions { width: 100%; flex-wrap: wrap; }
-  .d17-hero-actions > * { flex: 1 1 auto; min-height: 42px; }
-  .d17-panel { padding: 16px; }
+  .navbar-menu-btn {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+
+  .navbar-divider,
+  .desktop-only {
+    display: none !important;
+  }
+
+  .app-content :where(
+    .dashboard-page,
+    .booking-calendar-page,
+    .checkin-page,
+    .day13-page,
+    .rooms-page,
+    .guest-directory-shell,
+    .service-day15-page,
+    .day15-foodops,
+    .menu15-page,
+    .d17-page,
+    .day12-page,
+    .reports-page,
+    .reservations-page,
+    .staff-page,
+    .commercial-shell,
+    .simple-builder-page,
+    .onboarding-shell,
+    .reservation-operations-page,
+    .folio-page,
+    .secure-qr-page
+  ) {
+    width: 100%;
+    padding: 18px 16px;
+  }
+
+  .amenities-page,
+  .hotel-profile-page,
+  .payments-page,
+  .charges-page {
+    width: 100% !important;
+    padding: 18px 16px !important;
+  }
+
+  .app-content :where(h1) {
+    font-size: clamp(1.75rem, 8vw, 2.25rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .app-content :where(h2) {
+    line-height: 1.15;
+  }
+
+  .app-content :where(
+    .dash-page-header,
+    .calendar-page-header,
+    .rooms-header,
+    .guests-page-header,
+    .service-day15-header,
+    .day15-page-header,
+    .menu15-header,
+    .d17-hero,
+    .day12-header,
+    .reports-hero,
+    .reservations-header,
+    .staff-header,
+    .commercial-hero,
+    .simple-builder-hero,
+    .onboarding-hero,
+    .operations-header,
+    .folio-page-header,
+    .secure-qr-header,
+    .guest-directory-toolbar,
+    .commercial-section-header,
+    .panel-heading-row,
+    .section-header
+  ) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-content :where(
+    .dash-header-actions,
+    .calendar-header-actions,
+    .day12-header-actions,
+    .reservations-header-actions,
+    .staff-header-actions,
+    .commercial-hero-actions,
+    .simple-builder-toolbar,
+    .onboarding-mode-actions,
+    .panel-actions,
+    .folio-header-actions,
+    .secure-qr-actions,
+    .guest-directory-actions,
+    .reservation-primary-actions
+  ) {
+    width: 100%;
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .app-content :where(
+    .dash-header-actions,
+    .calendar-header-actions,
+    .day12-header-actions,
+    .reservations-header-actions,
+    .staff-header-actions,
+    .commercial-hero-actions,
+    .simple-builder-toolbar,
+    .onboarding-mode-actions,
+    .panel-actions,
+    .folio-header-actions,
+    .secure-qr-actions,
+    .guest-directory-actions,
+    .reservation-primary-actions
+  ) > :where(button, a) {
+    flex: 1 1 150px;
+  }
+
+  :where(.app-content, .ag-page, .food-guest-page, .login-page, .acquisition-page) :where(
+    button,
+    [role="button"],
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea
+  ) {
+    min-height: var(--touch-target);
+  }
+
+  :where(.app-content, .ag-page, .food-guest-page, .login-page, .acquisition-page) :where(input, select, textarea) {
+    font-size: 16px !important;
+  }
+
+  .app-content :where(
+    .service-metrics,
+    .day15-stat-grid,
+    .menu15-metrics,
+    .d17-kpis,
+    .day12-stats,
+    .reports-kpi-grid,
+    .reservation-stat-grid,
+    .staff-stats-grid,
+    .commercial-metrics-grid,
+    .guest-directory-metrics,
+    .operations-summary-grid,
+    .folio-stat-grid
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-content :where(
+    .checkin-grid,
+    .checkin-grid--two,
+    .checkin-grid--three,
+    .checkin-result-grid,
+    .calendar-modal-grid,
+    .guest-detail-grid,
+    .guest-document-grid,
+    .guest-history-grid,
+    .guest-inline-form,
+    .service-request-grid,
+    .service-type-grid,
+    .day15-terminal-grid,
+    .menu15-top-grid,
+    .menu15-form-grid,
+    .menu15-experience-grid,
+    .menu15-item-grid,
+    .menu15-modifier-grid,
+    .d17-two-column,
+    .d17-form-grid,
+    .d17-filter-grid,
+    .d18-health-banner,
+    .day12-card-grid,
+    .day12-form-grid,
+    .day12-paper-grid,
+    .reports-two-column,
+    .reports-three-column,
+    .reports-date-fields,
+    .reports-tax-grid,
+    .reservation-form-grid,
+    .reservation-detail-grid,
+    .reservation-note-grid,
+    .staff-form-grid,
+    .commercial-overview-grid,
+    .quick-hotel-grid,
+    .plans-grid,
+    .form-grid,
+    .announcement-grid,
+    .events-grid,
+    .simple-form-grid,
+    .simple-two-column,
+    .simple-media-grid,
+    .simple-language-grid,
+    .operations-grid,
+    .final-summary-grid,
+    .readiness-grid,
+    .policy-grid,
+    .secure-qr-grid,
+    .secure-qr-pair-grid,
+    .folio-form-grid,
+    .folio-service-type-grid,
+    .food-item-grid,
+    .food-notification-grid
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .app-content :where(
+    .d17-tabs,
+    .day12-tabs,
+    .reports-tabs,
+    .reservation-subtabs,
+    .commercial-tabs,
+    .folio-view-tabs,
+    .folio-detail-tabs,
+    .guests-view-tabs,
+    .calendar-view-switch,
+    .calendar-legend,
+    .onboarding-steps,
+    .food-category-strip
+  ) {
+    width: 100%;
+    max-width: 100%;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .app-content :where(
+    .d17-tabs,
+    .day12-tabs,
+    .reports-tabs,
+    .reservation-subtabs,
+    .commercial-tabs,
+    .folio-view-tabs,
+    .folio-detail-tabs,
+    .guests-view-tabs,
+    .onboarding-steps
+  ) > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .app-content :where(
+    .calendar-modal-backdrop,
+    .reservation-modal-backdrop,
+    .staff-modal-backdrop,
+    .commercial-dialog-backdrop,
+    .guest-profile-overlay,
+    .folio-drawer-backdrop,
+    .calendar-drawer-backdrop,
+    .reservation-drawer-backdrop,
+    .modal-overlay
+  ) {
+    padding: max(12px, var(--safe-top)) max(12px, var(--safe-right)) max(12px, var(--safe-bottom)) max(12px, var(--safe-left));
+  }
+
+  .app-content :where(
+    .calendar-modal,
+    .reservation-modal,
+    .reservation-room-modal,
+    .staff-modal,
+    .commercial-dialog,
+    .modal-card
+  ) {
+    width: min(100%, 680px);
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px - var(--safe-top) - var(--safe-bottom));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .calendar-details-drawer,
+  .reservation-drawer,
+  .guest-profile-panel,
+  .folio-drawer {
+    width: min(100%, 560px);
+    max-width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    padding-bottom: var(--safe-bottom);
+  }
+
+  .global-search-dialog {
+    top: max(8px, var(--safe-top));
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 16px - var(--safe-top) - var(--safe-bottom));
+    max-height: calc(100dvh - 16px - var(--safe-top) - var(--safe-bottom));
+  }
+
+  .global-search-results {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .notif-dropdown {
+    max-height: calc(100vh - var(--navbar-h) - var(--safe-top) - 20px);
+    max-height: calc(100dvh - var(--navbar-h) - var(--safe-top) - 20px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  :where(.app-content, .ag-page, .food-guest-page) :where(
+    .guests-toast,
+    .calendar-toast,
+    .service-toast,
+    .day15-toast,
+    .menu15-toast,
+    .d17-toast,
+    .reports-toast,
+    .reservation-toast,
+    .operations-toast,
+    .food-toast,
+    .ag-toast
+  ) {
+    top: auto !important;
+    right: max(12px, var(--safe-right)) !important;
+    bottom: calc(76px + var(--safe-bottom)) !important;
+    left: max(12px, var(--safe-left)) !important;
+    width: auto !important;
+    max-width: 420px !important;
+    min-height: 0 !important;
+    margin-left: auto;
+    padding: 12px 14px !important;
+  }
+
+  .ag-sticky,
+  .food-mobile-cart {
+    padding-bottom: max(10px, var(--safe-bottom));
+  }
 }
 
 @media (max-width: 480px) {
-  .navbar { padding-inline: 10px; }
+  .navbar {
+    padding-right: max(8px, var(--safe-right));
+    padding-left: max(8px, var(--safe-left));
+  }
+
   .breadcrumb-home,
-  .breadcrumb-sep { display: none; }
-  .breadcrumb-current { max-width: 33vw; }
+  .breadcrumb-sep,
+  .navbar-role {
+    display: none;
+  }
+
+  .breadcrumb-current {
+    max-width: 30vw;
+  }
+
   .notif-dropdown {
     position: fixed;
-    top: calc(var(--navbar-h) + 8px);
-    right: 10px;
-    left: 10px;
+    top: calc(var(--navbar-h) + var(--safe-top) + 8px);
+    right: max(8px, var(--safe-right));
+    left: max(8px, var(--safe-left));
     width: auto;
-    max-height: calc(100svh - var(--navbar-h) - 20px);
-    overflow-y: auto;
   }
-  .d17-kpis { grid-template-columns: 1fr; }
-  .d17-metric { min-width: 0; }
+
+  .app-content :where(
+    .dashboard-page,
+    .booking-calendar-page,
+    .checkin-page,
+    .day13-page,
+    .rooms-page,
+    .guest-directory-shell,
+    .service-day15-page,
+    .day15-foodops,
+    .menu15-page,
+    .d17-page,
+    .day12-page,
+    .reports-page,
+    .reservations-page,
+    .staff-page,
+    .commercial-shell,
+    .simple-builder-page,
+    .onboarding-shell,
+    .reservation-operations-page,
+    .folio-page,
+    .secure-qr-page
+  ) {
+    padding: 14px 12px;
+  }
+
+  .amenities-page,
+  .hotel-profile-page,
+  .payments-page,
+  .charges-page {
+    padding: 14px 12px !important;
+  }
+
+  .app-content :where(
+    .service-metrics,
+    .day15-stat-grid,
+    .menu15-metrics,
+    .d17-kpis,
+    .day12-stats,
+    .reports-kpi-grid,
+    .reservation-stat-grid,
+    .staff-stats-grid,
+    .commercial-metrics-grid,
+    .guest-directory-metrics,
+    .operations-summary-grid,
+    .folio-stat-grid
+  ) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-content :where(
+    .dash-header-actions,
+    .calendar-header-actions,
+    .day12-header-actions,
+    .reservations-header-actions,
+    .staff-header-actions,
+    .commercial-hero-actions,
+    .simple-builder-toolbar,
+    .onboarding-mode-actions,
+    .panel-actions,
+    .folio-header-actions,
+    .secure-qr-actions,
+    .guest-directory-actions,
+    .reservation-primary-actions,
+    .menu15-action-row,
+    .service-card-actions,
+    .day15-card-actions,
+    .reservation-row-actions,
+    .staff-actions,
+    .row-actions,
+    .folio-inline-actions
+  ) > :where(button, a) {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .app-content :where(
+    .d17-panel,
+    .day12-section,
+    .reports-panel,
+    .reservation-panel,
+    .staff-control-card,
+    .commercial-card,
+    .simple-panel,
+    .onboarding-panel,
+    .folio-panel,
+    .secure-qr-panel,
+    .checkin-card
+  ) {
+    padding: 14px;
+  }
+
+  .calendar-details-drawer,
+  .reservation-drawer,
+  .guest-profile-panel,
+  .folio-drawer {
+    width: 100%;
+  }
+
+  .global-search-dialog {
+    top: var(--safe-top);
+    width: 100vw;
+    max-height: calc(100vh - var(--safe-top) - var(--safe-bottom));
+    max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+    border-radius: 0 0 14px 14px;
+  }
+
+  .ag-section,
+  .ag-content,
+  .food-app-shell {
+    padding-inline: 12px;
+  }
+
+  .ag-card-grid,
+  .ag-action-grid,
+  .ag-glance-grid,
+  .food-item-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 768px) and (orientation: landscape) and (max-height: 560px) {
+  .global-search-dialog {
+    top: var(--safe-top);
+    max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+  }
+
+  .app-content :where(
+    .calendar-modal,
+    .reservation-modal,
+    .reservation-room-modal,
+    .staff-modal,
+    .commercial-dialog,
+    .modal-card
+  ) {
+    max-height: calc(100dvh - 12px - var(--safe-top) - var(--safe-bottom));
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  :where(.app-content, .ag-page, .food-guest-page, .login-page, .acquisition-page) :where(button, [role="button"], a) {
+    min-height: var(--touch-target);
+  }
+
+  :where(.app-content, .ag-page, .food-guest-page, .login-page, .acquisition-page) :where(button, [role="button"], a):active {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .calendar-details-drawer,
+  .reservation-drawer,
+  .guest-profile-panel,
+  .folio-drawer,
+  .global-search-dialog {
+    transition: none !important;
+  }
 }

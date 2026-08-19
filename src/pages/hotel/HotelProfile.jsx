@@ -222,10 +222,10 @@ export default function HotelProfile() {
     }
   }
 
-  if (loading) return <div style={page}>Loading Hotel Profile...</div>;
+  if (loading) return <div className="hotel-profile-page" style={page}>Loading Hotel Profile...</div>;
 
   return (
-    <div style={page}>
+    <div className="hotel-profile-page" style={page}>
       <h1 style={title}>Hotel Profile &amp; Guest Content</h1>
       <p style={hotelName}>{currentHotel?.hotel_name || "Hotel"}</p>
       <p style={sub}>

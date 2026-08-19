@@ -102,7 +102,7 @@ export default function Charges() {
   );
 
   return (
-    <div style={page}>
+    <div className="charges-page" style={page}>
       <h1 style={title}>Manual Charges</h1>
 
       <p style={hotelName}>

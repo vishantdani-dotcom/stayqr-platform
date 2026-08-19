@@ -92,7 +92,7 @@ export default function Amenities() {
     }
   }
 
-  if (loading) return <div style={page}>Loading amenities…</div>
+  if (loading) return <div className="amenities-page" style={page}>Loading amenities…</div>
 
   const activeCount = amenities.filter((item) => item.is_active).length
   const guestVisibleCount = amenities.filter(
@@ -100,7 +100,7 @@ export default function Amenities() {
   ).length
 
   return (
-    <div style={page}>
+    <div className="amenities-page" style={page}>
       <div style={header}>
         <div>
           <span style={kicker}>Hotel configuration</span>

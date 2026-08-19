@@ -272,6 +272,7 @@ async function fetchTenantContext() {
             user.email ||
             null,
           phone: selectedAccess?.staff?.phone || null,
+          avatar_path: selectedAccess?.staff?.avatar_path || null,
           role: selectedRole,
           department: selectedAccess?.staff?.department || null,
           status: 'active',

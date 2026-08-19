@@ -331,8 +331,8 @@ canvas {
   }
 }
 
-/* Mobile shell: Android, iOS and small tablets. */
-@media (max-width: 768px) {
+/* Compact shell: tablet portrait, Android and iOS. */
+@media (max-width: 900px) {
   :root {
     --navbar-h: 60px;
   }

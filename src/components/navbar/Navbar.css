@@ -243,7 +243,7 @@
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .navbar           { left: 0 !important; padding: 0 16px; }
   .navbar-menu-btn  { display: flex; }
   .navbar-center    { display: none; }
@@ -372,6 +372,6 @@
   border-color: rgba(239, 68, 68, 0.45);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .navbar-user-chevron { display: none; }
 }

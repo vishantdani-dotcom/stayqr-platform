@@ -273,7 +273,8 @@
   text-overflow: ellipsis;
 }
 
-@media (max-width: 768px) {
+/* Tablet portrait and below use the off-canvas navigation shell. */
+@media (max-width: 900px) {
   .sidebar {
     transform: translateX(-100%);
     width: var(--sidebar-w) !important;

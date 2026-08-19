@@ -39,7 +39,7 @@ Expected final gates:
 | Desktop | 1440 × 900 | Full sidebar, readable grids, no clipped controls |
 | Laptop | 1280 × 800 | Full workflow remains visible and usable |
 | Tablet landscape | 1024 × 768 | Grids compress, headers wrap, tables scroll only inside their panels |
-| Tablet portrait | 768 × 1024 | Drawer navigation, touch controls and single-column forms work |
+| Tablet portrait | 820 × 1180 | Drawer navigation, touch controls and single-column forms work |
 | Android | 393 × 852 | No horizontal page overflow, 44px controls, compact toasts |
 | iPhone | 390 × 844 | Safe-area spacing, no input zoom, dialogs fit the visible screen |
 | Small phone | 360 × 800 | Cards and actions stack without clipping |
@@ -47,3 +47,5 @@ Expected final gates:
 Validate at least: Login, Dashboard, Reservations, Calendar, Rooms, Guests, Check-in/out, Payments, Folio, Service Requests, Food Orders, Amenities, Hotel Profile, Guest Guide Builder, Operations Centre, Reports, Super Admin, Onboarding and one signed Guest Guide.
 
 The runtime gate passes only when every viewport has no page-level horizontal scrollbar, invisible text, overlapping navigation, clipped dialog action or unreachable control.
+
+Tablet portrait uses the compact off-canvas navigation shell at widths up to 900px so the fixed desktop sidebar cannot squeeze operational content.

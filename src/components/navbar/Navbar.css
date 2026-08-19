@@ -304,7 +304,7 @@
     padding: 0 16px;
     gap: 8px;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) max-content;
   }
 
   .navbar.navbar--sidebar-collapsed {
@@ -312,7 +312,11 @@
   }
 
   .navbar-left {
-    width: 100%;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+    width: auto;
+    max-width: none;
     min-width: 0;
     overflow: hidden;
     gap: 10px;
@@ -333,10 +337,19 @@
   }
 
   .navbar-right {
+    display: grid;
+    grid-template-columns: repeat(3, 44px);
+    align-items: center;
     width: auto;
+    max-width: 140px;
     min-width: 0;
     justify-self: end;
-    gap: 6px;
+    gap: 4px;
+  }
+
+  .navbar-right > * {
+    min-width: 0;
+    max-width: 44px;
   }
 
   .navbar-menu-btn  { display: flex; }
@@ -345,7 +358,8 @@
 
   .notif-wrapper,
   .navbar-profile-wrapper {
-    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
   }
 
   .navbar-user {
@@ -506,7 +520,8 @@
   }
 
   .navbar-left {
-    gap: 8px;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 6px;
   }
 
   .navbar-right {

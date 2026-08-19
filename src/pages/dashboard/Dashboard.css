@@ -204,10 +204,60 @@
 @media (max-width: 480px) {
   .dashboard-page {
     padding: 14px 12px 32px;
+    contain: inline-size;
+  }
+
+  .dashboard-page > *,
+  .dash-section {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .dash-page-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .dash-page-header > div:first-child {
+    width: auto;
+    max-width: none;
+    min-width: 0;
   }
 
   .dash-page-title {
-    font-size: clamp(28px, 8vw, 34px);
+    width: 100%;
+    font-size: clamp(26px, 7.5vw, 32px);
     line-height: 1.08;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .dash-page-sub,
+  .dash-page-sub-copy,
+  .last-fetch {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .last-fetch {
+    margin-top: 3px;
+  }
+
+  .dash-header-actions,
+  .dash-refresh-btn {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .dash-refresh-btn {
+    justify-content: center;
   }
 }

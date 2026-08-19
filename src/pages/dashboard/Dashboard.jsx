@@ -191,10 +191,12 @@ export default function Dashboard({ hotel = null, staff = null }) {
           </h1>
 
           <p className="dash-page-sub">
-            Here&apos;s what&apos;s happening at {currentHotel?.hotel_name || 'your hotel'} today
+            <span className="dash-page-sub-copy">
+              Here&apos;s what&apos;s happening at {currentHotel?.hotel_name || 'your hotel'} today
+            </span>
             {lastFetch && (
               <span className="last-fetch">
-                {' '}· Last updated {formatTime(lastFetch)}
+                Last updated {formatTime(lastFetch)}
               </span>
             )}
           </p>

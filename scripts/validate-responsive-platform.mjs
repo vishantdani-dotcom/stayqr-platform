@@ -2,6 +2,21 @@ import { readFile } from 'node:fs/promises'
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
 
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const ruleBodies = (css, selector) => [
+  ...css.matchAll(new RegExp(`${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'g')),
+].map((match) => match[1])
+const hasRule = (css, selector, ...declarations) => ruleBodies(css, selector)
+  .some((body) => declarations.every((declaration) => body.includes(declaration)))
+const lacksRule = (css, selector, declaration) => ruleBodies(css, selector)
+  .every((body) => !body.includes(declaration))
+
+const mobileWidth = 430
+const navbarContentWidth = mobileWidth - 16
+const navbarFixedWidth = 44 + 6 + 140
+const navbarFlexibleWidth = navbarContentWidth - navbarFixedWidth
+const hotelInfoWidth = mobileWidth - 24 - 36 - 46 - 14
+
 const [
   html,
   main,
@@ -62,17 +77,26 @@ const checks = [
   ['desktop navbar offset is class controlled', navbarJsx.includes('navbar--sidebar-collapsed') && !navbarJsx.includes('style={{ left:')],
   ['desktop shell width subtracts the sidebar', /\.app-main \{[\s\S]*?width: calc\(100% - var\(--sidebar-w\)\)/.test(globals)],
   ['compact shell restores the exact viewport width', /@media \(max-width: 900px\)[\s\S]*?\.app-main\.app-main--sidebar-collapsed,[\s\S]*?\.app-content \{[\s\S]*?width: 100%;[\s\S]*?max-width: 100%;/.test(globals)],
-  ['compact navbar uses a bounded two-column grid', /@media \(max-width: 900px\)[\s\S]*?\.navbar \{[\s\S]*?width: 100%;[\s\S]*?grid-template-columns: minmax\(0, 1fr\) auto;/.test(navbarCss)],
+  ['compact navbar uses a bounded two-column grid', hasRule(navbarCss, '.navbar', 'width: 100%;', 'grid-template-columns: minmax(0, 1fr) max-content;')],
   ['notification count caps at 9+', navbarJsx.includes("unreadCount > 9 ? '9+' : unreadCount")],
   ['notification count renders as a positioned badge', /\.notif-live-count \{[\s\S]*?position: absolute;[\s\S]*?border-radius: 999px/.test(navbarCss)],
   ['mobile navbar is viewport bounded', /@media \(max-width: 900px\)[\s\S]*?\.navbar \{[\s\S]*?width: 100%;[\s\S]*?max-width: 100%;/.test(navbarCss)],
-  ['mobile navbar left group may shrink', /@media \(max-width: 900px\)[\s\S]*?\.navbar-left \{[\s\S]*?flex: 1 1 auto;[\s\S]*?min-width: 0;/.test(navbarCss)],
-  ['mobile navbar actions stay inside the grid', /@media \(max-width: 900px\)[\s\S]*?\.navbar-right \{[\s\S]*?justify-self: end;/.test(navbarCss)],
+  ['mobile navbar left group uses a shrinkable grid', hasRule(navbarCss, '.navbar-left', 'display: grid;', 'grid-template-columns: 44px minmax(0, 1fr);', 'width: auto;', 'max-width: none;', 'min-width: 0;')],
+  ['mobile navbar left group does not claim the full parent width', lacksRule(navbarCss, '.navbar-left', 'width: 100%;')],
+  ['mobile navbar actions use three bounded controls', hasRule(navbarCss, '.navbar-right', 'grid-template-columns: repeat(3, 44px);', 'max-width: 140px;', 'justify-self: end;')],
   ['dashboard duplicate desktop padding override is absent', !/\.dashboard-page\s*\{\s*padding:\s*32px;\s*\}/.test(dashboardCss)],
   ['dashboard mobile padding follows its own lazy stylesheet', /@media \(max-width: 480px\)[\s\S]*?\.dashboard-page \{[\s\S]*?padding: 14px 12px 32px;/.test(dashboardCss)],
+  ['dashboard mobile header is a one-column bounded grid', hasRule(dashboardCss, '.dash-page-header', 'display: grid;', 'grid-template-columns: minmax(0, 1fr);', 'width: 100%;')],
+  ['dashboard mobile subtitle is explicitly block wrapped', hasRule(dashboardCss, '.dash-page-sub,\n  .dash-page-sub-copy,\n  .last-fetch', 'display: block;', 'width: 100%;', 'white-space: normal;', 'overflow-wrap: anywhere;')],
   ['property card mobile layout stretches within viewport', /@media \(max-width: 900px\)[\s\S]*?\.hotel-card-inner \{[\s\S]*?align-items: stretch;/.test(hotelOverviewCss)],
   ['property title permits safe mobile wrapping', /\.hotel-name \{[\s\S]*?overflow-wrap: anywhere;/.test(hotelOverviewCss)],
   ['property quick stats release nowrap on phones', /@media \(max-width: 600px\)[\s\S]*?\.hqs-label \{[\s\S]*?white-space: normal;/.test(hotelOverviewCss)],
+  ['property card left side uses icon plus shrinkable content columns', hasRule(hotelOverviewCss, '.hotel-card-left', 'display: grid;', 'grid-template-columns: 46px minmax(0, 1fr);', 'width: auto;', 'max-width: none;')],
+  ['property info no longer claims full sibling width', hasRule(hotelOverviewCss, '.hotel-info', 'width: auto;', 'max-width: none;', 'min-width: 0;')],
+  ['property metadata stacks inside the phone width', hasRule(hotelOverviewCss, '.hotel-meta-row', 'display: grid;', 'grid-template-columns: minmax(0, 1fr);')],
+  ['property quick stats use three shrinkable columns', hasRule(hotelOverviewCss, '.hotel-quick-stats', 'grid-template-columns: repeat(3, minmax(0, 1fr));', 'width: 100%;')],
+  ['430px navbar retains at least 200px for menu and breadcrumb', navbarFlexibleWidth >= 200],
+  ['430px property card retains at least 300px for hotel information', hotelInfoWidth >= 300],
   ['small-phone breakpoint is present', responsive.includes('@media (max-width: 480px)')],
   ['mobile landscape height is handled', responsive.includes('(orientation: landscape)')],
   ['mobile form controls prevent iOS zoom', /input, select, textarea\)[\s\S]*font-size: 16px !important/.test(responsive)],

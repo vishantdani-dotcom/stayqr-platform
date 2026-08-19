@@ -29,7 +29,7 @@ Expected final gates:
 - Day 7–18 security/source gates: PASS
 - Local QR engine: PASS 5/5
 - Batch A source acceptance: PASS 43/43
-- Responsive platform source acceptance: PASS 54/54
+- Responsive platform source acceptance: PASS 68/68
 - Production build: PASS
 
 ## Staging viewport matrix
@@ -63,4 +63,8 @@ The final staging hotfix removes the remaining iPhone-width clipping that was vi
 
 The final structural correction removes JSX inline sidebar offsets and replaces them with explicit desktop state classes. At widths up to 900px, the shell, main region, content region and fixed navbar now resolve to the same bounded `100%` viewport width. The mobile navbar uses a two-column grid so its breadcrumb shrinks without pushing search, notifications or the profile control off-screen.
 
-Expected source gate: `RESPONSIVE_PLATFORM_SOURCE_ACCEPTANCE: PASS (59/59)`.
+The confirmed root cause was additive child sizing inside two mobile flex layouts: a `width: 100%` child was rendered beside fixed-width siblings, so the combined width exceeded the 430px viewport. Hiding overflow concealed the excess without fixing the layout. The corrected navbar and property card use explicit shrinkable grid tracks (`minmax(0, 1fr)`) and bounded fixed-control columns. The dashboard subtitle and property metadata now wrap as deterministic mobile blocks.
+
+The acceptance script now checks the exact mobile selector bodies and a 430px width budget, preventing broad regular-expression matches from producing a false pass.
+
+Expected source gate: `RESPONSIVE_PLATFORM_SOURCE_ACCEPTANCE: PASS (68/68)`.

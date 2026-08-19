@@ -231,12 +231,27 @@
 
 @media (max-width: 600px) {
   .hotel-card-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
     padding: 18px;
     gap: 22px;
   }
 
   .hotel-card-left {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    align-items: start;
+    width: auto;
+    max-width: none;
+    min-width: 0;
     gap: 14px;
+  }
+
+  .hotel-info {
+    width: auto;
+    max-width: none;
+    min-width: 0;
   }
 
   .hotel-icon {
@@ -250,18 +265,47 @@
   }
 
   .hotel-meta-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
 
+  .hotel-meta-item,
+  .hotel-meta-item > span:last-child,
+  .hotel-tags,
+  .hotel-tag-pill {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .hotel-meta-item {
+    align-items: flex-start;
+  }
+
+  .hotel-meta-item > span:last-child,
+  .hotel-tag-pill {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .hotel-card-right {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .occupancy-block {
+    justify-self: center;
   }
 
   .hotel-quick-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
     max-width: 100%;
-    justify-content: space-around;
     gap: 8px;
     padding: 12px 10px;
   }
@@ -273,6 +317,10 @@
 
   .hqs-label {
     white-space: normal;
+  }
+
+  .hqs-divider {
+    display: none;
   }
 }
 .hotel-status-pill.status-suspended,

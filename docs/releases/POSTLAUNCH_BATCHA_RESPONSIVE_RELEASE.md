@@ -29,7 +29,7 @@ Expected final gates:
 - Day 7–18 security/source gates: PASS
 - Local QR engine: PASS 5/5
 - Batch A source acceptance: PASS 43/43
-- Responsive platform source acceptance: PASS 46/46
+- Responsive platform source acceptance: PASS 54/54
 - Production build: PASS
 
 ## Staging viewport matrix
@@ -51,3 +51,14 @@ The runtime gate passes only when every viewport has no page-level horizontal sc
 Tablet portrait uses the compact off-canvas navigation shell at widths up to 900px so the fixed desktop sidebar cannot squeeze operational content.
 
 The navbar notification counter is rendered as a compact, high-contrast badge on desktop, tablet and mobile. Counts above nine are displayed as `9+`, while the full unread count remains available to assistive technology.
+
+## 430px overflow regression hotfix
+
+The final staging hotfix removes the remaining iPhone-width clipping that was visible after the notification-badge correction:
+
+- Navbar breadcrumb may shrink while menu, search, notifications and profile controls retain usable widths.
+- Dashboard lazy-loaded CSS no longer restores desktop padding after the shared responsive layer.
+- Dashboard headings and property names wrap inside the viewport instead of expanding the page.
+- Property overview and quick-stat groups stretch and reflow safely at 430px and below.
+
+Expected source gate: `RESPONSIVE_PLATFORM_SOURCE_ACCEPTANCE: PASS (54/54)`.

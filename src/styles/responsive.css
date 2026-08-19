@@ -303,17 +303,35 @@ canvas {
 @media (max-width: 900px) {
   .navbar {
     gap: 8px;
+    right: 0;
+    width: auto;
+    max-width: 100vw;
+  }
+
+  .navbar-left {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .navbar-breadcrumb {
+    flex: 1 1 auto;
     min-width: 0;
+    overflow: hidden;
   }
 
   .breadcrumb-current {
-    max-width: 32vw;
+    display: block;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .navbar-right,
+  .notif-wrapper,
+  .navbar-profile-wrapper {
+    flex: 0 0 auto;
   }
 
   .app-content :where(
@@ -372,6 +390,26 @@ canvas {
     min-height: 100dvh;
     overflow-x: hidden;
     padding-bottom: max(16px, var(--safe-bottom));
+  }
+
+  .app-content :where(
+    .dashboard-page,
+    .dashboard-page > *,
+    .dash-page-header,
+    .dash-page-header > *,
+    .hotel-overview-card,
+    .hotel-card-inner,
+    .hotel-card-left,
+    .hotel-info,
+    .hotel-card-right,
+    .hotel-quick-stats
+  ) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .app-content :where(.dashboard-page, .dash-page-header, .hotel-overview-card, .hotel-card-inner) {
+    width: 100%;
   }
 
   .sidebar {

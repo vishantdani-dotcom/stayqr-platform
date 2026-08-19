@@ -29,7 +29,7 @@ Expected final gates:
 - Day 7–18 security/source gates: PASS
 - Local QR engine: PASS 5/5
 - Batch A source acceptance: PASS 43/43
-- Responsive platform source acceptance: PASS 68/68
+- Responsive platform source acceptance: PASS 77/77
 - Production build: PASS
 
 ## Staging viewport matrix
@@ -52,6 +52,8 @@ Tablet portrait uses the compact off-canvas navigation shell at widths up to 900
 
 The navbar notification counter is rendered as a compact, high-contrast badge on desktop, tablet and mobile. Counts above nine are displayed as `9+`, while the full unread count remains available to assistive technology.
 
+The notification inbox now uses a dedicated StayQR dark-and-gold drawer instead of inheriting generic grey button styling. It includes a clear header, unread state, source-aware icons, compact two-line messages, a bounded scroll region, and a direct route to Operations Centre. Tablet and phone layouts anchor the drawer to the viewport with safe-area spacing so the panel remains readable without covering or widening the application shell.
+
 ## 430px overflow regression hotfix
 
 The final staging hotfix removes the remaining iPhone-width clipping that was visible after the notification-badge correction:
@@ -67,4 +69,4 @@ The confirmed root cause was additive child sizing inside two mobile flex layout
 
 The acceptance script now checks the exact mobile selector bodies and a 430px width budget, preventing broad regular-expression matches from producing a false pass.
 
-Expected source gate: `RESPONSIVE_PLATFORM_SOURCE_ACCEPTANCE: PASS (68/68)`.
+Expected source gate: `RESPONSIVE_PLATFORM_SOURCE_ACCEPTANCE: PASS (77/77)`.

@@ -231,12 +231,21 @@ export default function Navbar({
           </button>
 
           {notifOpen && (
-            <div className="notif-dropdown">
+            <div
+              className="notif-dropdown"
+              role="dialog"
+              aria-label="Hotel notifications"
+            >
               <div className="notif-header">
-                <span>Notifications</span>
+                <span className="notif-heading-copy">
+                  <strong>Notifications</strong>
+                  <small>Live hotel activity</small>
+                </span>
 
                 <div className="notif-header-actions">
-                  <span className="notif-count">{unreadCount} new</span>
+                  <span className="notif-count">
+                    {unreadCount > 0 ? `${unreadCount} unread` : 'All read'}
+                  </span>
 
                   {unreadCount > 0 && (
                     <button className="notif-mark-read" onClick={handleMarkAllRead} type="button">
@@ -246,33 +255,54 @@ export default function Navbar({
                 </div>
               </div>
 
-              {notifications.length === 0 ? (
-                <div className="notif-empty">
-                  <div>🔔</div>
-                  <p>No notifications yet</p>
-                  <span>Live hotel updates will appear here.</span>
-                </div>
-              ) : (
-                notifications.map((notification) => (
+              <div className="notif-list" aria-live="polite">
+                {notifications.length === 0 ? (
+                  <div className="notif-empty">
+                    <div className="notif-empty-icon"><BellIcon /></div>
+                    <p>No notifications yet</p>
+                    <span>New hotel activity will appear here.</span>
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <button
+                      key={notification.id}
+                      className={`notif-item ${notification.status === 'read' ? 'read' : 'unread'}`}
+                      onClick={() => handleNotificationClick(notification)}
+                      type="button"
+                    >
+                      <span className={`notif-item-icon ${getNotificationTone(notification)}`} aria-hidden="true">
+                        {getNotificationIcon(notification.source_type || notification.event_key || 'general')}
+                      </span>
+
+                      <span className="notif-item-body">
+                        <span className="notif-item-title">{notification.title}</span>
+                        <span className="notif-item-message">{notification.message}</span>
+                        <span className="notif-item-meta">
+                          <span>{timeAgo(notification.created_at)}</span>
+                          {notification.status === 'unread' && <span>New</span>}
+                        </span>
+                      </span>
+
+                      {notification.status === 'unread' && <span className="notif-unread-dot" aria-hidden="true" />}
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {onNavigate && (
+                <div className="notif-footer">
                   <button
-                    key={notification.id}
-                    className={`notif-item ${notification.status === 'read' ? 'read' : 'unread'}`}
-                    onClick={() => handleNotificationClick(notification)}
+                    className="notif-open-centre"
                     type="button"
+                    onClick={() => {
+                      setNotifOpen(false)
+                      onNavigate('operationscenter')
+                    }}
                   >
-                    <div className={`notif-item-icon ${notification.severity || 'info'}`}>
-                      {getNotificationIcon(notification.severity || 'info')}
-                    </div>
-
-                    <div className="notif-item-body">
-                      <p className="notif-item-title">{notification.title}</p>
-                      <p className="notif-item-message">{notification.message}</p>
-                      <p className="notif-item-time">{timeAgo(notification.created_at)}</p>
-                    </div>
-
-                    {notification.status === 'unread' && <span className="notif-unread-dot" />}
+                    Open notification centre
+                    <span aria-hidden="true">→</span>
                   </button>
-                ))
+                </div>
               )}
             </div>
           )}
@@ -343,6 +373,7 @@ export default function Navbar({
 }
 
 function getNotificationIcon(type) {
+  const normalizedType = String(type || '').toLowerCase()
   const icons = {
     service_status: '🛎️',
     service_request: '🛎️',
@@ -354,7 +385,18 @@ function getNotificationIcon(type) {
     general: '🔔',
   }
 
-  return icons[type] || '🔔'
+  const matchedType = Object.keys(icons).find((key) => normalizedType.includes(key))
+  return icons[matchedType] || '🔔'
+}
+
+function getNotificationTone(notification) {
+  const severity = String(notification?.severity || '').toLowerCase()
+  const eventKey = String(notification?.event_key || '').toLowerCase()
+
+  if (severity === 'critical' || severity === 'error') return 'critical'
+  if (severity === 'warning' || severity === 'warn') return 'warning'
+  if (severity === 'success' || eventKey.includes('completed') || eventKey.includes('paid')) return 'success'
+  return 'info'
 }
 
 function timeAgo(dateValue) {

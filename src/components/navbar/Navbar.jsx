@@ -172,8 +172,7 @@ export default function Navbar({
 
   return (
     <header
-      className="navbar"
-      style={{ left: sidebarCollapsed ? 64 : 'var(--sidebar-w)' }}
+      className={`navbar${sidebarCollapsed ? ' navbar--sidebar-collapsed' : ''}`}
     >
       <div className="navbar-left">
         <button

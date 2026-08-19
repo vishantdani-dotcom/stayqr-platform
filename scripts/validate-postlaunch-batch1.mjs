@@ -112,7 +112,7 @@ try {
   const main = read('src/main.jsx')
   check('legacy light heading override was removed', !indexCss.includes('--text-h: #08060d') && !indexCss.includes('width: 1126px'))
   check('responsive correction layer is loaded', main.includes("import './styles/responsive.css'") && responsiveCss.includes('@media (max-width: 768px)'))
-  check('mobile shell removes desktop offsets', includesAll(responsiveCss, ['margin-left: 0 !important', 'left: 0 !important', 'overflow-x: hidden']))
+  check('mobile shell removes desktop offsets', includesAll(responsiveCss, ['.app-main.app-main--sidebar-collapsed', 'margin-left: 0;', 'left: 0;', 'width: 100%;', 'max-width: 100%;', 'overflow-x: hidden']))
   check('visible muted text contrast is raised', includesAll(responsiveCss, ['--text-muted: #b8b5ad', '--text-dim: #9d9a92']))
 
   for (const [index, result] of results.entries()) {

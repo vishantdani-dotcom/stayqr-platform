@@ -61,4 +61,6 @@ The final staging hotfix removes the remaining iPhone-width clipping that was vi
 - Dashboard headings and property names wrap inside the viewport instead of expanding the page.
 - Property overview and quick-stat groups stretch and reflow safely at 430px and below.
 
-Expected source gate: `RESPONSIVE_PLATFORM_SOURCE_ACCEPTANCE: PASS (54/54)`.
+The final structural correction removes JSX inline sidebar offsets and replaces them with explicit desktop state classes. At widths up to 900px, the shell, main region, content region and fixed navbar now resolve to the same bounded `100%` viewport width. The mobile navbar uses a two-column grid so its breadcrumb shrinks without pushing search, notifications or the profile control off-screen.
+
+Expected source gate: `RESPONSIVE_PLATFORM_SOURCE_ACCEPTANCE: PASS (59/59)`.

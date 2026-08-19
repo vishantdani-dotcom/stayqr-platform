@@ -637,10 +637,7 @@ export default function App() {
       )}
 
       <div
-        className="app-main"
-        style={{
-          marginLeft: sidebarCollapsed ? 64 : 'var(--sidebar-w)',
-        }}
+        className={`app-main${sidebarCollapsed ? ' app-main--sidebar-collapsed' : ''}`}
       >
         <Navbar
           sidebarCollapsed={sidebarCollapsed}

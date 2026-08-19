@@ -358,8 +358,13 @@ canvas {
   html,
   body,
   #root {
+    width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+  }
+
+  html {
+    scrollbar-gutter: auto;
   }
 
   body {
@@ -368,17 +373,26 @@ canvas {
   }
 
   .app-shell,
-  .app-main {
+  .app-main,
+  .app-main.app-main--sidebar-collapsed,
+  .app-content {
     min-height: 100vh;
     min-height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
-  .app-main {
-    margin-left: 0 !important;
+  .app-main,
+  .app-main.app-main--sidebar-collapsed {
+    margin-left: 0;
   }
 
   .navbar {
-    left: 0 !important;
+    left: 0;
+    right: auto;
+    width: 100%;
+    max-width: 100%;
     min-height: calc(var(--navbar-h) + var(--safe-top));
     padding-top: var(--safe-top);
     padding-right: max(10px, var(--safe-right));

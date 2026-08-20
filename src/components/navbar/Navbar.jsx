@@ -25,6 +25,7 @@ export default function Navbar({
   switchingHotelId,
   hotelSwitchError,
   onNavigate,
+  onReturnToPlatform,
 }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
@@ -39,7 +40,8 @@ export default function Navbar({
   const userName = currentStaff?.full_name || 'Admin'
   const hotelName = tenantContext?.selectedHotel?.hotel_name || currentStaff?.hotels?.hotel_name || currentStaff?.hotel_name || 'StayQR Hotel'
   const normalizedRole = normalizeRole(currentRole || currentStaff?.role || 'manager')
-  const isPlatformAdmin = normalizedRole === 'platform_admin'
+  const isPlatformAccount = Boolean(tenantContext?.isPlatformAdmin)
+  const isPlatformSupportMode = Boolean(tenantContext?.isPlatformSupportMode)
   const roleName = formatRole(normalizedRole)
   const unreadCount = notifications.filter((item) => item.status === 'unread').length
   activeHotelIdRef.current = hotelId || null
@@ -346,10 +348,19 @@ export default function Navbar({
               </div>
 
               <div className="navbar-user-menu-section">
-                {isPlatformAdmin ? (
+                {isPlatformAccount ? (
                   <div className="navbar-platform-scope">
-                    <strong>StayQR platform scope</strong>
-                    <span>Hotel access requires a timed, audited support session.</span>
+                    <strong>{isPlatformSupportMode ? `View as ${hotelName}` : 'StayQR platform scope'}</strong>
+                    <span>
+                      {isPlatformSupportMode
+                        ? 'Audited, time-bound hotel support session is active.'
+                        : 'Hotel access requires a timed, audited support session.'}
+                    </span>
+                    {isPlatformSupportMode && (
+                      <button type="button" className="navbar-platform-return" onClick={onReturnToPlatform}>
+                        Return to Super Admin
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <>

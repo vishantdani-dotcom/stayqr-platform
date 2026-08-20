@@ -150,9 +150,11 @@ export default function App() {
       setActiveSection((currentSection) =>
         canAccessSection(context.currentRole, currentSection, context.permissions)
           ? currentSection
-          : context.isPlatformAdmin
-            ? 'superadmin'
-            : 'dashboard'
+          : context.isPlatformSupportMode
+            ? 'dashboard'
+            : context.isPlatformAdmin
+              ? 'superadmin'
+              : 'dashboard'
       )
     } catch (error) {
       console.error('StayQR tenant context error:', error)
@@ -241,6 +243,19 @@ export default function App() {
 
     return () => subscription.unsubscribe()
   }, [initAuth, loadUserContext])
+
+  useEffect(() => {
+    const expiresAt = tenantContext?.activeSupportSession?.expires_at
+    if (!tenantContext?.isPlatformSupportMode || !expiresAt) return undefined
+
+    const expiresInMs = Math.max(0, new Date(expiresAt).getTime() - Date.now())
+    const timer = window.setTimeout(() => {
+      clearSelectedTenantHotel()
+      loadUserContext()
+    }, Math.min(expiresInMs + 250, 2147483000))
+
+    return () => window.clearTimeout(timer)
+  }, [loadUserContext, tenantContext?.activeSupportSession?.expires_at, tenantContext?.isPlatformSupportMode])
 
   useEffect(() => {
     const handleExternalNavigation = (event) => {
@@ -476,9 +491,11 @@ export default function App() {
       setActiveSection((currentSection) =>
         canAccessSection(nextContext.currentRole, currentSection, nextContext.permissions)
           ? currentSection
-          : nextContext.isPlatformAdmin
-            ? 'superadmin'
-            : 'dashboard'
+          : nextContext.isPlatformSupportMode
+            ? 'dashboard'
+            : nextContext.isPlatformAdmin
+              ? 'superadmin'
+              : 'dashboard'
       )
     } catch (error) {
       console.error('Hotel switch failed:', error)
@@ -487,6 +504,57 @@ export default function App() {
       )
     } finally {
       setSwitchingHotelId(null)
+    }
+  }
+
+  const handleAuditedHotelView = async (hotelId) => {
+    if (!hotelId || switchingHotelId) return
+
+    setSwitchingHotelId(hotelId)
+    setHotelSwitchError('')
+
+    try {
+      const nextContext = await selectTenantHotel(hotelId)
+
+      if (!nextContext?.selectedHotel || !nextContext?.isPlatformSupportMode) {
+        throw new Error('StayQR could not enter the audited View as Hotel session.')
+      }
+
+      setTenantContext(nextContext)
+      setCurrentStaff(nextContext.currentStaff)
+      setCurrentRole(nextContext.currentRole)
+      setOnboardingRequired(false)
+      setNavigationRequest(null)
+      setMobileMenuOpen(false)
+      setActiveSection('dashboard')
+    } catch (error) {
+      console.error('Audited hotel view failed:', error)
+      setHotelSwitchError(
+        error?.message || 'StayQR could not enter the audited hotel session.'
+      )
+      throw error
+    } finally {
+      setSwitchingHotelId(null)
+    }
+  }
+
+  const handleReturnToPlatform = async () => {
+    setHotelSwitchError('')
+    clearSelectedTenantHotel()
+
+    try {
+      const nextContext = await loadTenantContext({ force: true })
+      setTenantContext(nextContext)
+      setCurrentStaff(nextContext?.currentStaff || null)
+      setCurrentRole(nextContext?.currentRole || 'platform_admin')
+      setNavigationRequest(null)
+      setMobileMenuOpen(false)
+      setActiveSection('superadmin')
+    } catch (error) {
+      console.error('Return to platform scope failed:', error)
+      setHotelSwitchError(
+        error?.message || 'StayQR could not return to platform scope.'
+      )
     }
   }
 
@@ -615,7 +683,7 @@ export default function App() {
       case 'staff':
         return <StaffManagement />
       case 'superadmin':
-        return <SuperAdmin onNavigate={handleNavigate} />
+        return <SuperAdmin onNavigate={handleNavigate} onViewHotel={handleAuditedHotelView} />
       case 'onboarding':
         return (
           <HotelOnboarding
@@ -644,6 +712,7 @@ export default function App() {
         onHotelChange={handleHotelChange}
         switchingHotelId={switchingHotelId}
         hotelSwitchError={hotelSwitchError}
+        onReturnToPlatform={handleReturnToPlatform}
       />
 
       {mobileMenuOpen && (
@@ -667,6 +736,7 @@ export default function App() {
           switchingHotelId={switchingHotelId}
           hotelSwitchError={hotelSwitchError}
           onNavigate={handleNavigate}
+          onReturnToPlatform={handleReturnToPlatform}
         />
 
         <main

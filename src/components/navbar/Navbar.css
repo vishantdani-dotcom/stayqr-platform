@@ -809,6 +809,23 @@
 }
 
 
+.navbar-platform-return {
+  margin-top: 4px;
+  min-height: 32px;
+  border: 1px solid rgba(226, 181, 48, 0.34);
+  border-radius: 8px;
+  background: rgba(226, 181, 48, 0.12);
+  color: var(--gold, #e2b530);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.navbar-platform-return:hover {
+  background: rgba(226, 181, 48, 0.18);
+}
+
+
 /* StayQR Mobile UI REV2 — navbar */
 @media (max-width: 600px) {
   .navbar,

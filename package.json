@@ -41,7 +41,8 @@
     "security:day18infra": "node scripts/day18-infrastructure-source-check.mjs",
     "security:day18baseline": "node scripts/day18-canonical-baseline-source-check.mjs",
     "test:postlaunch-batch2-final": "node scripts/validate-postlaunch-batch2-final.mjs",
-    "test:postlaunch-batch2-blockers": "node scripts/validate-postlaunch-batch2-browser-blockers.mjs"
+    "test:postlaunch-batch2-blockers": "node scripts/validate-postlaunch-batch2-browser-blockers.mjs",
+    "test:postlaunch-batch2-item3": "node scripts/validate-postlaunch-batch2-item3-platform-view.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

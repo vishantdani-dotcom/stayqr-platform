@@ -61,9 +61,11 @@ export default function Sidebar({
   onHotelChange,
   switchingHotelId,
   hotelSwitchError,
+  onReturnToPlatform,
 }) {
   const role = normalizeRole(currentRole || currentStaff?.role)
-  const isPlatformAdmin = role === 'platform_admin'
+  const isPlatformAccount = Boolean(tenantContext?.isPlatformAdmin)
+  const isPlatformSupportMode = Boolean(tenantContext?.isPlatformSupportMode)
   const userName = currentStaff?.full_name || 'Admin'
   const userRole = currentStaff?.role || role
 
@@ -97,10 +99,19 @@ export default function Sidebar({
 
       {!collapsed && (
         <div className="sidebar-hotel-switcher-wrap">
-          {isPlatformAdmin ? (
+          {isPlatformAccount ? (
             <div className="sidebar-platform-scope">
-              <strong>StayQR platform</strong>
-              <span>Use Super Admin for timed hotel support access.</span>
+              <strong>{isPlatformSupportMode ? 'View as Hotel' : 'StayQR platform'}</strong>
+              <span>
+                {isPlatformSupportMode
+                  ? `${tenantContext?.selectedHotel?.hotel_name || 'Hotel'} · audited access active`
+                  : 'Use Super Admin for timed hotel support access.'}
+              </span>
+              {isPlatformSupportMode && (
+                <button type="button" className="sidebar-platform-return" onClick={onReturnToPlatform}>
+                  Return to Super Admin
+                </button>
+              )}
             </div>
           ) : (
             <HotelSwitcher

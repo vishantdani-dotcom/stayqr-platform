@@ -315,6 +315,23 @@
 }
 
 
+.sidebar-platform-return {
+  margin-top: 5px;
+  min-height: 32px;
+  border: 1px solid rgba(226, 181, 48, 0.34);
+  border-radius: 8px;
+  background: rgba(226, 181, 48, 0.12);
+  color: var(--gold, #e2b530);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sidebar-platform-return:hover {
+  background: rgba(226, 181, 48, 0.18);
+}
+
+
 /* StayQR Mobile UI REV2 — off-canvas navigation */
 @media (max-width: 600px) {
   .sidebar {

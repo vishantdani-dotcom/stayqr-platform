@@ -46,7 +46,7 @@ const EMPTY_DATA = {
   webhook_events: [],
 }
 
-export default function SuperAdmin({ onNavigate }) {
+export default function SuperAdmin({ onNavigate, onViewHotel }) {
   const [data, setData] = useState(EMPTY_DATA)
   const [platformMetrics, setPlatformMetrics] = useState({})
   const [announcements, setAnnouncements] = useState([])
@@ -330,6 +330,7 @@ export default function SuperAdmin({ onNavigate }) {
           onEndSession={(session) =>
             openDialog('safe-support-end', { session })
           }
+          onResumeSession={(session) => onViewHotel?.(session.hotel_id)}
         />
       )}
 
@@ -418,9 +419,10 @@ export default function SuperAdmin({ onNavigate }) {
               hotel={dialog.hotel}
               onCancel={closeDialog}
               onError={actionFailed}
-              onSuccess={(result) =>
-                completeAction('Audited View as Hotel access started.', result)
-              }
+              onSuccess={async (result) => {
+                await completeAction('Audited View as Hotel access started.', result)
+                await onViewHotel?.(dialog.hotel.id)
+              }}
             />
           )}
 
@@ -872,7 +874,7 @@ function PaymentLinksTab({ links }) {
   )
 }
 
-function SupportTab({ tickets, supportSessions, hotels, onCreate, onTicket, onEndSession }) {
+function SupportTab({ tickets, supportSessions, hotels, onCreate, onTicket, onEndSession, onResumeSession }) {
   return (
     <section className="commercial-tab-panel">
       <div className="panel-heading-row">
@@ -899,9 +901,14 @@ function SupportTab({ tickets, supportSessions, hotels, onCreate, onTicket, onEn
                       {session.permissions?.map(humanize).join(', ') || 'Read only'} · expires {formatDateTime(session.expires_at)}
                     </span>
                   </div>
-                  <button type="button" className="small-action danger" onClick={() => onEndSession(session)}>
-                    End access
-                  </button>
+                  <div className="row-actions">
+                    <button type="button" className="small-action" onClick={() => onResumeSession(session)}>
+                      View hotel
+                    </button>
+                    <button type="button" className="small-action danger" onClick={() => onEndSession(session)}>
+                      End access
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -1690,7 +1697,7 @@ function SafeSupportForm({ hotel, onCancel, onError, onSuccess }) {
 
   return (
     <form className="commercial-form" onSubmit={submit}>
-      <div className="security-callout"><strong>No silent impersonation</strong><span>This creates an explicit, time-bound and immutable View as Hotel audit trail. After starting it, use the hotel switcher to enter that hotel context.</span></div>
+      <div className="security-callout"><strong>No silent impersonation</strong><span>This creates an explicit, time-bound and immutable View as Hotel audit trail. After starting it, StayQR enters that hotel through this audited session only.</span></div>
       <div className="dialog-context-card"><div><span>Hotel</span><strong>{hotel.hotel_name}</strong></div><div><span>Lifecycle</span><StatusBadge status={hotel.lifecycle_status || hotel.subscription_status} /></div></div>
       <Field label="Reason"><textarea required rows="4" value={reason} onChange={(event) => setReason(event.target.value)} /></Field>
       <Field label="Duration"><select value={duration} onChange={(event) => setDuration(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">2 hours</option><option value="240">4 hours</option></select></Field>

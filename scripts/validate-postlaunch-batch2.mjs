@@ -49,8 +49,8 @@ expect('Super Admin shows total guests', has(files.superAdmin, 'label="Total gue
 expect('Super Admin shows document scans', has(files.superAdmin, 'label="Guest document scans"'))
 expect('Super Admin shows reservations and rooms', has(files.superAdmin, 'platformMetrics.reservations'))
 expect('Super Admin shows staff count', has(files.superAdmin, 'platformMetrics.staff'))
-expect('Navbar blocks ordinary platform hotel switching', has(files.navbar, 'isPlatformAdmin ? (') && has(files.navbar, 'timed, audited support session'))
-expect('Sidebar blocks ordinary platform hotel switching', has(files.sidebar, 'isPlatformAdmin ? (') && has(files.sidebar, 'Use Super Admin for timed hotel support access'))
+expect('Navbar blocks ordinary platform hotel switching', has(files.navbar, 'isPlatformAccount ? (') && has(files.navbar, 'timed, audited support session'))
+expect('Sidebar blocks ordinary platform hotel switching', has(files.sidebar, 'isPlatformAccount ? (') && has(files.sidebar, 'Use Super Admin for timed hotel support access'))
 expect('Platform scope treatments are styled', has(files.navbarCss, '.navbar-platform-scope') && has(files.sidebarCss, '.sidebar-platform-scope'))
 
 expect('Staff context includes avatar path', has(files.context, 'avatar_path'))

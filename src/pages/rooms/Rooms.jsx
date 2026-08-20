@@ -304,8 +304,8 @@ export default function Rooms({ hotel: hotelProp }) {
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
-          <div className="day13-table-wrap">
-            <table className="day13-table">
+          <div className="day13-table-wrap room-register-table-wrap">
+            <table className="day13-table room-register-table">
               <thead>
                 <tr>
                   <th>Room</th>

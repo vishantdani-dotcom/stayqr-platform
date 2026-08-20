@@ -330,3 +330,38 @@ export async function recordGuestGuideEvent({
     'Unable to record the guest-guide action.'
   )
 }
+
+export async function getPermanentRoomQrLinks(hotelId) {
+  if (!hotelId) return []
+  const { data, error } = await supabase.rpc('get_permanent_room_qr_links', {
+    p_hotel_id: hotelId,
+  })
+  if (error) throw error
+  return Array.isArray(data) ? data : []
+}
+
+export async function issuePermanentRoomQrPin({ hotelId, roomId }) {
+  const { data, error } = await supabase.rpc('issue_permanent_room_qr_pin', {
+    p_hotel_id: hotelId,
+    p_room_id: roomId,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function getRoomQrPublicContext(publicCode) {
+  const { data, error } = await supabase.rpc('get_room_qr_public_context', {
+    p_public_code: publicCode,
+  })
+  if (error) throw error
+  return data || { valid: false }
+}
+
+export async function resolvePermanentRoomQr({ publicCode, pin }) {
+  const { data, error } = await supabase.rpc('resolve_permanent_room_qr', {
+    p_public_code: publicCode,
+    p_pin: String(pin || '').trim(),
+  })
+  if (error) throw error
+  return data || { ok: false, error: 'Room access is unavailable.' }
+}

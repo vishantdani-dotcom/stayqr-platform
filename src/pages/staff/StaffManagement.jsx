@@ -45,6 +45,9 @@ export default function StaffManagement() {
   const [profilePhoto, setProfilePhoto] = useState(null)
   const [profilePreview, setProfilePreview] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
+  const [phoneOtp, setPhoneOtp] = useState('')
+  const [phoneVerificationSent, setPhoneVerificationSent] = useState(false)
+  const [phoneVerifying, setPhoneVerifying] = useState(false)
 
   const pageSize = 8
 
@@ -128,7 +131,7 @@ export default function StaffManagement() {
     const { data, error } = await supabase
       .from('staff')
       .select(
-        'id, hotel_id, full_name, email, phone, role, status, auth_user_id, avatar_path, created_at, updated_at, invited_at, invitation_sent_at, accepted_at, disabled_at, identity_reconciliation_status, identity_reconciliation_note, identity_reconciled_at'
+        'id, hotel_id, full_name, email, phone, phone_verified_at, role, status, auth_user_id, avatar_path, created_at, updated_at, invited_at, invitation_sent_at, accepted_at, disabled_at, identity_reconciliation_status, identity_reconciliation_note, identity_reconciled_at'
       )
       .eq('hotel_id', hotelId)
       .order('created_at', { ascending: false })
@@ -143,6 +146,10 @@ export default function StaffManagement() {
 
   const currentRole = normalizeRole(currentStaff?.role)
   const canManageStaff = roleCanManageStaff(currentRole)
+  const displayedPhoneVerified = Boolean(
+    currentStaff?.phone_verified_at &&
+    String(currentStaff?.phone || '').trim() === profileForm.phone.trim()
+  )
 
   const filteredStaff = useMemo(() => {
     return staff.filter((member) => {
@@ -368,6 +375,66 @@ export default function StaffManagement() {
     }
   }
 
+  async function beginPhoneVerification() {
+    const phone = profileForm.phone.trim()
+    if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
+      setActionError('Enter the phone in international format, for example +919503893141.')
+      return
+    }
+
+    setPhoneVerifying(true)
+    setActionError('')
+    setActionMessage('')
+    try {
+      const { error } = await supabase.auth.updateUser({ phone })
+      if (error) throw error
+      setPhoneVerificationSent(true)
+      setPhoneOtp('')
+      setActionMessage(`Verification code sent to ${phone}.`)
+    } catch (error) {
+      setActionError(error?.message || 'Unable to send the phone verification code.')
+    } finally {
+      setPhoneVerifying(false)
+    }
+  }
+
+  async function confirmPhoneVerification() {
+    const phone = profileForm.phone.trim()
+    if (!/^\d{6}$/.test(phoneOtp)) {
+      setActionError('Enter the 6-digit verification code.')
+      return
+    }
+
+    setPhoneVerifying(true)
+    setActionError('')
+    setActionMessage('')
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        phone,
+        token: phoneOtp,
+        type: 'phone_change',
+      })
+      if (verifyError) throw verifyError
+
+      const { data, error: syncError } = await supabase.rpc('sync_my_verified_staff_phone', {
+        p_hotel_id: currentHotel.id,
+      })
+      if (syncError) throw syncError
+
+      const context = await loadTenantContext({ force: true })
+      setCurrentStaff(context?.currentStaff || { ...currentStaff, phone: data?.phone || phone, phone_verified_at: data?.phone_verified_at || new Date().toISOString() })
+      setProfileForm((current) => ({ ...current, phone: data?.phone || phone }))
+      setPhoneVerificationSent(false)
+      setPhoneOtp('')
+      await fetchStaff(currentHotel.id)
+      setActionMessage('Phone number verified successfully.')
+    } catch (error) {
+      setActionError(error?.message || 'Phone verification failed.')
+    } finally {
+      setPhoneVerifying(false)
+    }
+  }
+
   async function linkIdentity(member) {
     if (!canManageStaff || !currentHotel?.id || member.auth_user_id) return
 
@@ -507,16 +574,43 @@ export default function StaffManagement() {
               }
             />
           </label>
-          <label>
-            Phone number
+          <label className="staff-phone-field">
+            <span className="staff-phone-label">
+              Phone number
+              <b className={displayedPhoneVerified ? 'verified' : 'unverified'}>
+                {displayedPhoneVerified ? 'Verified' : 'Unverified'}
+              </b>
+            </span>
             <input
               type="tel"
               value={profileForm.phone}
-              onChange={(event) =>
+              onChange={(event) => {
                 setProfileForm((current) => ({ ...current, phone: event.target.value }))
-              }
-              placeholder="Hotel contact number"
+                setPhoneVerificationSent(false)
+                setPhoneOtp('')
+              }}
+              placeholder="+919503893141"
             />
+            <small>Use international format with country code.</small>
+            {!displayedPhoneVerified && !phoneVerificationSent && (
+              <button className="staff-secondary-btn compact" type="button" onClick={beginPhoneVerification} disabled={phoneVerifying}>
+                {phoneVerifying ? 'Sending…' : 'Verify phone'}
+              </button>
+            )}
+            {!displayedPhoneVerified && phoneVerificationSent && (
+              <div className="staff-phone-otp">
+                <input
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={phoneOtp}
+                  onChange={(event) => setPhoneOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="6-digit code"
+                />
+                <button className="staff-primary-btn compact" type="button" onClick={confirmPhoneVerification} disabled={phoneVerifying || phoneOtp.length !== 6}>
+                  {phoneVerifying ? 'Checking…' : 'Confirm'}
+                </button>
+              </div>
+            )}
           </label>
           <label>
             Profile photo

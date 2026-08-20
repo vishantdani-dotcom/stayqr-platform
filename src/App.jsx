@@ -23,12 +23,14 @@ const Rooms = lazy(() => import('./pages/rooms/Rooms'))
 const CheckIn = lazy(() => import('./pages/checkin/CheckIn'))
 const Guests = lazy(() => import('./pages/guests/Guests'))
 const GuestGuide = lazy(() => import('./pages/guestguide/GuestGuide'))
+const RoomAccess = lazy(() => import('./pages/roomaccess/RoomAccess'))
 const FoodMenu = lazy(() => import('./pages/food/FoodMenu'))
 const FoodOrders = lazy(() => import('./pages/foodorders/FoodOrders'))
 const ServiceRequests = lazy(() => import('./pages/services/ServiceRequests'))
 const Payments = lazy(() => import('./pages/payments/Payments'))
 const FolioSettlement = lazy(() => import('./pages/folios/FolioSettlement'))
 const Amenities = lazy(() => import('./pages/amenities/Amenities'))
+const MediaManager = lazy(() => import('./pages/media/MediaManager'))
 const Charges = lazy(() => import('./pages/charges/Charges'))
 const Housekeeping = lazy(() => import('./pages/housekeeping/Housekeeping'))
 const Maintenance = lazy(() => import('./pages/maintenance/Maintenance'))
@@ -77,6 +79,7 @@ const SECTION_TITLES = {
   housekeeping: 'housekeeping',
   maintenance: 'maintenance',
   amenities: 'amenities',
+  media: 'media manager',
   hotel: 'hotel profile',
   guidebuilder: 'guest guide builder',
   reports: 'reports',
@@ -341,6 +344,14 @@ export default function App() {
     )
   }
 
+  if (window.location.pathname.startsWith('/room/')) {
+    return (
+      <StandaloneRouteBoundary routeKey="permanent-room-access" label="room access">
+        <RoomAccess />
+      </StandaloneRouteBoundary>
+    )
+  }
+
   if (
   window.location.pathname.startsWith('/guest/') ||
   window.location.pathname.startsWith('/g/')
@@ -565,6 +576,8 @@ export default function App() {
         return <Maintenance hotel={tenantContext?.selectedHotel || null} />
       case 'amenities':
         return <Amenities />
+      case 'media':
+        return <MediaManager />
       case 'hotel':
         return <HotelProfile />
       case 'guidebuilder':

@@ -15,7 +15,7 @@ export default function HotelOverviewCard({ hotel, analytics, loading = false })
     : 'Subscription not set'
 
   return (
-    <div className="hotel-overview-card glass-card gold-border">
+    <div className={`hotel-overview-card glass-card gold-border ${hotel?.cover_url ? 'has-cover' : ''}`} style={hotel?.cover_url ? { '--hotel-cover-image': `url("${hotel.cover_url}")` } : undefined}>
       <div className="hotel-card-top-bar" />
 
       <div className="hotel-card-inner">

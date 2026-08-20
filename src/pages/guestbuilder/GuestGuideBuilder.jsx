@@ -5,6 +5,7 @@ import {
   getGuestGuideBuilder,
   getGuestGuideMediaUrl,
   getGuestGuideTranslation,
+  isGuestGuideVideo,
   makeGuestGuideKey,
   normalizeGuestGuideBuilderPayload,
   publishGuestGuide,
@@ -186,8 +187,11 @@ const ROOM_GUIDE_TOPICS = [
 const MEDIA_PRESETS = [
   { category: 'logo', label: 'Hotel Logo', scope: 'hotel' },
   { category: 'hero', label: 'Hero / Cover Photo', scope: 'hotel' },
-  { category: 'property', label: 'Property Photo', scope: 'hotel' },
-  { category: 'room', label: 'Room Photo', scope: 'room_type' },
+  { category: 'property', label: 'Property Photo / Short Video', scope: 'hotel' },
+  { category: 'facility', label: 'Facility / Amenity Media', scope: 'hotel' },
+  { category: 'dining', label: 'Dining / Menu Media', scope: 'hotel' },
+  { category: 'custom', label: 'Custom Guest Guide Media', scope: 'hotel' },
+  { category: 'room', label: 'Room Photo / Short Video', scope: 'room_type' },
   { category: 'ac_remote', label: 'AC Remote Photo', scope: 'room_type' },
   { category: 'tv_remote', label: 'TV Remote Photo', scope: 'room_type' },
   { category: 'geyser', label: 'Geyser Photo', scope: 'room_type' },
@@ -804,7 +808,7 @@ export default function GuestGuideBuilder() {
 
   async function uploadMedia() {
     if (!mediaFile) {
-      showError(new Error('Choose an image first.'), 'Choose an image first.')
+      showError(new Error('Choose an image or short video first.'), 'Choose an image or short video first.')
       return
     }
     if (mediaDraft.scope_type === 'room_type' && !mediaDraft.room_type_id) {
@@ -860,16 +864,45 @@ export default function GuestGuideBuilder() {
         mime_type: upload.mimeType,
         title: mediaDraft.title || MEDIA_PRESETS.find((entry) => entry.category === mediaDraft.category)?.label || '',
         caption: mediaDraft.caption || '',
-        alt_text: mediaDraft.alt_text || mediaDraft.title || 'Hotel guest guide image',
+        alt_text: mediaDraft.alt_text || mediaDraft.title || 'Hotel guest guide media',
         locale: null,
         sort_order: activeMedia.length * 10,
         is_active: true,
-        metadata: {},
+        metadata: { media_kind: upload.mediaKind, duration_seconds: upload.durationSeconds },
       })
-    }, 'Photo uploaded to the draft guide.')
+    }, 'Media uploaded to the draft guide.')
 
     setMediaFile(null)
     setMediaDraft(createInitialMedia())
+  }
+
+  async function editMediaDetails(media) {
+    const nextTitle = window.prompt('Media title', media.title || '')
+    if (nextTitle === null) return
+    const nextCaption = window.prompt('Caption', media.caption || '')
+    if (nextCaption === null) return
+
+    await runBusy(
+      () => saveGuestGuideMedia(currentHotel.id, {
+        section_id: media.section_id,
+        item_id: media.item_id,
+        scope_type: media.scope_type,
+        room_type_id: media.room_type_id,
+        room_id: media.room_id,
+        media_key: media.media_key,
+        category: media.category,
+        object_path: media.object_path,
+        mime_type: media.mime_type,
+        title: nextTitle.trim(),
+        caption: nextCaption.trim(),
+        alt_text: media.alt_text || nextTitle.trim() || 'Hotel guest guide media',
+        locale: media.locale,
+        sort_order: media.sort_order,
+        is_active: true,
+        metadata: media.metadata || {},
+      }),
+      'Media details updated.'
+    )
   }
 
   async function deleteMedia(media) {
@@ -1119,7 +1152,7 @@ export default function GuestGuideBuilder() {
             </div>
 
             <div className="simple-form-grid media-form-grid">
-              <Field label="Photo type">
+              <Field label="Media type">
                 <select
                   value={mediaDraft.category}
                   onChange={(event) => {
@@ -1176,23 +1209,30 @@ export default function GuestGuideBuilder() {
               <Field label="Title">
                 <input value={mediaDraft.title} onChange={(event) => setMediaDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Deluxe Room" />
               </Field>
-              <Field label="Choose image" wide>
-                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setMediaFile(event.target.files?.[0] || null)} />
+              <Field label="Choose image or short video" wide>
+                <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" onChange={(event) => setMediaFile(event.target.files?.[0] || null)} />
               </Field>
             </div>
             <button className="simple-primary" type="button" onClick={() => void uploadMedia()} disabled={busy || !mediaFile}>
-              Upload photo to draft
+              Upload media to draft
             </button>
 
             {activeMedia.length > 0 && (
               <div className="simple-media-grid">
                 {activeMedia.map((media) => (
                   <article key={media.id}>
-                    <img src={getGuestGuideMediaUrl(media.object_path)} alt={media.alt_text || media.title || 'Hotel media'} />
+                    {isGuestGuideVideo(media.mime_type) ? (
+                      <video src={getGuestGuideMediaUrl(media.object_path)} controls preload="metadata" playsInline aria-label={media.title || 'Hotel short video'} />
+                    ) : (
+                      <img src={getGuestGuideMediaUrl(media.object_path)} alt={media.alt_text || media.title || 'Hotel media'} />
+                    )}
                     <div>
                       <strong>{media.title || media.category}</strong>
-                      <small>{media.category.replaceAll('_', ' ')}</small>
-                      <button type="button" onClick={() => void deleteMedia(media)} disabled={busy}>Remove</button>
+                      <small>{media.category.replaceAll('_', ' ')} · {isGuestGuideVideo(media.mime_type) ? 'short video' : 'image'}</small>
+                      <div className="simple-media-actions">
+                        <button type="button" onClick={() => void editMediaDetails(media)} disabled={busy}>Edit details</button>
+                        <button type="button" onClick={() => void deleteMedia(media)} disabled={busy}>Remove</button>
+                      </div>
                     </div>
                   </article>
                 ))}

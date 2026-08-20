@@ -345,3 +345,27 @@
   .ag-toast { left: 12px; right: 12px; bottom: 80px; width: auto; max-width: none; text-align: center; }
   .ag-escalation-cta { min-height: 82px; }
 }
+
+/* Post-launch Batch B — controlled short-video media */
+.ag-feature-photo video,
+.ag-gallery video,
+.ag-accordion-body video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #050505;
+}
+
+.ag-lightbox video {
+  width: min(92vw, 960px);
+  max-height: 76vh;
+  border-radius: 14px;
+  background: #000;
+}
+
+.ag-amenity-card { overflow: hidden; }
+.ag-amenity-media { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: -1px -1px 12px; }
+.ag-amenity-media button { min-width: 0; padding: 0; border: 0; background: #060606; cursor: pointer; overflow: hidden; }
+.ag-amenity-media img,
+.ag-amenity-media video { width: 100%; height: 92px; object-fit: cover; display: block; background: #000; }
+@media (max-width: 520px) { .ag-amenity-media img, .ag-amenity-media video { height: 78px; } }

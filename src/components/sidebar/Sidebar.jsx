@@ -31,6 +31,7 @@ const NAV_ITEMS = [
       { id: 'housekeeping', label: 'Housekeeping', icon: BellIcon, badge: null },
       { id: 'maintenance', label: 'Maintenance', icon: SettingsIcon, badge: null },
       { id: 'amenities', label: 'Amenities', icon: StarIcon, badge: null },
+      { id: 'media', label: 'Media Manager', icon: BuildingIcon, badge: null },
     ],
   },
   {

@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
+import {
+  removeGuestGuideMediaFile,
+  saveGuestGuideMedia,
+  uploadGuestGuideMediaFile,
+} from "../../lib/guestGuideBuilder";
 
 const supportedLocales = [
   { code: "en", label: "English" },
@@ -18,6 +23,7 @@ export default function HotelProfile() {
   const [contentLoading, setContentLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [contentSaving, setContentSaving] = useState(false);
+  const [brandingSaving, setBrandingSaving] = useState("");
 
   const fetchHotelInfo = useCallback(async (hotel) => {
     const { data, error } = await supabase
@@ -137,6 +143,109 @@ export default function HotelProfile() {
     }
   }
 
+  async function saveBrandAsset(kind, file) {
+    if (!currentHotel?.id || !file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert('Branding images must be JPG, PNG or WebP.');
+      return;
+    }
+
+    setBrandingSaving(kind);
+    try {
+      const mediaKey = kind === 'logo' ? 'dashboard_logo' : 'dashboard_cover';
+      const category = kind === 'logo' ? 'logo' : 'hero';
+      const { data: previous } = await supabase
+        .from('guest_guide_media')
+        .select('*')
+        .eq('hotel_id', currentHotel.id)
+        .eq('scope_type', 'hotel')
+        .eq('media_key', mediaKey)
+        .maybeSingle();
+
+      const upload = await uploadGuestGuideMediaFile({
+        hotelId: currentHotel.id,
+        file,
+        scopeType: 'hotel',
+        category,
+      });
+
+      await saveGuestGuideMedia(currentHotel.id, {
+        scope_type: 'hotel',
+        room_type_id: null,
+        room_id: null,
+        section_id: null,
+        item_id: null,
+        media_key: mediaKey,
+        category,
+        object_path: upload.objectPath,
+        mime_type: upload.mimeType,
+        title: kind === 'logo' ? 'Hotel logo' : 'Hotel dashboard cover',
+        caption: '',
+        alt_text: kind === 'logo' ? `${currentHotel.hotel_name} logo` : `${currentHotel.hotel_name} cover`,
+        locale: null,
+        sort_order: kind === 'logo' ? 0 : 10,
+        is_active: true,
+        metadata: { usage: `dashboard_${kind}` },
+      });
+
+      const nextLogo = kind === 'logo' ? upload.publicUrl : currentHotel.logo_url || null;
+      const nextCover = kind === 'cover' ? upload.publicUrl : currentHotel.cover_url || null;
+      const { error } = await supabase.rpc('update_hotel_branding', {
+        p_hotel_id: currentHotel.id,
+        p_logo_url: nextLogo,
+        p_cover_url: nextCover,
+      });
+      if (error) throw error;
+
+      if (previous?.object_path && previous.object_path !== upload.objectPath) {
+        await removeGuestGuideMediaFile(previous.object_path).catch(() => undefined);
+      }
+
+      setCurrentHotel((current) => ({ ...current, logo_url: nextLogo, cover_url: nextCover }));
+      alert(`${kind === 'logo' ? 'Hotel logo' : 'Dashboard cover'} updated.`);
+    } catch (error) {
+      console.error('Branding upload error:', error);
+      alert(error?.message || 'Unable to update hotel branding.');
+    } finally {
+      setBrandingSaving('');
+    }
+  }
+
+  async function removeBrandAsset(kind) {
+    if (!currentHotel?.id) return;
+    if (!window.confirm(`Remove the current ${kind}?`)) return;
+    setBrandingSaving(kind);
+    try {
+      const mediaKey = kind === 'logo' ? 'dashboard_logo' : 'dashboard_cover';
+      const { data: previous } = await supabase
+        .from('guest_guide_media')
+        .select('*')
+        .eq('hotel_id', currentHotel.id)
+        .eq('scope_type', 'hotel')
+        .eq('media_key', mediaKey)
+        .maybeSingle();
+
+      if (previous) {
+        await saveGuestGuideMedia(currentHotel.id, { ...previous, is_active: false });
+      }
+
+      const nextLogo = kind === 'logo' ? null : currentHotel.logo_url || null;
+      const nextCover = kind === 'cover' ? null : currentHotel.cover_url || null;
+      const { error } = await supabase.rpc('update_hotel_branding', {
+        p_hotel_id: currentHotel.id,
+        p_logo_url: nextLogo,
+        p_cover_url: nextCover,
+      });
+      if (error) throw error;
+      if (previous?.object_path) await removeGuestGuideMediaFile(previous.object_path).catch(() => undefined);
+      setCurrentHotel((current) => ({ ...current, logo_url: nextLogo, cover_url: nextCover }));
+    } catch (error) {
+      alert(error?.message || 'Unable to remove hotel branding.');
+    } finally {
+      setBrandingSaving('');
+    }
+  }
+
   async function saveHotelInfo() {
     if (!currentHotel?.id) {
       alert("No hotel assigned");
@@ -232,6 +341,33 @@ export default function HotelProfile() {
         Manage hotel information, multilingual guest-guide content, review links
         and reward terms.
       </p>
+
+      <section style={sectionBlock}>
+        <div style={sectionHeader}>
+          <div>
+            <p style={sectionKicker}>HOTEL BRANDING</p>
+            <h2 style={sectionTitle}>Dashboard identity</h2>
+          </div>
+          <span style={statusPill}>Shared media library</span>
+        </div>
+        <div style={brandingGrid}>
+          <BrandAsset
+            label="Hotel logo"
+            url={currentHotel?.logo_url}
+            busy={brandingSaving === 'logo'}
+            onUpload={(file) => void saveBrandAsset('logo', file)}
+            onRemove={() => void removeBrandAsset('logo')}
+          />
+          <BrandAsset
+            label="Dashboard cover"
+            url={currentHotel?.cover_url}
+            wide
+            busy={brandingSaving === 'cover'}
+            onUpload={(file) => void saveBrandAsset('cover', file)}
+            onRemove={() => void removeBrandAsset('cover')}
+          />
+        </div>
+      </section>
 
       <section style={sectionBlock}>
         <div style={sectionHeader}>
@@ -428,6 +564,24 @@ function getLocaleLabel(locale) {
   return supportedLocales.find((item) => item.code === locale)?.label || locale;
 }
 
+function BrandAsset({ label, url, wide = false, busy, onUpload, onRemove }) {
+  return (
+    <article style={{ ...brandingCard, gridColumn: wide ? '1 / -1' : undefined }}>
+      <div style={brandingPreview}>
+        {url ? <img src={url} alt={label} style={brandingImage} /> : <span>No {label.toLowerCase()} uploaded</span>}
+      </div>
+      <strong>{label}</strong>
+      <div style={brandingActions}>
+        <label style={uploadLabel}>
+          {busy ? 'Working…' : `Upload ${label.toLowerCase()}`}
+          <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) onUpload(file); event.target.value = ''; }} />
+        </label>
+        {url && <button type="button" style={removeButton} disabled={busy} onClick={onRemove}>Remove</button>}
+      </div>
+    </article>
+  );
+}
+
 function Input({ label, name, value, onChange }) {
   return (
     <div style={field}>
@@ -446,6 +600,13 @@ function Textarea({ label, name, value, onChange }) {
   );
 }
 
+const brandingGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginBottom: 22 }
+const brandingCard = { padding: 16, border: '1px solid #292929', borderRadius: 16, background: '#101010', display: 'grid', gap: 12, minWidth: 0 }
+const brandingPreview = { minHeight: 130, borderRadius: 12, overflow: 'hidden', background: '#080808', display: 'grid', placeItems: 'center', color: '#777' }
+const brandingImage = { width: '100%', height: 180, objectFit: 'cover' }
+const brandingActions = { display: 'flex', gap: 8, flexWrap: 'wrap' }
+const uploadLabel = { padding: '9px 12px', borderRadius: 9, background: '#d4af37', color: '#080808', fontWeight: 800, cursor: 'pointer' }
+const removeButton = { padding: '9px 12px', borderRadius: 9, border: '1px solid #6f2b2b', background: '#291010', color: '#ffaaaa', fontWeight: 800, cursor: 'pointer' }
 const page = {
   padding: "32px",
   color: "#fff",

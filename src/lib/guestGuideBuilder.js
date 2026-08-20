@@ -92,7 +92,11 @@ export const GUEST_GUIDE_MEDIA_CATEGORIES = [
 export const GUEST_GUIDE_SCOPE_TYPES = ['hotel', 'room_type', 'room']
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-const MAX_MEDIA_BYTES = 8 * 1024 * 1024
+const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/webm'])
+const VIDEO_ALLOWED_CATEGORIES = new Set(['property', 'room', 'facility', 'dining', 'custom'])
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024
+const MAX_VIDEO_BYTES = 20 * 1024 * 1024
+export const MAX_GUEST_GUIDE_VIDEO_SECONDS = 30
 
 function requireHotelId(hotelId) {
   const value = String(hotelId || '').trim()
@@ -286,15 +290,29 @@ export async function uploadGuestGuideMediaFile({
   category = 'custom',
 }) {
   if (!(file instanceof File)) {
-    throw new Error('Choose an image before uploading.')
+    throw new Error('Choose an image or short video before uploading.')
   }
 
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    throw new Error('Guest-guide images must be JPG, PNG or WebP.')
+  const isImage = ALLOWED_IMAGE_TYPES.has(file.type)
+  const isVideo = ALLOWED_VIDEO_TYPES.has(file.type)
+  if (!isImage && !isVideo) {
+    throw new Error('Media must be JPG, PNG, WebP, MP4 or WebM.')
   }
 
-  if (file.size <= 0 || file.size > MAX_MEDIA_BYTES) {
-    throw new Error('Guest-guide images must be smaller than 8 MB.')
+  if (isVideo && !VIDEO_ALLOWED_CATEGORIES.has(String(category || '').toLowerCase())) {
+    throw new Error('Short videos are limited to hotel/property, room, facility, dining and custom guest-guide media.')
+  }
+
+  if (file.size <= 0 || (isImage && file.size > MAX_IMAGE_BYTES) || (isVideo && file.size > MAX_VIDEO_BYTES)) {
+    throw new Error(isVideo ? 'Short videos must be 20 MB or smaller.' : 'Images must be 8 MB or smaller.')
+  }
+
+  let durationSeconds = null
+  if (isVideo) {
+    durationSeconds = await readVideoDurationSeconds(file)
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > MAX_GUEST_GUIDE_VIDEO_SECONDS) {
+      throw new Error(`Guest-guide videos must be ${MAX_GUEST_GUIDE_VIDEO_SECONDS} seconds or shorter.`)
+    }
   }
 
   const objectPath = buildGuestGuideObjectPath({
@@ -320,8 +338,30 @@ export async function uploadGuestGuideMediaFile({
     bucketId: GUEST_GUIDE_BUCKET,
     objectPath,
     mimeType: file.type,
+    mediaKind: isVideo ? 'video' : 'image',
+    durationSeconds,
     publicUrl: getGuestGuideMediaUrl(objectPath),
   }
+}
+
+async function readVideoDurationSeconds(file) {
+  if (typeof document === 'undefined' || typeof URL === 'undefined') return NaN
+  const objectUrl = URL.createObjectURL(file)
+  try {
+    return await new Promise((resolve, reject) => {
+      const video = document.createElement('video')
+      video.preload = 'metadata'
+      video.onloadedmetadata = () => resolve(Number(video.duration))
+      video.onerror = () => reject(new Error('StayQR could not read this video.'))
+      video.src = objectUrl
+    })
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
+export function isGuestGuideVideo(mimeType) {
+  return ALLOWED_VIDEO_TYPES.has(String(mimeType || '').toLowerCase())
 }
 
 export async function removeGuestGuideMediaFile(objectPath) {

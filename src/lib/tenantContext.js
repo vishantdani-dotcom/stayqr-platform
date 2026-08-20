@@ -143,6 +143,7 @@ async function fetchTenantContext() {
         full_name,
         email,
         phone,
+        phone_verified_at,
         avatar_path,
         role,
         status,
@@ -150,6 +151,8 @@ async function fetchTenantContext() {
         hotels (
           id,
           hotel_name,
+          logo_url,
+          cover_url,
           location,
           status,
           slug,
@@ -173,6 +176,8 @@ async function fetchTenantContext() {
         hotels (
           id,
           hotel_name,
+          logo_url,
+          cover_url,
           location,
           status,
           slug,
@@ -196,6 +201,8 @@ async function fetchTenantContext() {
       .select(`
         id,
         hotel_name,
+        logo_url,
+        cover_url,
         location,
         status,
         slug,
@@ -272,6 +279,7 @@ async function fetchTenantContext() {
             user.email ||
             null,
           phone: selectedAccess?.staff?.phone || null,
+          phone_verified_at: selectedAccess?.staff?.phone_verified_at || null,
           avatar_path: selectedAccess?.staff?.avatar_path || null,
           role: selectedRole,
           department: selectedAccess?.staff?.department || null,

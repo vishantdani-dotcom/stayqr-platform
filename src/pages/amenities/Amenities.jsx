@@ -164,7 +164,10 @@ export default function Amenities() {
         scope_type: 'hotel',
         room_type_id: null,
         room_id: null,
-        media_key: makeGuestGuideKey(`amenity_${amenity.code}_${Date.now()}`, 'amenity_media'),
+        media_key: makeGuestGuideKey(
+          `amenity_${amenity.code}_${String(upload.objectPath || file.name).split('/').pop()}`,
+          'amenity_media',
+        ),
         category: 'facility',
         object_path: upload.objectPath,
         mime_type: upload.mimeType,

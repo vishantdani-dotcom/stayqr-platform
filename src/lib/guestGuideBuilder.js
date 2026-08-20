@@ -345,18 +345,126 @@ export async function uploadGuestGuideMediaFile({
 }
 
 async function readVideoDurationSeconds(file) {
+  const browserDuration = await readVideoDurationFromElement(file)
+  if (Number.isFinite(browserDuration) && browserDuration > 0) return browserDuration
+
+  // Valid MP4 files can contain duration metadata even when the current browser
+  // cannot decode the embedded codec. Read the MP4 container metadata directly
+  // so short-video validation is not coupled to browser playback support.
+  if (file.type === 'video/mp4' || /\.mp4$/i.test(file.name || '')) {
+    const parsedDuration = await readMp4DurationSeconds(file)
+    if (Number.isFinite(parsedDuration) && parsedDuration > 0) return parsedDuration
+  }
+
+  throw new Error(
+    'StayQR could not read this video duration. Use a valid MP4/WebM short video (H.264 MP4 is recommended).'
+  )
+}
+
+async function readVideoDurationFromElement(file) {
   if (typeof document === 'undefined' || typeof URL === 'undefined') return NaN
   const objectUrl = URL.createObjectURL(file)
   try {
-    return await new Promise((resolve, reject) => {
+    return await new Promise((resolve) => {
       const video = document.createElement('video')
+      let settled = false
+      const finish = (value) => {
+        if (settled) return
+        settled = true
+        resolve(value)
+      }
+      const timeout = window.setTimeout(() => finish(NaN), 5000)
       video.preload = 'metadata'
-      video.onloadedmetadata = () => resolve(Number(video.duration))
-      video.onerror = () => reject(new Error('StayQR could not read this video.'))
+      video.muted = true
+      video.playsInline = true
+      video.onloadedmetadata = () => {
+        window.clearTimeout(timeout)
+        finish(Number(video.duration))
+      }
+      video.onerror = () => {
+        window.clearTimeout(timeout)
+        finish(NaN)
+      }
       video.src = objectUrl
+      video.load()
     })
   } finally {
     URL.revokeObjectURL(objectUrl)
+  }
+}
+
+async function readMp4DurationSeconds(file) {
+  try {
+    const buffer = await file.arrayBuffer()
+    const view = new DataView(buffer)
+
+    const readType = (offset) => {
+      if (offset + 4 > view.byteLength) return ''
+      return String.fromCharCode(
+        view.getUint8(offset),
+        view.getUint8(offset + 1),
+        view.getUint8(offset + 2),
+        view.getUint8(offset + 3)
+      )
+    }
+
+    const findBox = (start, end, wanted) => {
+      let offset = start
+      while (offset + 8 <= end) {
+        let size = view.getUint32(offset)
+        const type = readType(offset + 4)
+        let headerSize = 8
+
+        if (size === 1) {
+          if (offset + 16 > end) return null
+          const high = view.getUint32(offset + 8)
+          const low = view.getUint32(offset + 12)
+          const largeSize = high * 2 ** 32 + low
+          if (!Number.isSafeInteger(largeSize)) return null
+          size = largeSize
+          headerSize = 16
+        } else if (size === 0) {
+          size = end - offset
+        }
+
+        if (size < headerSize || offset + size > end) return null
+        if (type === wanted) return { offset, size, headerSize }
+        offset += size
+      }
+      return null
+    }
+
+    const moov = findBox(0, view.byteLength, 'moov')
+    if (!moov) return NaN
+    const mvhd = findBox(
+      moov.offset + moov.headerSize,
+      moov.offset + moov.size,
+      'mvhd'
+    )
+    if (!mvhd) return NaN
+
+    const payload = mvhd.offset + mvhd.headerSize
+    if (payload + 20 > view.byteLength) return NaN
+    const version = view.getUint8(payload)
+
+    if (version === 0) {
+      const timescale = view.getUint32(payload + 12)
+      const duration = view.getUint32(payload + 16)
+      return timescale > 0 ? duration / timescale : NaN
+    }
+
+    if (version === 1) {
+      if (payload + 32 > view.byteLength) return NaN
+      const timescale = view.getUint32(payload + 20)
+      const high = view.getUint32(payload + 24)
+      const low = view.getUint32(payload + 28)
+      const duration = high * 2 ** 32 + low
+      return timescale > 0 && Number.isSafeInteger(duration) ? duration / timescale : NaN
+    }
+
+    return NaN
+  } catch {
+    return NaN
   }
 }
 

@@ -392,7 +392,12 @@ export default function StaffManagement() {
       setPhoneOtp('')
       setActionMessage(`Verification code sent to ${phone}.`)
     } catch (error) {
-      setActionError(error?.message || 'Unable to send the phone verification code.')
+      const rawMessage = error?.message || ''
+      setActionError(
+        /sms provider|provider.*sms/i.test(rawMessage)
+          ? 'Phone verification is ready, but this Supabase project has no SMS provider configured. Configure Auth > Phone/SMS provider, then retry.'
+          : rawMessage || 'Unable to send the phone verification code.'
+      )
     } finally {
       setPhoneVerifying(false)
     }

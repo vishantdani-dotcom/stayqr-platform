@@ -40,7 +40,8 @@
     "env:day18": "node scripts/day18-environment-guard.mjs",
     "security:day18infra": "node scripts/day18-infrastructure-source-check.mjs",
     "security:day18baseline": "node scripts/day18-canonical-baseline-source-check.mjs",
-    "test:postlaunch-batch2-final": "node scripts/validate-postlaunch-batch2-final.mjs"
+    "test:postlaunch-batch2-final": "node scripts/validate-postlaunch-batch2-final.mjs",
+    "test:postlaunch-batch2-blockers": "node scripts/validate-postlaunch-batch2-browser-blockers.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

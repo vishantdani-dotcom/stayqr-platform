@@ -295,6 +295,7 @@ export default function SuperAdmin({ onNavigate }) {
           onOpenTab={setActiveTab}
           onCreateLink={(hotel) => openDialog('payment-link', { hotel })}
           onManageHotel={(hotel) => openDialog('hotel-actions', { hotel })}
+          onViewHotel={(hotel) => openDialog('safe-support', { hotel })}
         />
       )}
 
@@ -418,7 +419,7 @@ export default function SuperAdmin({ onNavigate }) {
               onCancel={closeDialog}
               onError={actionFailed}
               onSuccess={(result) =>
-                completeAction('Safe support session started.', result)
+                completeAction('Audited View as Hotel access started.', result)
               }
             />
           )}
@@ -458,6 +459,7 @@ function OverviewTab({
   onOpenTab,
   onCreateLink,
   onManageHotel,
+  onViewHotel,
 }) {
   const hotels = summary.hotels || {}
   const subscriptions = summary.subscriptions || {}
@@ -639,6 +641,9 @@ function OverviewTab({
                 <button type="button" onClick={() => onCreateLink(hotel)}>
                   Payment link
                 </button>
+                <button type="button" onClick={() => onViewHotel(hotel)}>
+                  View as Hotel
+                </button>
               </div>
             </article>
           ))}
@@ -722,7 +727,7 @@ function HotelsTab({ hotels, onAction, onPayment, onUsage, onSupport }) {
                           Usage
                         </button>
                         <button type="button" onClick={() => onSupport(hotel)}>
-                          Support
+                          View as Hotel
                         </button>
                       </div>
                     </td>
@@ -1685,12 +1690,12 @@ function SafeSupportForm({ hotel, onCancel, onError, onSuccess }) {
 
   return (
     <form className="commercial-form" onSubmit={submit}>
-      <div className="security-callout"><strong>No silent impersonation</strong><span>This creates an explicit, time-bound and immutable support-access audit trail.</span></div>
+      <div className="security-callout"><strong>No silent impersonation</strong><span>This creates an explicit, time-bound and immutable View as Hotel audit trail. After starting it, use the hotel switcher to enter that hotel context.</span></div>
       <div className="dialog-context-card"><div><span>Hotel</span><strong>{hotel.hotel_name}</strong></div><div><span>Lifecycle</span><StatusBadge status={hotel.lifecycle_status || hotel.subscription_status} /></div></div>
       <Field label="Reason"><textarea required rows="4" value={reason} onChange={(event) => setReason(event.target.value)} /></Field>
       <Field label="Duration"><select value={duration} onChange={(event) => setDuration(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">2 hours</option><option value="240">4 hours</option></select></Field>
       <Field label="Permissions"><div className="permission-grid">{permissionOptions.map((permission) => <label key={permission}><input type="checkbox" checked={permissions.includes(permission)} onChange={() => togglePermission(permission)} />{humanize(permission)}</label>)}</div></Field>
-      <FormActions onCancel={onCancel} busy={busy} submitLabel="Start safe access" />
+      <FormActions onCancel={onCancel} busy={busy} submitLabel="Start View as Hotel" />
     </form>
   )
 }
@@ -1806,7 +1811,7 @@ function TabCount({ tab, data, announcements }) {
 }
 
 function dialogTitle(dialog) {
-  const titles = { plan: dialog.plan ? 'Edit subscription plan' : 'Create subscription plan', 'hotel-actions': `Manage ${dialog.hotel?.hotel_name || 'hotel'}`, 'payment-link': 'Create Cashfree payment link', usage: 'Authoritative hotel usage', 'support-create': 'Create support ticket', 'support-ticket': 'Triage support ticket', 'safe-support': 'Start safe support access', 'safe-support-end': 'End safe support access', announcement: dialog.announcement ? 'Edit announcement' : 'Create announcement' }
+  const titles = { plan: dialog.plan ? 'Edit subscription plan' : 'Create subscription plan', 'hotel-actions': `Manage ${dialog.hotel?.hotel_name || 'hotel'}`, 'payment-link': 'Create Cashfree payment link', usage: 'Authoritative hotel usage', 'support-create': 'Create support ticket', 'support-ticket': 'Triage support ticket', 'safe-support': 'Start audited View as Hotel', 'safe-support-end': 'End safe support access', announcement: dialog.announcement ? 'Edit announcement' : 'Create announcement' }
   return titles[dialog.type] || 'Commercial action'
 }
 

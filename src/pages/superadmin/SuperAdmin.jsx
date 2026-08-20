@@ -538,6 +538,12 @@ function OverviewTab({
           meta="Active and inactive records"
           tone="neutral"
         />
+        <MetricCard
+          label="Guest guide QR scans"
+          value={platformMetrics.guest_guide_qr_scans_total || 0}
+          meta={`${platformMetrics.guest_guide_qr_scans_unique || 0} unique guest access links`}
+          tone="gold"
+        />
       </div>
 
       <div className="commercial-overview-grid">

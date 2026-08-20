@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { loadTenantContext } from "../../lib/tenantContext";
+import DocumentScanner from "../../components/guests/DocumentScanner";
+import GuestIdentityCompliance from "../../components/guests/GuestIdentityCompliance";
+import {
+  auditGuestDocumentAccess,
+  exportGuestDirectory360,
+  getGuest360Directory,
+  prepareManualWhatsAppContact,
+} from "../../lib/guestCompliance";
 import "./GuestDirectory.css";
 
 const EMPTY_PROFILE = {
@@ -22,6 +30,27 @@ const KYC_MIME_TYPES = new Set([
   "application/pdf",
 ]);
 
+const EXPORT_COLUMN_OPTIONS = [
+  { key: "guest_name", label: "Guest name" },
+  { key: "phone", label: "Phone" },
+  { key: "email", label: "Email" },
+  { key: "preferred_language", label: "Preferred language" },
+  { key: "nationality", label: "Nationality" },
+  { key: "country_of_residence", label: "Country of residence" },
+  { key: "current_status", label: "Current status" },
+  { key: "current_room", label: "Current room" },
+  { key: "check_in", label: "Check-in" },
+  { key: "check_out", label: "Check-out" },
+  { key: "total_stays", label: "Total stays" },
+  { key: "last_stay", label: "Last stay" },
+  { key: "created_at", label: "Profile created" },
+  { key: "kyc_status", label: "KYC status" },
+  { key: "kyc_document_count", label: "KYC document count" },
+  { key: "whatsapp_transactional_consent", label: "Transactional WhatsApp consent" },
+  { key: "whatsapp_marketing_consent", label: "Marketing WhatsApp consent" },
+  { key: "whatsapp_suppressed", label: "WhatsApp suppressed" },
+];
+
 function createEmptyKycForm() {
   return {
     documentType: "aadhaar",
@@ -29,6 +58,13 @@ function createEmptyKycForm() {
     issueCountry: "",
     issuedOn: "",
     expiresOn: "",
+    documentSide: "single",
+    captureSource: "upload",
+    qualityStatus: "not_assessed",
+    qualityScore: null,
+    qualityFlags: [],
+    retentionDays: "365",
+    retentionBasis: "hotel_policy",
     file: null,
   };
 }
@@ -37,8 +73,19 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
   const [loading, setLoading] = useState(true);
   const [guests, setGuests] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [documents, setDocuments] = useState([]);
+  const [guest360Rows, setGuest360Rows] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [directoryFilters, setDirectoryFilters] = useState({
+    stay: "all", nationality: "all", room: "all", repeat: "all", kyc: "all", whatsapp: "all",
+    dateFrom: "", dateTo: "",
+  });
+  const [exportPanelOpen, setExportPanelOpen] = useState(false);
+  const [exportReason, setExportReason] = useState("");
+  const [exportIncludeKyc, setExportIncludeKyc] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportColumns, setExportColumns] = useState([
+    "guest_name", "phone", "email", "nationality", "current_status", "current_room", "total_stays", "last_stay",
+  ]);
   const [selectedGuest, setSelectedGuest] = useState(null);
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -51,6 +98,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
   const [kycForm, setKycForm] = useState(createEmptyKycForm);
   const [kycDocumentId, setKycDocumentId] = useState(createUuid);
   const [kycRequestId, setKycRequestId] = useState(createUuid);
+  const [kycDocumentGroupId, setKycDocumentGroupId] = useState(createUuid);
   const [kycFileInputKey, setKycFileInputKey] = useState(0);
   const [kycUploading, setKycUploading] = useState(false);
   const [openingDocumentId, setOpeningDocumentId] = useState(null);
@@ -75,28 +123,15 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     try {
       const context = await loadTenantContext();
       const permissions = context?.permissions || [];
-      const isPlatformAdmin = Boolean(
-        context?.isPlatformAdmin ||
-        ["platform_admin", "super_admin"].includes(context?.currentRole)
-      );
-
       setKycPermissions({
-        canView:
-          isPlatformAdmin ||
-          permissions.some((permission) =>
-            ["guests.view", "guests.manage", "checkin.manage", "checkout.manage"].includes(
-              permission
-            )
-          ),
-        canUpload:
-          isPlatformAdmin ||
-          permissions.some((permission) =>
-            ["guests.manage", "checkin.manage"].includes(permission)
-          ),
-        canReview:
-          isPlatformAdmin || permissions.includes("guests.manage"),
-        canDelete:
-          isPlatformAdmin || permissions.includes("guests.manage"),
+        canView: permissions.some((permission) =>
+          ["guests.manage", "checkin.manage", "checkout.manage"].includes(permission)
+        ),
+        canUpload: permissions.some((permission) =>
+          ["guests.manage", "checkin.manage"].includes(permission)
+        ),
+        canReview: permissions.includes("guests.manage"),
+        canDelete: permissions.includes("guests.manage"),
       });
     } catch (error) {
       console.error("KYC permission load error:", error);
@@ -168,20 +203,14 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
           `)
           .eq("hotel_id", currentHotel.id)
           .order("checkin_time", { ascending: false }),
-        supabase
-          .from("guest_documents")
-          .select("id, guest_id, verification_status, document_type, created_at")
-          .eq("hotel_id", currentHotel.id)
-          .is("deleted_at", null),
+        getGuest360Directory(currentHotel.id),
       ]);
 
       if (guestResult.error) throw guestResult.error;
       if (sessionResult.error) throw sessionResult.error;
-      if (documentResult.error) throw documentResult.error;
-
       setGuests(guestResult.data || []);
       setSessions(sessionResult.data || []);
-      setDocuments(documentResult.data || []);
+      setGuest360Rows(Array.isArray(documentResult) ? documentResult : []);
     } catch (error) {
       console.error("Guest directory load error:", error);
       onNotice?.("error", error.message || "Unable to load guest directory.");
@@ -192,7 +221,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
 
   const directoryRows = useMemo(() => {
     const sessionsByGuest = new Map();
-    const documentsByGuest = new Map();
+    const summaryByGuest = new Map(guest360Rows.map((row) => [row.guest_id, row]));
 
     for (const session of sessions) {
       const current = sessionsByGuest.get(session.guest_id) || [];
@@ -200,40 +229,47 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
       sessionsByGuest.set(session.guest_id, current);
     }
 
-    for (const document of documents) {
-      const current = documentsByGuest.get(document.guest_id) || [];
-      current.push(document);
-      documentsByGuest.set(document.guest_id, current);
-    }
-
     return guests.map((guest) => {
       const guestSessions = sessionsByGuest.get(guest.id) || [];
-      const guestDocuments = documentsByGuest.get(guest.id) || [];
+      const summary = summaryByGuest.get(guest.id) || {};
       const activeStay = guestSessions.find((session) => session.status === "active") || null;
-      const completedStays = guestSessions.filter((session) => session.status !== "active").length;
-      const verifiedDocument = guestDocuments.some(
-        (document) => document.verification_status === "verified"
+      const totalStays = Number(summary.total_stays ?? guestSessions.length ?? 0);
+      const completedStays = Number(
+        summary.completed_stays ?? guestSessions.filter((session) => session.status !== "active").length
       );
 
       return {
         guest,
         stays: guestSessions,
-        totalStays: guestSessions.length,
+        totalStays,
         completedStays,
         activeStay,
         lastStay: guestSessions[0] || null,
-        repeatGuest: guestSessions.length > 1,
-        documentCount: guestDocuments.length,
-        verifiedDocument,
+        lastStayAt: summary.last_stay_at || guestSessions[0]?.checkin_time || null,
+        repeatGuest: totalStays > 1,
+        documentCount: Number(summary.document_count || 0),
+        verifiedDocument: Boolean(summary.verified_document),
+        kycCaptureConsent: Boolean(summary.kyc_capture_consent),
+        aadhaarOfflineConsent: Boolean(summary.aadhaar_offline_consent),
+        whatsappTransactionalConsent: Boolean(summary.whatsapp_transactional_consent),
+        whatsappMarketingConsent: Boolean(summary.whatsapp_marketing_consent),
+        whatsappSuppressed: Boolean(summary.whatsapp_suppressed),
       };
     });
-  }, [guests, sessions, documents]);
+  }, [guests, sessions, guest360Rows]);
+
+  const filterOptions = useMemo(() => ({
+    nationalities: [...new Set(directoryRows.map((row) => row.guest.nationality).filter(Boolean))].sort(),
+    rooms: [...new Set(directoryRows.map((row) => row.activeStay?.rooms?.room_number).filter(Boolean))].sort(),
+  }), [directoryRows]);
 
   const visibleRows = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return directoryRows;
+    const fromTime = directoryFilters.dateFrom ? new Date(`${directoryFilters.dateFrom}T00:00:00`).getTime() : null;
+    const toTime = directoryFilters.dateTo ? new Date(`${directoryFilters.dateTo}T23:59:59`).getTime() : null;
 
-    return directoryRows.filter(({ guest, activeStay }) => {
+    return directoryRows.filter((row) => {
+      const { guest, activeStay } = row;
       const searchable = [
         guest.full_name,
         guest.phone,
@@ -248,10 +284,29 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-
-      return searchable.includes(term);
+      if (term && !searchable.includes(term)) return false;
+      if (directoryFilters.stay === "in_house" && !activeStay) return false;
+      if (directoryFilters.stay === "past" && activeStay) return false;
+      if (directoryFilters.nationality !== "all" && guest.nationality !== directoryFilters.nationality) return false;
+      if (directoryFilters.room !== "all" && activeStay?.rooms?.room_number !== directoryFilters.room) return false;
+      if (directoryFilters.repeat === "repeat" && !row.repeatGuest) return false;
+      if (directoryFilters.repeat === "first" && row.repeatGuest) return false;
+      const effectiveKyc = row.verifiedDocument || guest.identity_verification_status === "verified"
+        ? "verified"
+        : row.documentCount > 0 || guest.identity_verification_status === "pending"
+          ? "pending"
+          : "unverified";
+      if (directoryFilters.kyc !== "all" && effectiveKyc !== directoryFilters.kyc) return false;
+      if (directoryFilters.whatsapp === "transactional" && (!row.whatsappTransactionalConsent || row.whatsappSuppressed)) return false;
+      if (directoryFilters.whatsapp === "marketing" && (!row.whatsappMarketingConsent || row.whatsappSuppressed)) return false;
+      if (directoryFilters.whatsapp === "suppressed" && !row.whatsappSuppressed) return false;
+      if (directoryFilters.whatsapp === "none" && (row.whatsappTransactionalConsent || row.whatsappMarketingConsent)) return false;
+      const stayTime = row.lastStayAt ? new Date(row.lastStayAt).getTime() : null;
+      if (fromTime && (!stayTime || stayTime < fromTime)) return false;
+      if (toTime && (!stayTime || stayTime > toTime)) return false;
+      return true;
     });
-  }, [directoryRows, searchTerm]);
+  }, [directoryRows, searchTerm, directoryFilters]);
 
   const metrics = useMemo(() => {
     return {
@@ -264,81 +319,82 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     };
   }, [directoryRows]);
 
-  function exportGuestDirectory() {
+  function toggleExportColumn(column) {
+    setExportColumns((current) => current.includes(column)
+      ? current.filter((item) => item !== column)
+      : [...current, column]);
+  }
+
+  async function exportGuestDirectory() {
     if (visibleRows.length === 0) {
       onNotice?.("error", "There are no guest records to export.");
       return;
     }
+    if (exportReason.trim().length < 3) {
+      onNotice?.("error", "Enter an export reason of at least 3 characters.");
+      return;
+    }
+    if (exportColumns.length === 0) {
+      onNotice?.("error", "Select at least one export column.");
+      return;
+    }
 
-    const headings = [
-      "Guest name",
-      "Phone",
-      "Email",
-      "Preferred language",
-      "Nationality",
-      "Current status",
-      "Current room",
-      "Check-in",
-      "Check-out",
-      "Total stays",
-      "Last stay",
-      "Created at",
-    ];
-    const rows = visibleRows.map(({ guest, activeStay, lastStay, totalStays }) => [
-      guest.full_name,
-      guest.phone,
-      guest.email,
-      guest.preferred_language,
-      guest.nationality,
-      activeStay ? "In-house" : "Not in-house",
-      activeStay?.rooms?.room_number,
-      activeStay?.checkin_time,
-      activeStay?.checkout_time,
-      totalStays,
-      lastStay?.checkin_time,
-      guest.created_at,
-    ]);
-    const csv = [headings, ...rows]
-      .map((row) => row.map(escapeCsvValue).join(","))
-      .join("\r\n");
-    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    const hotelName = sanitizeDownloadFileName(currentHotel?.name || "hotel");
-    anchor.href = url;
-    anchor.download = `${hotelName}-guest-directory-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
-    onNotice?.("success", `Exported ${visibleRows.length} guest record(s).`);
+    setExporting(true);
+    try {
+      const result = await exportGuestDirectory360({
+        hotelId: currentHotel.id,
+        guestIds: visibleRows.map((row) => row.guest.id),
+        reason: exportReason.trim(),
+        columns: exportColumns,
+        filters: directoryFilters,
+        includeKyc: exportIncludeKyc,
+      });
+      const columns = Array.isArray(result?.columns) ? result.columns : exportColumns;
+      const records = Array.isArray(result?.rows) ? result.rows : [];
+      const csv = [
+        columns,
+        ...records.map((record) => columns.map((column) => record?.[column] ?? "")),
+      ].map((row) => row.map(escapeCsvValue).join(",")).join("\r\n");
+      const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const hotelName = sanitizeDownloadFileName(currentHotel?.hotel_name || currentHotel?.name || "hotel");
+      anchor.href = url;
+      anchor.download = `${hotelName}-guest-360-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setExportPanelOpen(false);
+      setExportReason("");
+      onNotice?.("success", `Controlled export created for ${Number(result?.guest_count || records.length)} guest record(s).`);
+    } catch (error) {
+      console.error("Guest directory export error:", error);
+      onNotice?.("error", error.message || "Unable to create the controlled guest export.");
+    } finally {
+      setExporting(false);
+    }
   }
 
-  function openWhatsApp(row) {
-    const phone = String(row?.guest?.phone || row?.guest?.normalized_phone || "").replace(/\D/g, "");
-    if (!phone) {
-      onNotice?.("error", "This guest does not have a phone number.");
-      return;
-    }
-
-    const destination = phone.length === 10 ? `91${phone}` : phone;
-    if (destination.length < 10) {
-      onNotice?.("error", "The guest phone number is not valid for WhatsApp.");
-      return;
-    }
-
-    const hasConsent = window.confirm(
-      "Confirm the guest has consented to receive this message on WhatsApp."
+  async function openWhatsApp(row) {
+    const confirmed = window.confirm(
+      "Confirm the guest has consented to receive this transactional message on WhatsApp. StayQR will also re-check stored consent and suppression before opening WhatsApp."
     );
-    if (!hasConsent) return;
+    if (!confirmed) return;
 
-    const hotelName = currentHotel?.name || "the hotel";
-    const message = `Hello ${row.guest.full_name || "Guest"}, this is ${hotelName}. We would like to share an update with you.`;
-    window.open(
-      `https://wa.me/${destination}?text=${encodeURIComponent(message)}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+    try {
+      const prepared = await prepareManualWhatsAppContact({
+        hotelId: currentHotel.id,
+        guestId: row.guest.id,
+        purpose: "transactional",
+      });
+      const hotelName = currentHotel?.hotel_name || currentHotel?.name || "the hotel";
+      const message = `Hello ${prepared.guest_name || row.guest.full_name || "Guest"}, this is ${hotelName}. We would like to share an update regarding your stay.`;
+      const destination = String(prepared.phone_e164 || "").replace(/\D/g, "");
+      window.open(`https://wa.me/${destination}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      onNotice?.("error", error.message || "Stored WhatsApp consent is required before contacting this guest.");
+    }
   }
 
   async function openProfile(guest) {
@@ -573,13 +629,15 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     }
   }
 
-  function resetKycDraft(guest = selectedGuest) {
+  function resetKycDraft(guest = selectedGuest, { preserveGroup = false, nextSide = "single" } = {}) {
     setKycForm({
       ...createEmptyKycForm(),
       issueCountry: guest?.country_of_residence || guest?.nationality || "",
+      documentSide: nextSide,
     });
     setKycDocumentId(createUuid());
     setKycRequestId(createUuid());
+    if (!preserveGroup) setKycDocumentGroupId(createUuid());
     setKycFileInputKey((value) => value + 1);
   }
 
@@ -672,6 +730,13 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
 
     const activeSession =
       profile.sessions.find((session) => session.status === "active") || null;
+    const retentionDays = Number.parseInt(kycForm.retentionDays, 10);
+    if (!Number.isFinite(retentionDays) || retentionDays < 1 || retentionDays > 3650) {
+      onNotice?.("error", "Retention must be between 1 and 3650 days.");
+      return;
+    }
+    const retentionUntil = new Date();
+    retentionUntil.setUTCDate(retentionUntil.getUTCDate() + retentionDays);
     const storageFileName = sanitizeStorageFileName(file.name);
     const storagePath = `${currentHotel.id}/${selectedGuest.id}/${kycDocumentId}/${storageFileName}`;
 
@@ -709,9 +774,18 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
           issue_country: kycForm.issueCountry.trim() || null,
           issued_on: kycForm.issuedOn || null,
           expires_on: kycForm.expiresOn || null,
+          document_group_id: kycDocumentGroupId,
+          capture_source: kycForm.captureSource,
+          document_side: kycForm.documentSide,
+          quality_status: kycForm.qualityStatus,
+          quality_score: kycForm.qualityScore,
+          quality_flags: kycForm.qualityFlags,
+          retention_until: retentionUntil.toISOString(),
+          retention_basis: kycForm.retentionBasis || "hotel_policy",
           metadata: {
             source: "guest_directory",
-            workflow: "day10_private_kyc",
+            workflow: "postlaunch_batch3_private_kyc",
+            raw_document_number_stored: false,
           },
         },
       });
@@ -725,7 +799,11 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
           : "Private KYC document uploaded for review."
       );
 
-      resetKycDraft(selectedGuest);
+      const keepGroupForBack = kycForm.documentSide === "front";
+      resetKycDraft(selectedGuest, {
+        preserveGroup: keepGroupForBack,
+        nextSide: keepGroupForBack ? "back" : "single",
+      });
       await Promise.all([openProfile(selectedGuest), loadDirectory()]);
     } catch (error) {
       console.error("Guest KYC upload error:", error);
@@ -744,6 +822,12 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     setOpeningDocumentId(documentRecord.id);
 
     try {
+      await auditGuestDocumentAccess({
+        hotelId: currentHotel.id,
+        documentId: documentRecord.id,
+        action: "view",
+        reason: "authorized_guest_profile_view",
+      });
       const { data, error } = await supabase.storage
         .from(KYC_BUCKET)
         .createSignedUrl(documentRecord.storage_path, 60);
@@ -938,9 +1022,9 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
           <button
             type="button"
             className="secondary guest-directory-export-btn"
-            onClick={exportGuestDirectory}
+            onClick={() => setExportPanelOpen((value) => !value)}
           >
-            Export CSV
+            Controlled export
           </button>
           <button
             type="button"
@@ -953,9 +1037,61 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
       </div>
 
       <p className="guest-directory-policy-note">
-        CSV exports exclude identity documents. WhatsApp opens only after confirming guest consent;
-        automated broadcasts are not sent by StayQR.
+        Guest 360 exports are server-authorized, reason-audited and CSV-injection protected. CSV exports exclude identity documents and full document numbers. WhatsApp requires stored consent and suppression checks.
       </p>
+
+      <div className="guest-directory-filters" aria-label="Guest 360 filters">
+        <select value={directoryFilters.stay} onChange={(event) => setDirectoryFilters((current) => ({ ...current, stay: event.target.value }))}>
+          <option value="all">All stay states</option><option value="in_house">Currently in-house</option><option value="past">Past guests</option>
+        </select>
+        <select value={directoryFilters.nationality} onChange={(event) => setDirectoryFilters((current) => ({ ...current, nationality: event.target.value }))}>
+          <option value="all">All nationalities</option>
+          {filterOptions.nationalities.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select value={directoryFilters.room} onChange={(event) => setDirectoryFilters((current) => ({ ...current, room: event.target.value }))}>
+          <option value="all">All active rooms</option>
+          {filterOptions.rooms.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select value={directoryFilters.repeat} onChange={(event) => setDirectoryFilters((current) => ({ ...current, repeat: event.target.value }))}>
+          <option value="all">All guest types</option><option value="repeat">Repeat guests</option><option value="first">First-time guests</option>
+        </select>
+        <select value={directoryFilters.kyc} onChange={(event) => setDirectoryFilters((current) => ({ ...current, kyc: event.target.value }))}>
+          <option value="all">All KYC states</option><option value="verified">Verified</option><option value="pending">Pending</option><option value="unverified">Unverified</option>
+        </select>
+        <select value={directoryFilters.whatsapp} onChange={(event) => setDirectoryFilters((current) => ({ ...current, whatsapp: event.target.value }))}>
+          <option value="all">All WhatsApp states</option><option value="transactional">Transactional consent</option><option value="marketing">Marketing consent</option><option value="suppressed">Suppressed</option><option value="none">No consent</option>
+        </select>
+        <label><span>Last stay from</span><input type="date" value={directoryFilters.dateFrom} onChange={(event) => setDirectoryFilters((current) => ({ ...current, dateFrom: event.target.value }))} /></label>
+        <label><span>Last stay to</span><input type="date" value={directoryFilters.dateTo} onChange={(event) => setDirectoryFilters((current) => ({ ...current, dateTo: event.target.value }))} /></label>
+        <button type="button" className="secondary" onClick={() => setDirectoryFilters({ stay: "all", nationality: "all", room: "all", repeat: "all", kyc: "all", whatsapp: "all", dateFrom: "", dateTo: "" })}>Reset filters</button>
+      </div>
+
+      {exportPanelOpen && (
+        <section className="guest-export-panel">
+          <div>
+            <p className="guest-directory-kicker">AUDITED EXPORT</p>
+            <h3>Controlled Guest 360 CSV</h3>
+            <p>{visibleRows.length} filtered guest(s) will be included. Every export records actor, reason, columns, filters and row count.</p>
+          </div>
+          <label className="guest-export-reason"><span>Export reason</span><input value={exportReason} onChange={(event) => setExportReason(event.target.value)} maxLength={500} placeholder="Example: monthly front-office reconciliation" /></label>
+          <div className="guest-export-columns">
+            {EXPORT_COLUMN_OPTIONS.map((item) => (
+              <label key={item.key}>
+                <input type="checkbox" checked={exportColumns.includes(item.key)} onChange={() => toggleExportColumn(item.key)} />
+                <span>{item.label}</span>
+              </label>
+            ))}
+          </div>
+          <label className="guest-export-kyc">
+            <input type="checkbox" checked={exportIncludeKyc} onChange={(event) => setExportIncludeKyc(event.target.checked)} />
+            <span>Include KYC status/count summary (requires guest-management permission; never includes files or full ID numbers)</span>
+          </label>
+          <div className="guest-export-actions">
+            <button type="button" className="secondary" onClick={() => setExportPanelOpen(false)}>Cancel</button>
+            <button type="button" disabled={exporting || exportReason.trim().length < 3 || exportColumns.length === 0} onClick={exportGuestDirectory}>{exporting ? "Preparing audited export…" : "Export CSV"}</button>
+          </div>
+        </section>
+      )}
 
       <div className="guest-directory-metrics">
         <Metric label="Guest profiles" value={metrics.total} />
@@ -1266,6 +1402,18 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                   </div>
                 </section>
 
+                <GuestIdentityCompliance
+                  currentHotel={currentHotel}
+                  guest={selectedGuest}
+                  sessions={profile.sessions}
+                  canManage={kycPermissions.canUpload}
+                  onNotice={onNotice}
+                  onChanged={async () => {
+                    await loadDirectory();
+                    await openProfile(selectedGuest);
+                  }}
+                />
+
                 <section className="guest-profile-section">
                   <div className="guest-kyc-heading">
                     <div>
@@ -1365,6 +1513,65 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                         />
                       </label>
 
+                      <label>
+                        <span>Document side</span>
+                        <select
+                          value={kycForm.documentSide}
+                          onChange={(event) => setKycForm((current) => ({ ...current, documentSide: event.target.value }))}
+                        >
+                          <option value="single">Single / full document</option>
+                          <option value="front">Front</option>
+                          <option value="back">Back</option>
+                        </select>
+                        <small>Front and back captures can share one document group.</small>
+                      </label>
+
+                      <label>
+                        <span>Retention period (days)</span>
+                        <input
+                          type="number" min="1" max="3650"
+                          value={kycForm.retentionDays}
+                          onChange={(event) => setKycForm((current) => ({ ...current, retentionDays: event.target.value }))}
+                        />
+                        <small>Default 365 days. Expired records enter the protected purge queue unless legal hold applies.</small>
+                      </label>
+
+                      <label>
+                        <span>Retention basis</span>
+                        <select
+                          value={kycForm.retentionBasis}
+                          onChange={(event) => setKycForm((current) => ({ ...current, retentionBasis: event.target.value }))}
+                        >
+                          <option value="hotel_policy">Hotel retention policy</option>
+                          <option value="legal_requirement">Legal / regulatory requirement</option>
+                          <option value="guest_request">Guest-requested retention</option>
+                        </select>
+                      </label>
+
+                      <div className="guest-kyc-scanner-field">
+                        <span>Camera scanner</span>
+                        <DocumentScanner
+                          disabled={kycUploading}
+                          onCapture={(capture) => {
+                            setKycForm((current) => ({
+                              ...current,
+                              file: capture.file,
+                              captureSource: capture.captureSource,
+                              qualityStatus: capture.qualityStatus,
+                              qualityScore: capture.qualityScore,
+                              qualityFlags: [
+                                ...capture.qualityFlags,
+                                ...(capture.cropApplied ? ["manual_crop_applied"] : []),
+                              ],
+                            }));
+                            setKycDocumentId(createUuid());
+                            setKycRequestId(createUuid());
+                            setKycFileInputKey((value) => value + 1);
+                          }}
+                        />
+                        <small>Uses the device camera with edge framing, manual crop/rotate controls, JPEG compression and glare/blur/lighting warnings. No biometric matching or OCR is performed.</small>
+                      </div>
+
                       <label className="guest-kyc-file-field">
                         <span>Private file</span>
                         <input
@@ -1376,6 +1583,10 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                             setKycForm((current) => ({
                               ...current,
                               file: nextFile,
+                              captureSource: "upload",
+                              qualityStatus: "not_assessed",
+                              qualityScore: null,
+                              qualityFlags: [],
                             }));
                             setKycDocumentId(createUuid());
                             setKycRequestId(createUuid());
@@ -1385,8 +1596,10 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                       </label>
 
                       <div className="guest-kyc-request">
-                        <span>Idempotency request</span>
+                        <span>Document group / request</span>
+                        <code>{kycDocumentGroupId}</code>
                         <code>{kycRequestId}</code>
+                        <small>{kycForm.captureSource === "camera" ? `Camera quality: ${kycForm.qualityStatus} ${kycForm.qualityScore ?? ""}/100 ${kycForm.qualityFlags.join(" · ")}` : "Uploaded file: manual visual review required."}</small>
                       </div>
 
                       <button
@@ -1451,6 +1664,10 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                 label="Size"
                                 value={formatFileSize(documentRecord.file_size_bytes)}
                               />
+                              <KycDetail label="Capture" value={`${titleCase(documentRecord.capture_source || "upload")} · ${titleCase(documentRecord.document_side || "single")}`} />
+                              <KycDetail label="Quality" value={documentRecord.quality_status === "not_assessed" ? "Manual review" : `${titleCase(documentRecord.quality_status)}${documentRecord.quality_score !== null && documentRecord.quality_score !== undefined ? ` · ${documentRecord.quality_score}/100` : ""}`} />
+                              <KycDetail label="Retention until" value={formatDateTime(documentRecord.retention_until)} />
+                              <KycDetail label="Retention basis" value={titleCase(documentRecord.retention_basis || "hotel_policy")} />
                             </div>
 
                             {documentRecord.rejection_reason && (

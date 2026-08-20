@@ -74,7 +74,8 @@ expect('Guest management escalation is responsive', has(files.guestGuideCss, '.a
 expect('Migration adds staff avatar column', has(files.migration, 'add column if not exists avatar_path text'))
 expect(
   'Migration creates private staff avatar bucket',
-  has(files.migration, "'staff-avatars',\n  false") && has(files.migration, 'set public = excluded.public')
+  /values\s*\(\s*'staff-avatars',\s*'staff-avatars',\s*false,/m.test(files.migration) &&
+    has(files.migration, 'set public = excluded.public')
 )
 expect('Migration limits avatar size', has(files.migration, '5242880'))
 expect('Migration limits avatar path to authenticated user', has(files.migration, "split_part(name, '/', 2) = (select auth.uid())::text"))

@@ -628,3 +628,63 @@
   color: #f2cc4d;
   white-space: nowrap;
 }
+
+
+/* StayQR Mobile UI REV2 — Staff */
+@media (max-width: 600px) {
+  .staff-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 16px 14px 84px !important;
+    overflow-x: hidden !important;
+  }
+
+  .staff-header {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .staff-header h1 {
+    font-size: 30px !important;
+    line-height: 1.06 !important;
+    white-space: normal !important;
+  }
+
+  .staff-header-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+  }
+
+  .staff-header-actions button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .staff-self-profile {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    padding: 14px !important;
+  }
+
+  .staff-self-profile-fields {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+  }
+
+  .staff-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+
+  .staff-control-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  .staff-table-wrap {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+  }
+}

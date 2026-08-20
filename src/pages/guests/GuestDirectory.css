@@ -806,3 +806,136 @@
     text-align: left;
   }
 }
+
+
+/* StayQR Mobile UI REV2 — Guest Directory */
+@media (max-width: 600px) {
+  .guest-directory-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 16px 14px 84px !important;
+    overflow-x: hidden !important;
+  }
+
+  .guest-directory-toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+    padding: 16px !important;
+  }
+
+  .guest-directory-toolbar > div:first-child {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .guest-directory-toolbar h2 {
+    font-size: 21px !important;
+    line-height: 1.12 !important;
+  }
+
+  .guest-directory-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 9px !important;
+  }
+
+  .guest-directory-actions input,
+  .guest-directory-actions button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 46px !important;
+  }
+
+  .guest-directory-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+
+  .guest-directory-metric {
+    min-width: 0 !important;
+    padding: 12px !important;
+  }
+
+  .guest-directory-table-wrap {
+    overflow: visible !important;
+  }
+
+  .guest-directory-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .guest-directory-table thead {
+    display: none !important;
+  }
+
+  .guest-directory-table tbody {
+    display: grid !important;
+    gap: 10px !important;
+  }
+
+  .guest-directory-table tr {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px 10px !important;
+    padding: 14px !important;
+    border: 1px solid #292929 !important;
+    border-radius: 14px !important;
+    background: #0f0f0f !important;
+  }
+
+  .guest-directory-table td {
+    display: grid !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .guest-directory-table td::before {
+    color: #777 !important;
+    font-size: 8px !important;
+    font-weight: 900 !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+  }
+
+  .guest-directory-table td:nth-child(1)::before { content: "Guest"; }
+  .guest-directory-table td:nth-child(2)::before { content: "Contact"; }
+  .guest-directory-table td:nth-child(3)::before { content: "Identity"; }
+  .guest-directory-table td:nth-child(4)::before { content: "Stay history"; }
+  .guest-directory-table td:nth-child(5)::before { content: "Current status"; }
+  .guest-directory-table td:nth-child(6)::before { content: "KYC"; }
+  .guest-directory-table td:nth-child(7)::before { content: "Actions"; }
+
+  .guest-directory-table td:nth-child(3),
+  .guest-directory-table td:nth-child(4),
+  .guest-directory-table td:nth-child(7) {
+    grid-column: 1 / -1 !important;
+  }
+
+  .guest-directory-row-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .guest-directory-row-actions button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .guest-profile-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-left: 0 !important;
+    border-radius: 0 !important;
+  }
+}

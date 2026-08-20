@@ -313,3 +313,28 @@
   font-size: 10px;
   line-height: 1.45;
 }
+
+
+/* StayQR Mobile UI REV2 — off-canvas navigation */
+@media (max-width: 600px) {
+  .sidebar {
+    width: min(320px, 88vw) !important;
+    max-width: min(320px, 88vw) !important;
+    transform: translateX(-105%) !important;
+    border-radius: 0 18px 18px 0 !important;
+    box-shadow: 22px 0 70px rgba(0, 0, 0, 0.58) !important;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  .sidebar-hotel-switcher-wrap {
+    margin: 10px !important;
+  }
+
+  .sidebar-platform-scope {
+    margin: 0 !important;
+    padding: 10px !important;
+  }
+}

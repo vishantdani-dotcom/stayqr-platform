@@ -460,3 +460,189 @@
     min-width: 760px;
   }
 }
+
+
+/* StayQR Mobile UI REV2 — Rooms & Inventory */
+@media (max-width: 600px) {
+  .day13-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 18px 14px 84px !important;
+    overflow-x: hidden !important;
+  }
+
+  .day13-header,
+  .day13-header > div:first-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .day13-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .day13-kicker {
+    max-width: 100% !important;
+    font-size: 9px !important;
+    line-height: 1.45 !important;
+    letter-spacing: .12em !important;
+    white-space: normal !important;
+  }
+
+  .day13-header h1 {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 8px !important;
+    font-size: clamp(28px, 8vw, 32px) !important;
+    line-height: 1.06 !important;
+    letter-spacing: -0.03em !important;
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+
+  .day13-header p {
+    max-width: 100% !important;
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .day13-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 9px !important;
+    margin-top: 0 !important;
+  }
+
+  .day13-actions .day13-button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 46px !important;
+    padding: 10px !important;
+  }
+
+  .day13-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+
+  .day13-stat {
+    min-width: 0 !important;
+    min-height: 82px !important;
+    padding: 12px !important;
+  }
+
+  .day13-stat span {
+    font-size: 9px !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .day13-stat strong {
+    font-size: 23px !important;
+  }
+
+  .day13-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    gap: 5px !important;
+  }
+
+  .day13-tab {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    padding: 9px 11px !important;
+  }
+
+  .day13-panel-header {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 14px !important;
+  }
+
+  .day13-search {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .room-register-table-wrap {
+    overflow: visible !important;
+  }
+
+  .room-register-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .room-register-table thead {
+    display: none !important;
+  }
+
+  .room-register-table tbody {
+    display: grid !important;
+    gap: 10px !important;
+    padding: 10px !important;
+  }
+
+  .room-register-table tr {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px 10px !important;
+    padding: 14px !important;
+    border: 1px solid #2d2b24 !important;
+    border-radius: 14px !important;
+    background: #11100d !important;
+  }
+
+  .room-register-table td {
+    display: grid !important;
+    gap: 5px !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .room-register-table td::before {
+    color: #888477 !important;
+    font-size: 8px !important;
+    font-weight: 900 !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+  }
+
+  .room-register-table td:nth-child(1)::before { content: "Room"; }
+  .room-register-table td:nth-child(2)::before { content: "Floor / Type"; }
+  .room-register-table td:nth-child(3)::before { content: "Status"; }
+  .room-register-table td:nth-child(4)::before { content: "Commitments"; }
+  .room-register-table td:nth-child(5)::before { content: "Inventory"; }
+  .room-register-table td:nth-child(6)::before { content: "Actions"; }
+
+  .room-register-table td:nth-child(4),
+  .room-register-table td:nth-child(6) {
+    grid-column: 1 / -1 !important;
+  }
+
+  .room-register-table select,
+  .room-register-table .day13-inline-actions,
+  .room-register-table .day13-inline-actions .day13-button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .room-register-table .day13-inline-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

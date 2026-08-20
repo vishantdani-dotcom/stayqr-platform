@@ -807,3 +807,67 @@
   font-size: 11px;
   line-height: 1.45;
 }
+
+
+/* StayQR Mobile UI REV2 — navbar */
+@media (max-width: 600px) {
+  .navbar,
+  .navbar.navbar--sidebar-collapsed {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: 58px !important;
+    padding: 0 10px !important;
+    gap: 8px !important;
+  }
+
+  .navbar-left {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 96px) !important;
+    overflow: hidden !important;
+  }
+
+  .navbar-menu-btn,
+  .navbar-icon-btn,
+  .navbar-profile-wrapper,
+  .navbar-user {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+  }
+
+  .navbar-breadcrumb,
+  .breadcrumb-current {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .navbar-center,
+  .navbar-user-info,
+  .navbar-divider {
+    display: none !important;
+  }
+
+  .navbar-right {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 88px !important;
+    gap: 4px !important;
+  }
+
+  .notif-dropdown,
+  .navbar-user-menu {
+    position: fixed !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}

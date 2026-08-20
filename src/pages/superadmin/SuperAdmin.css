@@ -415,3 +415,158 @@
   .commercial-alert details { max-width: 100%; }
   .quick-hotel-card { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* StayQR Mobile UI REV2 — Super Admin */
+@media (max-width: 600px) {
+  .commercial-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 16px 14px 84px !important;
+    overflow-x: hidden !important;
+  }
+
+  .commercial-hero {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .commercial-hero h1 {
+    font-size: 30px !important;
+    line-height: 1.05 !important;
+    white-space: normal !important;
+  }
+
+  .commercial-hero p {
+    max-width: 100% !important;
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+  }
+
+  .commercial-hero-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .commercial-hero-actions .commercial-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .commercial-hero-actions .commercial-btn:last-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  .commercial-runtime-strip {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+
+  .commercial-runtime-strip > * {
+    min-width: 0 !important;
+    padding: 11px !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .commercial-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    gap: 5px !important;
+  }
+
+  .commercial-tabs button {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+
+  .commercial-metrics-grid,
+  .commercial-metrics-grid.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+
+  .commercial-metric {
+    min-width: 0 !important;
+    min-height: 102px !important;
+    padding: 12px !important;
+  }
+
+  .commercial-metric span {
+    font-size: 8px !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .commercial-metric strong {
+    font-size: 23px !important;
+  }
+
+  .commercial-overview-grid,
+  .quick-hotel-grid,
+  .plans-grid,
+  .announcement-grid,
+  .events-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .commercial-card {
+    min-width: 0 !important;
+  }
+
+  .commercial-toolbar,
+  .panel-heading-row {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .commercial-search {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .commercial-table-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+  .quick-hotel-card {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  .quick-hotel-card > div:last-child {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+  }
+
+  .commercial-dialog-backdrop {
+    padding: 8px !important;
+  }
+
+  .commercial-dialog {
+    width: 100% !important;
+    max-height: calc(100dvh - 16px) !important;
+    border-radius: 15px !important;
+  }
+
+  .commercial-dialog > header,
+  .commercial-dialog-body {
+    padding: 14px !important;
+  }
+
+  .dialog-context-card,
+  .permission-grid,
+  .usage-grid,
+  .form-grid.two {
+    grid-template-columns: 1fr !important;
+  }
+}

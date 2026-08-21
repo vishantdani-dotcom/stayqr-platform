@@ -172,7 +172,7 @@ const required = [
   [
     'permissions header',
     netlify.includes(
-      'Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"'
+      'Permissions-Policy = "camera=(self), microphone=(), geolocation=(), payment=(), usb=()"'
     ),
   ],
   [

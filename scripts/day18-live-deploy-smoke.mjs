@@ -30,7 +30,7 @@ const requiredHeaders = [
   ['referrer-policy', /strict-origin-when-cross-origin/],
   ['x-content-type-options', /nosniff/i],
   ['x-frame-options', /deny/i],
-  ['permissions-policy', /camera=\(\)/],
+  ['permissions-policy', /camera=\(self\)/],
   ['strict-transport-security', /max-age=31536000/],
 ]
 

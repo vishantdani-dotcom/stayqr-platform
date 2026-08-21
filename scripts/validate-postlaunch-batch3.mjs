@@ -33,6 +33,10 @@ check('Scanner assesses blur/glare/lighting', ['possible_blur','possible_glare',
 check('Scanner explicitly excludes biometric matching', has(scanner, 'does not perform face recognition or biometric matching'));
 check('Scanner keyboard escape closes modal', has(scanner, 'event.key === "Escape"'));
 check('Scanner attaches MediaStream after video mount', has(scanner, 'streamVersion') && has(scanner, 'video.srcObject = stream') && has(scanner, '[open, preview, streamVersion]') && !has(scanner, 'window.setTimeout(async () =>'));
+check('Scanner high-resolution still capture present', has(scanner, 'window.ImageCapture') && has(scanner, 'takePhoto()') && has(scanner, 'high_res_still'));
+check('Scanner preserves higher capture resolution', has(scanner, 'MAX_CAPTURE_DIMENSION = 3200') && has(scanner, 'JPEG_QUALITY = 0.94'));
+check('Scanner native phone-camera fallback present', has(scanner, 'capture="environment"') && has(scanner, 'native_camera_file'));
+check('Scanner advanced torch and zoom controls present', has(scanner, 'torchSupported') && has(scanner, 'zoomRange') && has(scanner, 'applyConstraints'));
 
 check('Guest KYC uses private guest-documents bucket', has(guestDirectory, 'const KYC_BUCKET = "guest-documents"'));
 check('Guest KYC supports front/back grouping', has(guestDirectory, 'documentSide') && has(guestDirectory, 'kycDocumentGroupId'));

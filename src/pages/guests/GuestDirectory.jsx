@@ -1569,7 +1569,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                             setKycFileInputKey((value) => value + 1);
                           }}
                         />
-                        <small>Uses the device camera with edge framing, manual crop/rotate controls, JPEG compression and glare/blur/lighting warnings. No biometric matching or OCR is performed.</small>
+                        <small>Uses high-resolution still capture where supported, full-resolution native phone-camera fallback, edge framing, zoom/torch controls when available, manual crop/rotate, and glare/blur/lighting warnings. No biometric matching or OCR is performed.</small>
                       </div>
 
                       <label className="guest-kyc-file-field">

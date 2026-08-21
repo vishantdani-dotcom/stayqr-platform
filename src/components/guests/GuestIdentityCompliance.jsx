@@ -196,29 +196,25 @@ export default function GuestIdentityCompliance({
   }
 
   if (loading) {
-    return <section className="guest-identity-compliance guest-profile-section"><p className="guest-muted">Loading identity consent evidence…</p></section>;
+    return <section className="guest-identity-compliance guest-profile-section"><p className="guest-muted">Loading identity consent evidenceâ€¦</p></section>;
   }
 
   const kycConsent = hasConsent(GUEST_CONSENT_PURPOSES.KYC_CAPTURE);
   const aadhaarConsent = hasConsent(GUEST_CONSENT_PURPOSES.AADHAAR_OFFLINE);
 
   return (
-    <section className="guest-identity-compliance guest-profile-section">
-      <div className="guest-kyc-heading">
+    <section className="guest-identity-compliance guest-profile-section guest-kyc-step-card">
+      <div className="guest-identity-step-head">
+        <span className="guest-kyc-step-number">1</span>
         <div>
-          <p className="guest-directory-kicker">CONSENT • RETENTION • UIDAI OFFLINE</p>
-          <h3>Identity compliance</h3>
-          <p className="guest-muted">Consent is stored as hotel-scoped evidence. StayQR supports digitally-signed UIDAI Paperless Offline XML and records official UIDAI Secure QR Reader verification evidence without storing raw XML, QR payload, share code, full Aadhaar number or biometric data.</p>
+          <p className="guest-directory-kicker">CONSENT & UIDAI</p>
+          <h3>Identity consent</h3>
+          <p className="guest-muted">Record consent before protected KYC actions. Aadhaar verification methods remain separate from ordinary document upload. StayQR does not store biometric data.</p>
         </div>
         <span className="guest-chip verified">Privacy hardened</span>
       </div>
 
-      <label className="guest-consent-confirm">
-        <input type="checkbox" checked={confirmEvidence} onChange={(event) => setConfirmEvidence(event.target.checked)} />
-        <span>I confirm the guest has provided consent for the action I am recording.</span>
-      </label>
-
-      <div className="guest-consent-grid">
+      <div className="guest-consent-grid guest-consent-grid-clean">
         <ConsentCard
           title="Private KYC capture"
           active={kycConsent}
@@ -235,60 +231,167 @@ export default function GuestIdentityCompliance({
         />
       </div>
 
-      <form className="guest-aadhaar-offline" onSubmit={verifyXml}>
-        <div>
-          <strong>UIDAI Paperless Offline e-KYC verification</strong>
-          <p>Upload the original digitally-signed XML extracted from the UIDAI offline package. StayQR validates the UIDAI digital signature server-side. A photo/PDF of Aadhaar is never treated as Aadhaar authentication.</p>
-        </div>
+      <label className="guest-consent-confirm guest-consent-confirm-clean">
         <input
-          type="file"
-          accept=".xml,text/xml,application/xml"
-          disabled={!aadhaarConsent || busy === "verify_xml"}
-          onChange={(event) => setXmlFile(event.target.files?.[0] || null)}
+          type="checkbox"
+          checked={confirmEvidence}
+          onChange={(event) => setConfirmEvidence(event.target.checked)}
         />
-        <button type="submit" disabled={!aadhaarConsent || !xmlFile || busy === "verify_xml"}>
-          {busy === "verify_xml" ? "Verifying UIDAI signature…" : "Verify offline XML"}
-        </button>
-      </form>
+        <span>I confirm the guest has provided consent for the action I am recording.</span>
+      </label>
 
-      <form className="guest-secure-qr" onSubmit={recordSecureQr}>
-        <div className="guest-secure-qr-copy">
-          <strong>UIDAI Secure QR verification</strong>
-          <p>UIDAI states that Secure QR must be read with its official reader/app. Use that reader first; record evidence here only after it displays a digitally verified result. StayQR never stores the raw Secure QR payload.</p>
+      <details className="guest-identity-methods">
+        <summary>
+          <div>
+            <strong>Aadhaar offline verification methods</strong>
+            <small>Open only when Aadhaar verification is required.</small>
+          </div>
+          <span>{aadhaarConsent ? "Consent granted" : "Consent required"}</span>
+        </summary>
+
+        <div className="guest-identity-methods-body">
+          <form className="guest-aadhaar-offline guest-identity-method-card" onSubmit={verifyXml}>
+            <div className="guest-identity-method-copy">
+              <span className="guest-identity-method-icon" aria-hidden="true">XML</span>
+              <div>
+                <strong>UIDAI Paperless Offline e-KYC verification</strong>
+                <p>Upload the original digitally-signed UIDAI offline XML. StayQR validates the digital signature server-side. A photo/PDF of Aadhaar is never treated as Aadhaar authentication.</p>
+              </div>
+            </div>
+            <input
+              type="file"
+              accept=".xml,text/xml,application/xml"
+              disabled={!aadhaarConsent || busy === "verify_xml"}
+              onChange={(event) => setXmlFile(event.target.files?.[0] || null)}
+            />
+            <button type="submit" disabled={!aadhaarConsent || !xmlFile || busy === "verify_xml"}>
+              {busy === "verify_xml" ? "Verifying signatureâ€¦" : "Verify offline XML"}
+            </button>
+          </form>
+
+          <form className="guest-secure-qr guest-identity-method-card" onSubmit={recordSecureQr}>
+            <div className="guest-identity-method-copy">
+              <span className="guest-identity-method-icon" aria-hidden="true">QR</span>
+              <div>
+                <strong>UIDAI Secure QR verification</strong>
+                <p>Use the official UIDAI Secure QR Reader first. Record evidence here only after the official reader displays a digitally verified result. Raw QR payload is never stored.</p>
+              </div>
+            </div>
+
+            <label className="guest-secure-qr-confirm">
+              <input
+                type="checkbox"
+                checked={secureQr.readerVerified}
+                disabled={!aadhaarConsent || busy === "secure_qr"}
+                onChange={(event) =>
+                  setSecureQr((current) => ({
+                    ...current,
+                    readerVerified: event.target.checked,
+                  }))
+                }
+              />
+              <span>Official UIDAI Secure QR Reader shows <b>verified</b> for this guest.</span>
+            </label>
+
+            <div className="guest-secure-qr-grid">
+              <label>
+                Reference last 4
+                <input
+                  inputMode="numeric"
+                  maxLength="4"
+                  value={secureQr.referenceLast4}
+                  onChange={(event) =>
+                    setSecureQr((current) => ({
+                      ...current,
+                      referenceLast4: event.target.value.replace(/\D/g, "").slice(0, 4),
+                    }))
+                  }
+                  placeholder="Optional"
+                />
+              </label>
+              <label>
+                Name shown by reader
+                <input
+                  value={secureQr.name}
+                  onChange={(event) =>
+                    setSecureQr((current) => ({ ...current, name: event.target.value }))
+                  }
+                  placeholder="Optional"
+                />
+              </label>
+              <label>
+                DOB shown by reader
+                <input
+                  type="date"
+                  value={secureQr.dob}
+                  onChange={(event) =>
+                    setSecureQr((current) => ({ ...current, dob: event.target.value }))
+                  }
+                />
+              </label>
+              <label>
+                Gender shown by reader
+                <select
+                  value={secureQr.gender}
+                  onChange={(event) =>
+                    setSecureQr((current) => ({ ...current, gender: event.target.value }))
+                  }
+                >
+                  <option value="">Not recorded</option>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                  <option value="T">Transgender / other</option>
+                </select>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!aadhaarConsent || !secureQr.readerVerified || busy === "secure_qr"}
+            >
+              {busy === "secure_qr" ? "Recording evidenceâ€¦" : "Record verified Secure QR"}
+            </button>
+          </form>
         </div>
-        <label className="guest-secure-qr-confirm">
-          <input
-            type="checkbox"
-            checked={secureQr.readerVerified}
-            disabled={!aadhaarConsent || busy === "secure_qr"}
-            onChange={(event) => setSecureQr((current) => ({ ...current, readerVerified: event.target.checked }))}
-          />
-          <span>Official UIDAI Secure QR Reader shows <b>verified</b> for this guest.</span>
-        </label>
-        <div className="guest-secure-qr-grid">
-          <label>Reference last 4 (optional)<input inputMode="numeric" maxLength="4" value={secureQr.referenceLast4} onChange={(event) => setSecureQr((current) => ({ ...current, referenceLast4: event.target.value.replace(/\D/g, "").slice(0, 4) }))} placeholder="1234" /></label>
-          <label>Name shown by reader (optional)<input value={secureQr.name} onChange={(event) => setSecureQr((current) => ({ ...current, name: event.target.value }))} /></label>
-          <label>DOB shown by reader (optional)<input type="date" value={secureQr.dob} onChange={(event) => setSecureQr((current) => ({ ...current, dob: event.target.value }))} /></label>
-          <label>Gender shown by reader (optional)<select value={secureQr.gender} onChange={(event) => setSecureQr((current) => ({ ...current, gender: event.target.value }))}><option value="">Not recorded</option><option value="M">Male</option><option value="F">Female</option><option value="T">Transgender / other</option></select></label>
-        </div>
-        <button type="submit" disabled={!aadhaarConsent || !secureQr.readerVerified || busy === "secure_qr"}>
-          {busy === "secure_qr" ? "Recording evidence…" : "Record verified Secure QR"}
-        </button>
-      </form>
+      </details>
 
       {verifications.length > 0 && (
-        <div className="guest-verification-list">
-          {verifications.map((item) => {
-            const secureReader = item.verification_method === "aadhaar_secure_qr_uidai_reader";
-            return (
-              <article key={item.id}>
-                <div><strong>{secureReader ? "UIDAI Secure QR Reader" : "UIDAI offline XML"}</strong><span className={`guest-chip ${item.status === "verified" ? "verified" : "neutral"}`}>{item.status}</span></div>
-                <p>Reference {item.reference_id_masked || "masked / not retained"} · Signature {item.signature_valid ? (secureReader ? "verified by official UIDAI reader" : "validated by StayQR") : "not validated"}</p>
-                <small>{new Date(item.verified_at).toLocaleString()} · SHA-256 evidence {String(item.payload_sha256 || "").slice(0, 12)}…</small>
-              </article>
-            );
-          })}
-        </div>
+        <details className="guest-verification-evidence">
+          <summary>
+            <div>
+              <strong>Verification evidence</strong>
+              <small>{verifications.length} recorded verification{verifications.length === 1 ? "" : "s"}</small>
+            </div>
+            <span>View history</span>
+          </summary>
+          <div className="guest-verification-list">
+            {verifications.map((item) => {
+              const secureReader = item.verification_method === "aadhaar_secure_qr_uidai_reader";
+              return (
+                <article key={item.id}>
+                  <div>
+                    <strong>{secureReader ? "UIDAI Secure QR Reader" : "UIDAI offline XML"}</strong>
+                    <span className={`guest-chip ${item.status === "verified" ? "verified" : "neutral"}`}>
+                      {item.status}
+                    </span>
+                  </div>
+                  <p>
+                    Reference {item.reference_id_masked || "masked / not retained"} Â· Signature{" "}
+                    {item.signature_valid
+                      ? secureReader
+                        ? "verified by official UIDAI reader"
+                        : "validated by StayQR"
+                      : "not validated"}
+                  </p>
+                  <small>
+                    {new Date(item.verified_at).toLocaleString()} Â· SHA-256 evidence{" "}
+                    {String(item.payload_sha256 || "").slice(0, 12)}â€¦
+                  </small>
+                </article>
+              );
+            })}
+          </div>
+        </details>
       )}
     </section>
   );
@@ -296,11 +399,23 @@ export default function GuestIdentityCompliance({
 
 function ConsentCard({ title, active, busy, onGrant, onRevoke }) {
   return (
-    <article className="guest-consent-card">
-      <div><strong>{title}</strong><span className={`guest-chip ${active ? "verified" : "neutral"}`}>{active ? "Granted" : "Not granted"}</span></div>
-      <p>{active ? "Active consent evidence exists for this hotel and guest." : "The protected action remains blocked until consent is recorded."}</p>
-      <button type="button" className={active ? "danger" : "secondary"} disabled={busy} onClick={active ? onRevoke : onGrant}>
-        {busy ? "Saving…" : active ? "Revoke consent" : "Record consent"}
+    <article className={`guest-consent-card guest-consent-card-clean ${active ? "is-active" : ""}`}>
+      <div>
+        <div className="guest-consent-card-copy">
+          <strong>{title}</strong>
+          <small>{active ? "Consent evidence recorded" : "Protected action is currently blocked"}</small>
+        </div>
+        <span className={`guest-chip ${active ? "verified" : "neutral"}`}>
+          {active ? "Granted" : "Required"}
+        </span>
+      </div>
+      <button
+        type="button"
+        className={active ? "danger" : "secondary"}
+        disabled={busy}
+        onClick={active ? onRevoke : onGrant}
+      >
+        {busy ? "Savingâ€¦" : active ? "Revoke" : "Record consent"}
       </button>
     </article>
   );

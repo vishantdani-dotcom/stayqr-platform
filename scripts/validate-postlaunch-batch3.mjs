@@ -14,13 +14,15 @@ const guestDirectory = 'src/pages/guests/GuestDirectory.jsx';
 const guestComms = 'src/pages/guests/GuestCommunications.jsx';
 const scanner = 'src/components/guests/DocumentScanner.jsx';
 const identity = 'src/components/guests/GuestIdentityCompliance.jsx';
+const guestDirectoryCss = 'src/pages/guests/GuestDirectory.css';
+const identityCss = 'src/components/guests/GuestIdentityCompliance.css';
 const compliance = 'src/lib/guestCompliance.js';
 const aadhaarFn = 'supabase/functions/verify-aadhaar-offline/index.ts';
 const waSend = 'supabase/functions/whatsapp-send/index.ts';
 const waWebhook = 'supabase/functions/whatsapp-status-webhook/index.ts';
 const purgeFn = 'supabase/functions/purge-guest-retention/index.ts';
 
-for (const file of [migration, guestDirectory, guestComms, scanner, identity, compliance, aadhaarFn, waSend, waWebhook, purgeFn]) {
+for (const file of [migration, guestDirectory, guestDirectoryCss, guestComms, scanner, identity, identityCss, compliance, aadhaarFn, waSend, waWebhook, purgeFn]) {
   check(`File exists: ${file}`, exists(file), file);
 }
 
@@ -44,6 +46,18 @@ check('Guest KYC captures retention metadata', has(guestDirectory, 'retention_un
 check('Guest KYC stores masked number only in Batch 3 payload', has(guestDirectory, 'document_number_masked') && has(guestDirectory, 'raw_document_number_stored: false'));
 check('Private KYC signed URL is short-lived', has(guestDirectory, 'createSignedUrl(documentRecord.storage_path, 60)'));
 check('KYC view is audited before signed URL', has(guestDirectory, 'auditGuestDocumentAccess') && has(guestDirectory, 'action: "view"'));
+
+check('KYC workspace has clear 3-step workflow', ['KYC & IDENTITY WORKSPACE','Consent','Capture','Review'].every((value) => has(guestDirectory, value)));
+check('KYC capture form is grouped into document and retention sections', has(guestDirectory, 'Document details') && has(guestDirectory, 'Dates & retention'));
+check('KYC capture supports clean camera-or-upload choice', has(guestDirectory, 'Capture or upload') && has(guestDirectory, 'Choose a private file'));
+check('KYC technical request details are collapsible', has(guestDirectory, 'guest-kyc-technical') && has(guestDirectory, '<summary>Technical request details</summary>'));
+check('Saved KYC metadata is collapsible', has(guestDirectory, 'guest-document-details') && has(guestDirectory, 'View document metadata'));
+check('Identity consent is the first workflow step', has(identity, 'guest-identity-step-head') && has(identity, 'Identity consent'));
+check('Aadhaar methods are progressively disclosed', has(identity, 'guest-identity-methods') && has(identity, 'Open only when Aadhaar verification is required.'));
+check('Verification evidence history is collapsible', has(identity, 'guest-verification-evidence') && has(identity, 'View history'));
+check('KYC desktop layout uses grouped responsive grid', has(guestDirectoryCss, '.guest-kyc-form-layout') && has(guestDirectoryCss, 'grid-template-columns: repeat(2, minmax(0, 1fr))'));
+check('KYC mobile layout collapses to one column', has(guestDirectoryCss, '@media (max-width: 680px)') && has(guestDirectoryCss, '.guest-kyc-capture-layout') && has(guestDirectoryCss, 'grid-template-columns: 1fr'));
+check('Identity compliance mobile layout is responsive', has(identityCss, '@media (max-width: 680px)') && has(identityCss, '.guest-consent-card-clean'));
 
 check('Consent ledger exists', has(migration, 'create table if not exists public.guest_consents'));
 check('KYC access audit exists', has(migration, 'create table if not exists public.guest_document_access_audit'));

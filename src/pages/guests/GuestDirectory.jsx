@@ -1402,6 +1402,31 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                   </div>
                 </section>
 
+                <section className="guest-identity-workspace" aria-label="KYC and identity workflow">
+                  <div className="guest-identity-workspace-copy">
+                    <p className="guest-directory-kicker">KYC & IDENTITY WORKSPACE</p>
+                    <h3>Guest identity, without the clutter</h3>
+                    <p>Record consent, capture the document, then review verification evidence. Technical details stay available without dominating the workflow.</p>
+                  </div>
+                  <div className="guest-identity-stepper" aria-label="KYC workflow steps">
+                    <div>
+                      <span>1</span>
+                      <strong>Consent</strong>
+                      <small>Permission first</small>
+                    </div>
+                    <div>
+                      <span>2</span>
+                      <strong>Capture</strong>
+                      <small>Scan or upload</small>
+                    </div>
+                    <div>
+                      <span>3</span>
+                      <strong>Review</strong>
+                      <small>Verify evidence</small>
+                    </div>
+                  </div>
+                </section>
+
                 <GuestIdentityCompliance
                   currentHotel={currentHotel}
                   guest={selectedGuest}
@@ -1414,200 +1439,282 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                   }}
                 />
 
-                <section className="guest-profile-section">
-                  <div className="guest-kyc-heading">
+                <section className="guest-profile-section guest-kyc-documents-section">
+                  <div className="guest-kyc-step-heading">
+                    <span className="guest-kyc-step-number">2</span>
                     <div>
-                      <h3>Private KYC documents</h3>
-                      <p className="guest-muted">
-                        Files stay private in the guest-documents bucket. Viewing uses a 60-second signed link.
-                      </p>
+                      <p className="guest-directory-kicker">CAPTURE DOCUMENT</p>
+                      <h3>Private KYC document</h3>
+                      <p className="guest-muted">Scan with the camera or upload a file. Only masked identity metadata is shown in the workspace.</p>
                     </div>
-                    <span className="guest-chip neutral">
-                      {profile.documents.length} document(s)
-                    </span>
+                    <span className="guest-chip neutral">{profile.documents.length} saved</span>
                   </div>
 
                   {kycPermissions.canUpload ? (
-                    <form className="guest-kyc-upload-form" onSubmit={uploadGuestDocument}>
-                      <div className="guest-kyc-guidance">
-                        <strong>Use synthetic files during acceptance.</strong>
-                        <span>Never upload a real Aadhaar, passport, PAN card or personal document for testing.</span>
+                    <form className="guest-kyc-upload-form guest-kyc-capture-form" onSubmit={uploadGuestDocument}>
+                      <div className="guest-kyc-guidance guest-kyc-guidance-compact">
+                        <strong>Acceptance testing</strong>
+                        <span>Use synthetic files only. Never test with a real Aadhaar, passport, PAN card or personal document.</span>
                       </div>
 
-                      <label>
-                        <span>Document type</span>
-                        <select
-                          value={kycForm.documentType}
-                          onChange={(event) =>
-                            setKycForm((current) => ({
-                              ...current,
-                              documentType: event.target.value,
-                            }))
-                          }
-                        >
-                          <option value="aadhaar">Aadhaar</option>
-                          <option value="passport">Passport</option>
-                          <option value="driving_licence">Driving licence</option>
-                          <option value="voter_id">Voter ID</option>
-                          <option value="pan">PAN</option>
-                          <option value="visa">Visa</option>
-                          <option value="form_c">Form C</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </label>
+                      <div className="guest-kyc-form-layout">
+                        <section className="guest-kyc-form-section">
+                          <div className="guest-kyc-form-section-head">
+                            <div>
+                              <strong>Document details</strong>
+                              <small>Only enter safe, masked identity metadata.</small>
+                            </div>
+                          </div>
+                          <div className="guest-kyc-form-grid">
+                            <label>
+                              <span>Document type</span>
+                              <select
+                                value={kycForm.documentType}
+                                onChange={(event) =>
+                                  setKycForm((current) => ({
+                                    ...current,
+                                    documentType: event.target.value,
+                                  }))
+                                }
+                              >
+                                <option value="aadhaar">Aadhaar</option>
+                                <option value="passport">Passport</option>
+                                <option value="driving_licence">Driving licence</option>
+                                <option value="voter_id">Voter ID</option>
+                                <option value="pan">PAN</option>
+                                <option value="visa">Visa</option>
+                                <option value="form_c">Form C</option>
+                                <option value="other">Other</option>
+                              </select>
+                            </label>
 
-                      <label>
-                        <span>Masked document number</span>
-                        <input
-                          value={kycForm.documentNumberMasked}
-                          onChange={(event) =>
-                            setKycForm((current) => ({
-                              ...current,
-                              documentNumberMasked: event.target.value,
-                            }))
-                          }
-                          maxLength={64}
-                          placeholder="Example: TEST••••9999"
-                        />
-                      </label>
+                            <label>
+                              <span>Masked document number</span>
+                              <input
+                                value={kycForm.documentNumberMasked}
+                                onChange={(event) =>
+                                  setKycForm((current) => ({
+                                    ...current,
+                                    documentNumberMasked: event.target.value,
+                                  }))
+                                }
+                                maxLength={64}
+                                placeholder="Example: TEST••••9999"
+                              />
+                            </label>
 
-                      <label>
-                        <span>Issue country</span>
-                        <input
-                          value={kycForm.issueCountry}
-                          onChange={(event) =>
-                            setKycForm((current) => ({
-                              ...current,
-                              issueCountry: event.target.value,
-                            }))
-                          }
-                          placeholder="India"
-                        />
-                      </label>
+                            <label>
+                              <span>Issue country</span>
+                              <input
+                                value={kycForm.issueCountry}
+                                onChange={(event) =>
+                                  setKycForm((current) => ({
+                                    ...current,
+                                    issueCountry: event.target.value,
+                                  }))
+                                }
+                                placeholder="India"
+                              />
+                            </label>
 
-                      <label>
-                        <span>Issued on</span>
-                        <input
-                          type="date"
-                          value={kycForm.issuedOn}
-                          onChange={(event) =>
-                            setKycForm((current) => ({
-                              ...current,
-                              issuedOn: event.target.value,
-                            }))
-                          }
-                        />
-                      </label>
+                            <label>
+                              <span>Document side</span>
+                              <select
+                                value={kycForm.documentSide}
+                                onChange={(event) =>
+                                  setKycForm((current) => ({
+                                    ...current,
+                                    documentSide: event.target.value,
+                                  }))
+                                }
+                              >
+                                <option value="single">Single / full document</option>
+                                <option value="front">Front</option>
+                                <option value="back">Back</option>
+                              </select>
+                              <small>Front and back can share one document group.</small>
+                            </label>
+                          </div>
+                        </section>
 
-                      <label>
-                        <span>Expires on</span>
-                        <input
-                          type="date"
-                          value={kycForm.expiresOn}
-                          onChange={(event) =>
-                            setKycForm((current) => ({
-                              ...current,
-                              expiresOn: event.target.value,
-                            }))
-                          }
-                        />
-                      </label>
+                        <section className="guest-kyc-form-section">
+                          <div className="guest-kyc-form-section-head">
+                            <div>
+                              <strong>Dates & retention</strong>
+                              <small>Keep retention clear and deliberate.</small>
+                            </div>
+                          </div>
+                          <div className="guest-kyc-form-grid">
+                            <label>
+                              <span>Issued on</span>
+                              <input
+                                type="date"
+                                value={kycForm.issuedOn}
+                                onChange={(event) =>
+                                  setKycForm((current) => ({
+                                    ...current,
+                                    issuedOn: event.target.value,
+                                  }))
+                                }
+                              />
+                            </label>
 
-                      <label>
-                        <span>Document side</span>
-                        <select
-                          value={kycForm.documentSide}
-                          onChange={(event) => setKycForm((current) => ({ ...current, documentSide: event.target.value }))}
-                        >
-                          <option value="single">Single / full document</option>
-                          <option value="front">Front</option>
-                          <option value="back">Back</option>
-                        </select>
-                        <small>Front and back captures can share one document group.</small>
-                      </label>
+                            <label>
+                              <span>Expires on</span>
+                              <input
+                                type="date"
+                                value={kycForm.expiresOn}
+                                onChange={(event) =>
+                                  setKycForm((current) => ({
+                                    ...current,
+                                    expiresOn: event.target.value,
+                                  }))
+                                }
+                              />
+                            </label>
 
-                      <label>
-                        <span>Retention period (days)</span>
-                        <input
-                          type="number" min="1" max="3650"
-                          value={kycForm.retentionDays}
-                          onChange={(event) => setKycForm((current) => ({ ...current, retentionDays: event.target.value }))}
-                        />
-                        <small>Default 365 days. Expired records enter the protected purge queue unless legal hold applies.</small>
-                      </label>
+                            <label>
+                              <span>Retention period</span>
+                              <div className="guest-kyc-input-with-suffix">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="3650"
+                                  value={kycForm.retentionDays}
+                                  onChange={(event) =>
+                                    setKycForm((current) => ({
+                                      ...current,
+                                      retentionDays: event.target.value,
+                                    }))
+                                  }
+                                />
+                                <span>days</span>
+                              </div>
+                            </label>
 
-                      <label>
-                        <span>Retention basis</span>
-                        <select
-                          value={kycForm.retentionBasis}
-                          onChange={(event) => setKycForm((current) => ({ ...current, retentionBasis: event.target.value }))}
-                        >
-                          <option value="hotel_policy">Hotel retention policy</option>
-                          <option value="legal_requirement">Legal / regulatory requirement</option>
-                          <option value="guest_request">Guest-requested retention</option>
-                        </select>
-                      </label>
-
-                      <div className="guest-kyc-scanner-field">
-                        <span>Camera scanner</span>
-                        <DocumentScanner
-                          disabled={kycUploading}
-                          onCapture={(capture) => {
-                            setKycForm((current) => ({
-                              ...current,
-                              file: capture.file,
-                              captureSource: capture.captureSource,
-                              qualityStatus: capture.qualityStatus,
-                              qualityScore: capture.qualityScore,
-                              qualityFlags: [
-                                ...capture.qualityFlags,
-                                ...(capture.cropApplied ? ["manual_crop_applied"] : []),
-                              ],
-                            }));
-                            setKycDocumentId(createUuid());
-                            setKycRequestId(createUuid());
-                            setKycFileInputKey((value) => value + 1);
-                          }}
-                        />
-                        <small>Uses high-resolution still capture where supported, full-resolution native phone-camera fallback, edge framing, zoom/torch controls when available, manual crop/rotate, and glare/blur/lighting warnings. No biometric matching or OCR is performed.</small>
+                            <label>
+                              <span>Retention basis</span>
+                              <select
+                                value={kycForm.retentionBasis}
+                                onChange={(event) =>
+                                  setKycForm((current) => ({
+                                    ...current,
+                                    retentionBasis: event.target.value,
+                                  }))
+                                }
+                              >
+                                <option value="hotel_policy">Hotel retention policy</option>
+                                <option value="legal_requirement">Legal / regulatory requirement</option>
+                                <option value="guest_request">Guest-requested retention</option>
+                              </select>
+                            </label>
+                          </div>
+                          <p className="guest-kyc-policy-note">Default: 365 days. Expired records enter the protected purge queue unless legal hold applies.</p>
+                        </section>
                       </div>
 
-                      <label className="guest-kyc-file-field">
-                        <span>Private file</span>
-                        <input
-                          key={kycFileInputKey}
-                          type="file"
-                          accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-                          onChange={(event) => {
-                            const nextFile = event.target.files?.[0] || null;
-                            setKycForm((current) => ({
-                              ...current,
-                              file: nextFile,
-                              captureSource: "upload",
-                              qualityStatus: "not_assessed",
-                              qualityScore: null,
-                              qualityFlags: [],
-                            }));
-                            setKycDocumentId(createUuid());
-                            setKycRequestId(createUuid());
-                          }}
-                        />
-                        <small>JPEG, PNG or PDF · maximum 15 MB</small>
-                      </label>
+                      <section className="guest-kyc-capture-card">
+                        <div className="guest-kyc-form-section-head">
+                          <div>
+                            <strong>Capture or upload</strong>
+                            <small>Camera is recommended on mobile. File upload remains available for desk workflows.</small>
+                          </div>
+                          <span className={`guest-chip ${kycForm.file ? "verified" : "neutral"}`}>
+                            {kycForm.file ? "Ready" : "No file"}
+                          </span>
+                        </div>
 
-                      <div className="guest-kyc-request">
-                        <span>Document group / request</span>
-                        <code>{kycDocumentGroupId}</code>
-                        <code>{kycRequestId}</code>
-                        <small>{kycForm.captureSource === "camera" ? `Camera quality: ${kycForm.qualityStatus} ${kycForm.qualityScore ?? ""}/100 ${kycForm.qualityFlags.join(" · ")}` : "Uploaded file: manual visual review required."}</small>
+                        <div className="guest-kyc-capture-layout">
+                          <div className="guest-kyc-scanner-field">
+                            <span>Camera</span>
+                            <DocumentScanner
+                              disabled={kycUploading}
+                              onCapture={(capture) => {
+                                setKycForm((current) => ({
+                                  ...current,
+                                  file: capture.file,
+                                  captureSource: capture.captureSource,
+                                  qualityStatus: capture.qualityStatus,
+                                  qualityScore: capture.qualityScore,
+                                  qualityFlags: [
+                                    ...capture.qualityFlags,
+                                    ...(capture.cropApplied ? ["manual_crop_applied"] : []),
+                                  ],
+                                }));
+                                setKycDocumentId(createUuid());
+                                setKycRequestId(createUuid());
+                                setKycFileInputKey((value) => value + 1);
+                              }}
+                            />
+                            <small>High-resolution still capture where supported, with native phone-camera fallback, crop/rotate and quality checks.</small>
+                          </div>
+
+                          <div className="guest-kyc-upload-divider"><span>or</span></div>
+
+                          <label className="guest-kyc-file-field">
+                            <span>Choose a private file</span>
+                            <input
+                              key={kycFileInputKey}
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                              onChange={(event) => {
+                                const nextFile = event.target.files?.[0] || null;
+                                setKycForm((current) => ({
+                                  ...current,
+                                  file: nextFile,
+                                  captureSource: "upload",
+                                  qualityStatus: "not_assessed",
+                                  qualityScore: null,
+                                  qualityFlags: [],
+                                }));
+                                setKycDocumentId(createUuid());
+                                setKycRequestId(createUuid());
+                              }}
+                            />
+                            <small>JPEG, PNG or PDF · maximum 15 MB</small>
+                          </label>
+                        </div>
+
+                        <div className={`guest-kyc-selected-file ${kycForm.file ? "ready" : ""}`}>
+                          <div>
+                            <span>{kycForm.file ? "Selected document" : "Document not selected"}</span>
+                            <strong>{kycForm.file?.name || "Scan with camera or choose a file to continue."}</strong>
+                          </div>
+                          {kycForm.file && (
+                            <div>
+                              <span>{formatFileSize(kycForm.file.size)}</span>
+                              <span>{titleCase(kycForm.captureSource || "upload")}</span>
+                              {kycForm.qualityScore !== null && kycForm.qualityScore !== undefined && (
+                                <span>Quality {kycForm.qualityScore}/100</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </section>
+
+                      <details className="guest-kyc-technical">
+                        <summary>Technical request details</summary>
+                        <div className="guest-kyc-request">
+                          <span>Document group / request</span>
+                          <code>{kycDocumentGroupId}</code>
+                          <code>{kycRequestId}</code>
+                          <small>
+                            {kycForm.captureSource === "camera"
+                              ? `Camera quality: ${kycForm.qualityStatus} ${kycForm.qualityScore ?? ""}/100 ${kycForm.qualityFlags.join(" · ")}`
+                              : "Uploaded file: manual visual review required."}
+                          </small>
+                        </div>
+                      </details>
+
+                      <div className="guest-kyc-submit-row">
+                        <div>
+                          <strong>Ready for private review?</strong>
+                          <small>The file remains private and is not treated as verified until an authorised reviewer approves it.</small>
+                        </div>
+                        <button type="submit" disabled={kycUploading || !kycForm.file}>
+                          {kycUploading ? "Uploading securely..." : "Upload for review"}
+                        </button>
                       </div>
-
-                      <button
-                        type="submit"
-                        disabled={kycUploading || !kycForm.file}
-                      >
-                        {kycUploading ? "Uploading securely..." : "Upload for review"}
-                      </button>
                     </form>
                   ) : (
                     <div className="guest-directory-empty compact">
@@ -1615,59 +1722,57 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                     </div>
                   )}
 
+                  <div className="guest-kyc-review-heading">
+                    <span className="guest-kyc-step-number">3</span>
+                    <div>
+                      <p className="guest-directory-kicker">REVIEW EVIDENCE</p>
+                      <h3>Saved KYC documents</h3>
+                      <p className="guest-muted">Review status and essential metadata first. Detailed technical fields stay collapsed until needed.</p>
+                    </div>
+                  </div>
+
                   {profile.documents.length === 0 ? (
                     <div className="guest-directory-empty compact">
                       No KYC document uploaded for this guest yet.
                     </div>
                   ) : (
-                    <div className="guest-document-grid">
+                    <div className="guest-document-grid guest-document-grid-clean">
                       {profile.documents.map((documentRecord) => {
-                        const statusClass = getDocumentStatusClass(
-                          documentRecord.verification_status
-                        );
+                        const statusClass = getDocumentStatusClass(documentRecord.verification_status);
                         const busy =
                           openingDocumentId === documentRecord.id ||
                           reviewingDocumentId === documentRecord.id ||
                           deletingDocumentId === documentRecord.id;
 
                         return (
-                          <article key={documentRecord.id}>
+                          <article className="guest-document-card-clean" key={documentRecord.id}>
                             <div className="guest-document-head">
-                              <strong>{titleCase(documentRecord.document_type)}</strong>
+                              <div className="guest-document-title">
+                                <strong>{titleCase(documentRecord.document_type)}</strong>
+                                <small>{documentRecord.original_file_name || "Private document"}</small>
+                              </div>
                               <span className={`guest-chip ${statusClass}`}>
                                 {titleCase(documentRecord.verification_status)}
                               </span>
                             </div>
 
-                            <div className="guest-document-meta">
-                              <KycDetail
-                                label="Masked number"
-                                value={documentRecord.document_number_masked}
-                              />
-                              <KycDetail
-                                label="Issue country"
-                                value={documentRecord.issue_country}
-                              />
-                              <KycDetail
-                                label="Issued"
-                                value={formatDateOnly(documentRecord.issued_on)}
-                              />
-                              <KycDetail
-                                label="Expires"
-                                value={formatDateOnly(documentRecord.expires_on)}
-                              />
-                              <KycDetail
-                                label="File"
-                                value={documentRecord.original_file_name}
-                              />
-                              <KycDetail
-                                label="Size"
-                                value={formatFileSize(documentRecord.file_size_bytes)}
-                              />
-                              <KycDetail label="Capture" value={`${titleCase(documentRecord.capture_source || "upload")} · ${titleCase(documentRecord.document_side || "single")}`} />
-                              <KycDetail label="Quality" value={documentRecord.quality_status === "not_assessed" ? "Manual review" : `${titleCase(documentRecord.quality_status)}${documentRecord.quality_score !== null && documentRecord.quality_score !== undefined ? ` · ${documentRecord.quality_score}/100` : ""}`} />
-                              <KycDetail label="Retention until" value={formatDateTime(documentRecord.retention_until)} />
-                              <KycDetail label="Retention basis" value={titleCase(documentRecord.retention_basis || "hotel_policy")} />
+                            <div className="guest-document-summary">
+                              <div>
+                                <span>Capture</span>
+                                <strong>{titleCase(documentRecord.capture_source || "upload")}</strong>
+                              </div>
+                              <div>
+                                <span>Quality</span>
+                                <strong>
+                                  {documentRecord.quality_status === "not_assessed"
+                                    ? "Manual review"
+                                    : `${titleCase(documentRecord.quality_status)}${documentRecord.quality_score !== null && documentRecord.quality_score !== undefined ? ` · ${documentRecord.quality_score}/100` : ""}`}
+                                </strong>
+                              </div>
+                              <div>
+                                <span>Retention</span>
+                                <strong>{formatDateOnly(documentRecord.retention_until)}</strong>
+                              </div>
                             </div>
 
                             {documentRecord.rejection_reason && (
@@ -1677,14 +1782,32 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                               </div>
                             )}
 
-                            <small>
-                              Uploaded {formatDateTime(documentRecord.created_at)}
-                            </small>
-                            {documentRecord.reviewed_at && (
-                              <small>
-                                Reviewed {formatDateTime(documentRecord.reviewed_at)}
-                              </small>
-                            )}
+                            <details className="guest-document-details">
+                              <summary>View document metadata</summary>
+                              <div className="guest-document-meta">
+                                <KycDetail label="Masked number" value={documentRecord.document_number_masked} />
+                                <KycDetail label="Issue country" value={documentRecord.issue_country} />
+                                <KycDetail label="Issued" value={formatDateOnly(documentRecord.issued_on)} />
+                                <KycDetail label="Expires" value={formatDateOnly(documentRecord.expires_on)} />
+                                <KycDetail label="File" value={documentRecord.original_file_name} />
+                                <KycDetail label="Size" value={formatFileSize(documentRecord.file_size_bytes)} />
+                                <KycDetail
+                                  label="Document side"
+                                  value={titleCase(documentRecord.document_side || "single")}
+                                />
+                                <KycDetail
+                                  label="Retention basis"
+                                  value={titleCase(documentRecord.retention_basis || "hotel_policy")}
+                                />
+                              </div>
+                            </details>
+
+                            <div className="guest-document-timestamps">
+                              <small>Uploaded {formatDateTime(documentRecord.created_at)}</small>
+                              {documentRecord.reviewed_at && (
+                                <small>Reviewed {formatDateTime(documentRecord.reviewed_at)}</small>
+                              )}
+                            </div>
 
                             <div className="guest-document-actions">
                               {kycPermissions.canView && (
@@ -1694,9 +1817,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                   disabled={busy}
                                   onClick={() => openPrivateDocument(documentRecord)}
                                 >
-                                  {openingDocumentId === documentRecord.id
-                                    ? "Opening..."
-                                    : "View private file"}
+                                  {openingDocumentId === documentRecord.id ? "Opening..." : "View private file"}
                                 </button>
                               )}
 
@@ -1706,9 +1827,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                     <button
                                       type="button"
                                       disabled={busy}
-                                      onClick={() =>
-                                        reviewGuestDocument(documentRecord, "verify")
-                                      }
+                                      onClick={() => reviewGuestDocument(documentRecord, "verify")}
                                     >
                                       Verify
                                     </button>
@@ -1719,9 +1838,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                       type="button"
                                       className="danger"
                                       disabled={busy}
-                                      onClick={() =>
-                                        reviewGuestDocument(documentRecord, "reject")
-                                      }
+                                      onClick={() => reviewGuestDocument(documentRecord, "reject")}
                                     >
                                       Reject
                                     </button>
@@ -1732,9 +1849,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                       type="button"
                                       className="secondary"
                                       disabled={busy}
-                                      onClick={() =>
-                                        reviewGuestDocument(documentRecord, "expire")
-                                      }
+                                      onClick={() => reviewGuestDocument(documentRecord, "expire")}
                                     >
                                       Mark expired
                                     </button>
@@ -1745,12 +1860,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                       type="button"
                                       className="secondary"
                                       disabled={busy}
-                                      onClick={() =>
-                                        reviewGuestDocument(
-                                          documentRecord,
-                                          "reset_pending"
-                                        )
-                                      }
+                                      onClick={() => reviewGuestDocument(documentRecord, "reset_pending")}
                                     >
                                       Reset pending
                                     </button>
@@ -1765,9 +1875,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                   disabled={busy}
                                   onClick={() => deleteGuestDocument(documentRecord)}
                                 >
-                                  {deletingDocumentId === documentRecord.id
-                                    ? "Deleting..."
-                                    : "Delete KYC"}
+                                  {deletingDocumentId === documentRecord.id ? "Deleting..." : "Delete KYC"}
                                 </button>
                               )}
                             </div>

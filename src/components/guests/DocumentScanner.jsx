@@ -99,6 +99,7 @@ export default function DocumentScanner({ onCapture, disabled = false }) {
   const [crop, setCrop] = useState(DEFAULT_CROP);
   const [cropCount, setCropCount] = useState(0);
   const [cameraReady, setCameraReady] = useState(false);
+  const [streamVersion, setStreamVersion] = useState(0);
 
   function stopCamera() {
     streamRef.current?.getTracks?.().forEach((track) => track.stop());
@@ -133,6 +134,55 @@ export default function DocumentScanner({ onCapture, disabled = false }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
+  useEffect(() => {
+    if (!open || preview) return undefined;
+
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return undefined;
+
+    let cancelled = false;
+
+    async function attachStream() {
+      try {
+        if (video.srcObject !== stream) {
+          video.srcObject = stream;
+        }
+
+        await video.play();
+
+        if (cancelled) return;
+
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          setCameraReady(true);
+          setError("");
+          return;
+        }
+
+        const handleCanPlay = () => {
+          if (cancelled) return;
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            setCameraReady(true);
+            setError("");
+          }
+        };
+
+        video.addEventListener("loadedmetadata", handleCanPlay, { once: true });
+        video.addEventListener("canplay", handleCanPlay, { once: true });
+      } catch (playError) {
+        if (cancelled) return;
+        setCameraReady(false);
+        setError(playError.message || "Unable to start the camera preview.");
+      }
+    }
+
+    attachStream();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, preview, streamVersion]);
+
   async function startCamera() {
     if (disabled) return;
     setStarting(true);
@@ -158,17 +208,7 @@ export default function DocumentScanner({ onCapture, disabled = false }) {
       stopCamera();
       streamRef.current = stream;
       setOpen(true);
-      window.setTimeout(async () => {
-        if (!videoRef.current) return;
-        videoRef.current.srcObject = stream;
-        try {
-          await videoRef.current.play();
-          setCameraReady(true);
-        } catch (playError) {
-          setCameraReady(false);
-          setError(playError.message || "Unable to start the camera preview.");
-        }
-      }, 0);
+      setStreamVersion((value) => value + 1);
     } catch (cameraError) {
       setCameraReady(false);
       setOpen(true);

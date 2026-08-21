@@ -294,3 +294,37 @@
     grid-template-columns: 1fr;
   }
 }
+
+.guest-xml-inline-notice {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #343434;
+  border-radius: 10px;
+  background: #0b0b0b;
+  color: #d8d8d8;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.guest-xml-inline-notice.info {
+  border-color: rgba(226, 181, 48, 0.34);
+  color: #ecd06e;
+}
+
+.guest-xml-inline-notice.success {
+  border-color: rgba(36, 194, 106, 0.42);
+  background: rgba(14, 83, 46, 0.16);
+  color: #70e9a3;
+}
+
+.guest-xml-inline-notice.error {
+  border-color: rgba(235, 76, 76, 0.5);
+  background: rgba(105, 23, 23, 0.18);
+  color: #ff9d9d;
+}
+
+@media (max-width: 640px) {
+  .guest-xml-inline-notice {
+    font-size: 11px;
+  }
+}

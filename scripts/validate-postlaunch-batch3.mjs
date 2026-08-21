@@ -105,5 +105,25 @@ check('WhatsApp delivery states persist', ['sent','delivered','read','failed'].e
 
 const failed = checks.filter((item) => !item.passed);
 checks.forEach((item, index) => console.log(`${item.passed ? 'PASS' : 'FAIL'} ${String(index + 1).padStart(2, '0')} | ${item.name}${item.evidence ? ` | ${item.evidence}` : ''}`));
+
+check(
+  "Offline XML rejection is visible inline",
+  has(identity, "guest-xml-inline-notice") &&
+    has(identity, "showXmlNotice") &&
+    has(identity, 'role={xmlNotice.type === "error" ? "alert" : "status"}')
+);
+check(
+  "Offline XML Edge Function error body is surfaced",
+  has(compliance, "edgeFunctionErrorMessage") &&
+    has(compliance, "error?.context") &&
+    has(compliance, "payload?.error")
+);
+check(
+  "Offline XML missing signature rejected before certificate download",
+  has(aadhaarFn, "does not contain a digital signature") &&
+    read(aadhaarFn).indexOf("does not contain a digital signature") <
+      read(aadhaarFn).indexOf("await loadCertificatePem()")
+);
+
 console.log(`POSTLAUNCH_BATCH3_SOURCE_ACCEPTANCE: ${failed.length ? 'FAIL' : 'PASS'} (${checks.length - failed.length}/${checks.length})`);
 if (failed.length) process.exit(1);

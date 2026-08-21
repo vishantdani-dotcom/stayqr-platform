@@ -208,6 +208,11 @@ Deno.serve(async (request) => {
       return json(request, 400, { error: 'This XML is not a supported UIDAI Paperless Offline e-KYC document.' })
     }
 
+    const signature = firstElementByLocalName(parsed, 'Signature')
+    if (!signature) {
+      return json(request, 400, { error: 'The Aadhaar Offline XML does not contain a digital signature.' })
+    }
+
     const certificate = await loadCertificatePem()
     verifyXmlSignature(xml, parsed, certificate.pem)
     const digest = await sha256Hex(xmlBytes)

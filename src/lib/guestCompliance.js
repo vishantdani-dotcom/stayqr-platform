@@ -8,6 +8,32 @@ export const GUEST_CONSENT_PURPOSES = Object.freeze({
   DATA_EXPORT: "data_export",
 });
 
+async function edgeFunctionErrorMessage(error, fallbackMessage) {
+  const fallback = error?.message || fallbackMessage;
+
+  try {
+    const response = error?.context;
+    if (!response || typeof response !== "object") return fallback;
+
+    if (typeof response.clone === "function") {
+      const clone = response.clone();
+      const payload = await clone.json();
+      if (payload?.error) return String(payload.error);
+      if (payload?.message) return String(payload.message);
+    }
+
+    if (typeof response.json === "function" && !response.bodyUsed) {
+      const payload = await response.json();
+      if (payload?.error) return String(payload.error);
+      if (payload?.message) return String(payload.message);
+    }
+  } catch {
+    // The generic FunctionsHttpError message is still better than swallowing the failure.
+  }
+
+  return fallback;
+}
+
 export async function setGuestConsent({
   hotelId,
   guestId,
@@ -146,8 +172,19 @@ export async function verifyAadhaarOfflineXml({
       xml,
     },
   });
-  if (error) throw error;
-  if (!data?.ok) throw new Error(data?.error || "Aadhaar offline verification failed.");
+
+  if (error) {
+    const message = await edgeFunctionErrorMessage(
+      error,
+      "Aadhaar offline verification failed."
+    );
+    throw new Error(message);
+  }
+
+  if (!data?.ok) {
+    throw new Error(data?.error || "Aadhaar offline verification failed.");
+  }
+
   return data;
 }
 

@@ -23,6 +23,7 @@ export default function GuestIdentityCompliance({
   const [verifications, setVerifications] = useState([]);
   const [busy, setBusy] = useState("");
   const [xmlFile, setXmlFile] = useState(null);
+  const [xmlNotice, setXmlNotice] = useState(null);
   const [confirmEvidence, setConfirmEvidence] = useState(false);
   const [secureQr, setSecureQr] = useState({
     readerVerified: false,
@@ -112,32 +113,59 @@ export default function GuestIdentityCompliance({
     }
   }
 
+  function showXmlNotice(type, message) {
+    setXmlNotice({ type, message });
+    onNotice?.(type, message);
+  }
+
   async function verifyXml(event) {
     event.preventDefault();
-    if (!xmlFile || !hasConsent(GUEST_CONSENT_PURPOSES.AADHAAR_OFFLINE)) return;
-    if (xmlFile.size <= 0 || xmlFile.size > MAX_OFFLINE_XML) {
-      onNotice?.("error", "UIDAI offline XML must be between 1 byte and 512 KB.");
+
+    if (!hasConsent(GUEST_CONSENT_PURPOSES.AADHAAR_OFFLINE)) {
+      showXmlNotice("error", "Record Aadhaar offline verification consent before verifying.");
       return;
     }
+
+    if (!xmlFile) {
+      showXmlNotice("error", "Choose the original UIDAI Paperless Offline e-KYC XML file.");
+      return;
+    }
+
+    if (xmlFile.size <= 0 || xmlFile.size > MAX_OFFLINE_XML) {
+      showXmlNotice("error", "UIDAI offline XML must be between 1 byte and 512 KB.");
+      return;
+    }
+
     setBusy("verify_xml");
+    setXmlNotice({ type: "info", message: "Checking UIDAI Offline XML structure and digital signature…" });
+
     try {
       const xml = await xmlFile.text();
+
       if (!xml.includes("<") || (!xml.includes("OfflinePaperlessKyc") && !xml.includes("<OKY"))) {
         throw new Error("This does not look like a UIDAI Paperless Offline e-KYC XML file.");
       }
+
       const result = await verifyAadhaarOfflineXml({
         hotelId: currentHotel.id,
         guestId: guest.id,
         guestSessionId: activeSession?.id || null,
         xml,
       });
+
       setXmlFile(null);
-      onNotice?.("success", `UIDAI offline signature verified. Reference ${result.reference_id_masked || "recorded"}.`);
+      showXmlNotice(
+        "success",
+        `UIDAI offline signature verified. Reference ${result.reference_id_masked || "recorded"}.`
+      );
       await load();
       await onChanged?.();
     } catch (error) {
       console.error("Aadhaar offline verification error:", error);
-      onNotice?.("error", error.message || "UIDAI offline verification failed.");
+      showXmlNotice(
+        "error",
+        error.message || "UIDAI offline verification failed."
+      );
     } finally {
       setBusy("");
     }
@@ -196,7 +224,7 @@ export default function GuestIdentityCompliance({
   }
 
   if (loading) {
-    return <section className="guest-identity-compliance guest-profile-section"><p className="guest-muted">Loading identity consent evidenceâ€¦</p></section>;
+    return <section className="guest-identity-compliance guest-profile-section"><p className="guest-muted">Loading identity consent evidence…</p></section>;
   }
 
   const kycConsent = hasConsent(GUEST_CONSENT_PURPOSES.KYC_CAPTURE);
@@ -262,11 +290,24 @@ export default function GuestIdentityCompliance({
               type="file"
               accept=".xml,text/xml,application/xml"
               disabled={!aadhaarConsent || busy === "verify_xml"}
-              onChange={(event) => setXmlFile(event.target.files?.[0] || null)}
+              onChange={(event) => {
+                setXmlFile(event.target.files?.[0] || null);
+                setXmlNotice(null);
+              }}
             />
             <button type="submit" disabled={!aadhaarConsent || !xmlFile || busy === "verify_xml"}>
-              {busy === "verify_xml" ? "Verifying signatureâ€¦" : "Verify offline XML"}
+              {busy === "verify_xml" ? "Verifying signature…" : "Verify offline XML"}
             </button>
+
+            {xmlNotice && (
+              <div
+                className={`guest-xml-inline-notice ${xmlNotice.type || "info"}`}
+                role={xmlNotice.type === "error" ? "alert" : "status"}
+                aria-live="polite"
+              >
+                {xmlNotice.message}
+              </div>
+            )}
           </form>
 
           <form className="guest-secure-qr guest-identity-method-card" onSubmit={recordSecureQr}>
@@ -349,7 +390,7 @@ export default function GuestIdentityCompliance({
               type="submit"
               disabled={!aadhaarConsent || !secureQr.readerVerified || busy === "secure_qr"}
             >
-              {busy === "secure_qr" ? "Recording evidenceâ€¦" : "Record verified Secure QR"}
+              {busy === "secure_qr" ? "Recording evidence…" : "Record verified Secure QR"}
             </button>
           </form>
         </div>
@@ -376,7 +417,7 @@ export default function GuestIdentityCompliance({
                     </span>
                   </div>
                   <p>
-                    Reference {item.reference_id_masked || "masked / not retained"} Â· Signature{" "}
+                    Reference {item.reference_id_masked || "masked / not retained"} · Signature{" "}
                     {item.signature_valid
                       ? secureReader
                         ? "verified by official UIDAI reader"
@@ -384,8 +425,8 @@ export default function GuestIdentityCompliance({
                       : "not validated"}
                   </p>
                   <small>
-                    {new Date(item.verified_at).toLocaleString()} Â· SHA-256 evidence{" "}
-                    {String(item.payload_sha256 || "").slice(0, 12)}â€¦
+                    {new Date(item.verified_at).toLocaleString()} · SHA-256 evidence{" "}
+                    {String(item.payload_sha256 || "").slice(0, 12)}…
                   </small>
                 </article>
               );
@@ -415,7 +456,7 @@ function ConsentCard({ title, active, busy, onGrant, onRevoke }) {
         disabled={busy}
         onClick={active ? onRevoke : onGrant}
       >
-        {busy ? "Savingâ€¦" : active ? "Revoke" : "Record consent"}
+        {busy ? "Saving…" : active ? "Revoke" : "Record consent"}
       </button>
     </article>
   );

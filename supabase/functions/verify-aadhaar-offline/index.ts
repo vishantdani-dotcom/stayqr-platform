@@ -144,7 +144,7 @@ function maskedReference(document: Document) {
   const root = document.documentElement
   const reference = root?.getAttribute('referenceId') || root?.getAttribute('r') || ''
   const digits = reference.replace(/\D/g, '')
-  return digits.length >= 4 ? `••••${digits.slice(-4)}` : null
+  return digits.length >= 4 ? `****${digits.slice(-4)}` : null
 }
 
 function sourceVersion(document: Document) {

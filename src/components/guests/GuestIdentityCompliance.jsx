@@ -10,6 +10,13 @@ import "./GuestIdentityCompliance.css";
 
 const MAX_OFFLINE_XML = 512 * 1024;
 
+
+function displayMaskedReference(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length >= 4) return `****${digits.slice(-4)}`;
+  return value ? "masked / retained without display" : "masked / not retained";
+}
+
 export default function GuestIdentityCompliance({
   currentHotel,
   guest,
@@ -417,7 +424,7 @@ export default function GuestIdentityCompliance({
                     </span>
                   </div>
                   <p>
-                    Reference {item.reference_id_masked || "masked / not retained"} · Signature{" "}
+                    Reference {displayMaskedReference(item.reference_id_masked)} · Signature{" "}
                     {item.signature_valid
                       ? secureReader
                         ? "verified by official UIDAI reader"

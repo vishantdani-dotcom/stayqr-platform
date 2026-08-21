@@ -16,13 +16,43 @@ function allowedOrigins() {
   }))
 }
 
+function previewOriginSuffixes() {
+  return new Set(
+    String(Deno.env.get('STAYQR_PREVIEW_ORIGIN_SUFFIXES') || '')
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean)
+  )
+}
+
+function isAllowedOrigin(origin: string, configured: Set<string>) {
+  if (configured.has(origin)) return true
+  if (!origin) return false
+
+  try {
+    const url = new URL(origin)
+    if (url.protocol !== 'https:') return false
+
+    const hostname = url.hostname.toLowerCase()
+    for (const suffix of previewOriginSuffixes()) {
+      if (hostname === suffix || hostname.endsWith(`--${suffix}`)) return true
+    }
+  } catch {
+    return false
+  }
+
+  return false
+}
+
 function cors(request: Request) {
   const origin = request.headers.get('Origin') || ''
   const configured = allowedOrigins()
-  const fallback = [...configured][0] || origin || '*'
+  const allowed = isAllowedOrigin(origin, configured)
+  const fallback = [...configured][0] || 'null'
+
   return {
-    'Access-Control-Allow-Origin': configured.has(origin) ? origin : fallback,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Origin': allowed ? origin : fallback,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-api-version',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',

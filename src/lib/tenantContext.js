@@ -1,5 +1,8 @@
 import { supabase } from './supabase'
 
+// Batch 3 production access compatibility hotfix REV1.
+// Core authentication/hotel access stays authoritative; optional profile/support reads degrade safely.
+
 const SELECTED_HOTEL_KEY_PREFIX = 'stayqr:selected-hotel-id'
 const LEGACY_SELECTED_HOTEL_KEY = SELECTED_HOTEL_KEY_PREFIX
 
@@ -134,10 +137,9 @@ async function fetchTenantContext() {
 
   if (platformAdminError) throw platformAdminError
 
-  const [staffResult, membershipResult] = await Promise.all([
-    supabase
-      .from('staff')
-      .select(`
+  const loadAccessRows = async ({ extended = true } = {}) => {
+    const staffSelect = extended
+      ? `
         id,
         hotel_id,
         full_name,
@@ -160,12 +162,30 @@ async function fetchTenantContext() {
           currency_code,
           subscription_status
         )
-      `)
-      .eq('auth_user_id', user.id)
-      .eq('status', 'active'),
-    supabase
-      .from('hotel_users')
-      .select(`
+      `
+      : `
+        id,
+        hotel_id,
+        full_name,
+        email,
+        phone,
+        role,
+        status,
+        auth_user_id,
+        hotels (
+          id,
+          hotel_name,
+          location,
+          status,
+          slug,
+          timezone,
+          currency_code,
+          subscription_status
+        )
+      `
+
+    const membershipSelect = extended
+      ? `
         id,
         hotel_id,
         user_id,
@@ -185,10 +205,51 @@ async function fetchTenantContext() {
           currency_code,
           subscription_status
         )
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'active'),
-  ])
+      `
+      : `
+        id,
+        hotel_id,
+        user_id,
+        full_name,
+        email,
+        role,
+        status,
+        hotels (
+          id,
+          hotel_name,
+          location,
+          status,
+          slug,
+          timezone,
+          currency_code,
+          subscription_status
+        )
+      `
+
+    return Promise.all([
+      supabase
+        .from('staff')
+        .select(staffSelect)
+        .eq('auth_user_id', user.id)
+        .eq('status', 'active'),
+      supabase
+        .from('hotel_users')
+        .select(membershipSelect)
+        .eq('user_id', user.id)
+        .eq('status', 'active'),
+    ])
+  }
+
+  let [staffResult, membershipResult] = await loadAccessRows({ extended: true })
+
+  if (staffResult.error || membershipResult.error) {
+    console.warn(
+      'StayQR tenant context: extended profile fields unavailable; retrying core hotel access.',
+      staffResult.error || membershipResult.error
+    )
+
+    ;[staffResult, membershipResult] = await loadAccessRows({ extended: false })
+  }
 
   if (staffResult.error) throw staffResult.error
   if (membershipResult.error) throw membershipResult.error
@@ -197,14 +258,33 @@ async function fetchTenantContext() {
   let supportAccessSessions = []
 
   if (platformAdmin) {
-    const [hotelsResult, supportResult] = await Promise.all([
-      supabase
+    let hotelsResult = await supabase
+      .from('hotels')
+      .select(`
+        id,
+        hotel_name,
+        logo_url,
+        cover_url,
+        location,
+        status,
+        slug,
+        timezone,
+        currency_code,
+        subscription_status
+      `)
+      .order('hotel_name', { ascending: true })
+
+    if (hotelsResult.error) {
+      console.warn(
+        'StayQR tenant context: extended hotel presentation fields unavailable; retrying core hotel fields.',
+        hotelsResult.error
+      )
+
+      hotelsResult = await supabase
         .from('hotels')
         .select(`
           id,
           hotel_name,
-          logo_url,
-          cover_url,
           location,
           status,
           slug,
@@ -212,21 +292,32 @@ async function fetchTenantContext() {
           currency_code,
           subscription_status
         `)
-        .order('hotel_name', { ascending: true }),
-      supabase
-        .from('support_access_sessions')
-        .select('id, hotel_id, platform_admin_user_id, reason, status, permissions, started_at, expires_at, ended_at')
-        .eq('platform_admin_user_id', user.id)
-        .eq('status', 'active')
-        .gt('expires_at', new Date().toISOString())
-        .order('started_at', { ascending: false }),
-    ])
+        .order('hotel_name', { ascending: true })
+    }
 
     if (hotelsResult.error) throw hotelsResult.error
-    if (supportResult.error) throw supportResult.error
-
     platformHotels = hotelsResult.data || []
-    supportAccessSessions = supportResult.data || []
+
+    const supportResult = await supabase
+      .from('support_access_sessions')
+      .select('id, hotel_id, platform_admin_user_id, reason, status, permissions, started_at, expires_at, ended_at')
+      .eq('platform_admin_user_id', user.id)
+      .eq('status', 'active')
+      .gt('expires_at', new Date().toISOString())
+      .order('started_at', { ascending: false })
+
+    if (supportResult.error) {
+      // Support-session metadata is optional for platform login. Fail closed for
+      // hotel impersonation, but never turn a valid platform login into a
+      // "Hotel Access Required" outage because this auxiliary read is unavailable.
+      console.warn(
+        'StayQR tenant context: audited support-session lookup unavailable; platform scope remains active.',
+        supportResult.error
+      )
+      supportAccessSessions = []
+    } else {
+      supportAccessSessions = supportResult.data || []
+    }
   }
 
   const hotelAccess = mergeHotelAccess({

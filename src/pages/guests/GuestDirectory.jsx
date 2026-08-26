@@ -2049,7 +2049,12 @@ function formatDate(value) {
 
 function formatDateOnly(value) {
   if (!value) return "—";
-  const date = new Date(`${value}T00:00:00`);
+
+  const normalized = String(value).trim();
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(normalized)
+    ? new Date(`${normalized}T00:00:00`)
+    : new Date(normalized);
+
   return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString("en-IN");
 }
 

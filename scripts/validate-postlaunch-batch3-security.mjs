@@ -10,7 +10,7 @@ const aadhaar = read('supabase/functions/verify-aadhaar-offline/index.ts');
 const send = read('supabase/functions/whatsapp-send/index.ts');
 const webhook = read('supabase/functions/whatsapp-status-webhook/index.ts');
 const purge = read('supabase/functions/purge-guest-retention/index.ts');
-const config = read('supabase/config.toml');
+const config = read('supabase/config.toml').replace(/\r\n/g, '\n');
 const checks = [];
 const add = (name, pass, evidence='') => checks.push({name, pass:Boolean(pass), evidence});
 

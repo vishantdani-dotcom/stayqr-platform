@@ -1,6 +1,9 @@
 .hotel-overview-card {
   position: relative;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   animation: fadeUp 0.4s ease both;
 }
 
@@ -16,6 +19,9 @@
   display: flex;
   align-items: center;
   gap: 32px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .hotel-card-left {
@@ -40,7 +46,7 @@
   box-shadow: var(--shadow-gold);
 }
 
-.hotel-info  { flex: 1; min-width: 0; }
+.hotel-info  { flex: 1; min-width: 0; max-width: 100%; }
 
 .hotel-tag {
   font-size: 10px;
@@ -59,6 +65,15 @@
   letter-spacing: -0.5px;
   line-height: 1;
   margin-bottom: 12px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.hotel-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
 }
 
 .hotel-meta-row {
@@ -206,13 +221,114 @@
 }
 
 @media (max-width: 900px) {
-  .hotel-card-inner    { flex-direction: column; padding: 24px; }
+  .hotel-card-inner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 24px;
+  }
+
+  .hotel-card-left {
+    width: 100%;
+    max-width: 100%;
+    align-self: stretch;
+  }
+
   .hotel-card-right    { flex-direction: row; width: 100%; justify-content: space-between; }
 }
 
 @media (max-width: 600px) {
-  .hotel-card-right    { flex-direction: column; align-items: stretch; }
-  .hotel-quick-stats   { justify-content: space-around; }
+  .hotel-card-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    padding: 18px;
+    gap: 22px;
+  }
+
+  .hotel-card-left {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    align-items: start;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    gap: 14px;
+  }
+
+  .hotel-info {
+    width: auto;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .hotel-icon {
+    width: 46px;
+    height: 46px;
+  }
+
+  .hotel-name {
+    font-size: clamp(22px, 7vw, 28px);
+    line-height: 1.08;
+  }
+
+  .hotel-meta-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .hotel-meta-item,
+  .hotel-meta-item > span:last-child,
+  .hotel-tags,
+  .hotel-tag-pill {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .hotel-meta-item {
+    align-items: flex-start;
+  }
+
+  .hotel-meta-item > span:last-child,
+  .hotel-tag-pill {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .hotel-card-right {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .occupancy-block {
+    justify-self: center;
+  }
+
+  .hotel-quick-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    max-width: 100%;
+    gap: 8px;
+    padding: 12px 10px;
+  }
+
+  .hqs-item {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .hqs-label {
+    white-space: normal;
+  }
+
+  .hqs-divider {
+    display: none;
+  }
 }
 .hotel-status-pill.status-suspended,
 .hotel-status-pill.status-inactive,
@@ -220,4 +336,114 @@
   background: var(--orange-dim);
   border-color: rgba(249, 115, 22, 0.3);
   color: var(--orange);
+}
+
+
+/* StayQR Mobile UI REV2 — property overview */
+@media (max-width: 600px) {
+  .hotel-overview-card,
+  .hotel-card-inner,
+  .hotel-card-left,
+  .hotel-card-right,
+  .hotel-info {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .hotel-card-inner {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: 16px !important;
+    gap: 18px !important;
+    overflow: hidden !important;
+  }
+
+  .hotel-card-left {
+    display: grid !important;
+    grid-template-columns: 42px minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .hotel-icon {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .hotel-name {
+    display: block !important;
+    max-width: 100% !important;
+    font-size: clamp(23px, 7vw, 28px) !important;
+    line-height: 1.08 !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .hotel-meta-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .hotel-tags {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .hotel-card-right {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .occupancy-block {
+    justify-self: center !important;
+  }
+
+  .hotel-quick-stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 6px !important;
+    padding: 10px 6px !important;
+  }
+
+  .hqs-divider {
+    display: none !important;
+  }
+
+  .hqs-label {
+    font-size: 9px !important;
+    white-space: normal !important;
+  }
+}
+
+/* Post-launch Batch B — hotel-branded dashboard */
+.hotel-overview-card.has-cover {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(8, 8, 8, .96) 0%, rgba(8, 8, 8, .84) 52%, rgba(8, 8, 8, .52) 100%),
+    var(--hotel-cover-image) center / cover no-repeat;
+}
+
+.hotel-overview-card.has-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, .44));
+}
+
+.hotel-overview-card.has-cover .hotel-card-inner,
+.hotel-overview-card.has-cover .hotel-card-top-bar { position: relative; z-index: 1; }
+.hotel-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+
+@media (max-width: 600px) {
+  .hotel-overview-card.has-cover {
+    background:
+      linear-gradient(180deg, rgba(8, 8, 8, .9), rgba(8, 8, 8, .97)),
+      var(--hotel-cover-image) center / cover no-repeat;
+  }
 }

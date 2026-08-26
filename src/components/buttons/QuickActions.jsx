@@ -26,6 +26,30 @@ const ACTIONS = [
     variant: 'default',
     shortcut: '⌘ Q',
   },
+  {
+    id: 'guests',
+    label: 'Guest Directory',
+    description: 'View and export guest records',
+    icon: GuestsIcon,
+    variant: 'default',
+    shortcut: '',
+  },
+  {
+    id: 'support',
+    label: 'Get Support',
+    description: 'Open the operations centre',
+    icon: SupportIcon,
+    variant: 'default',
+    shortcut: '',
+  },
+  {
+    id: 'reportissue',
+    label: 'Report Issue',
+    description: 'Create a support request',
+    icon: IssueIcon,
+    variant: 'default',
+    shortcut: '',
+  },
 ]
 
 export default function QuickActions({ onAction }) {
@@ -90,6 +114,27 @@ function QrGenerateIcon() {
       <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/>
       <path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/>
       <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+    </svg>
+  )
+}
+function GuestsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M16 3.5a3 3 0 0 1 0 5.8"/><path d="M18 14a5 5 0 0 1 3 5v2"/>
+    </svg>
+  )
+}
+function SupportIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v4a2 2 0 0 0 2 2h2v-7H6a2 2 0 0 0-2 1Z"/><path d="M20 13v4a2 2 0 0 1-2 2h-2v-7h2a2 2 0 0 1 2 1Z"/>
+    </svg>
+  )
+}
+function IssueIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>
   )
 }

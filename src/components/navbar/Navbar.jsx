@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { normalizeRole } from '../../lib/currentStaff'
 import { clearSelectedTenantHotel } from '../../lib/tenantContext'
 import HotelSwitcher from '../hotel/HotelSwitcher'
+import GlobalSearch from '../search/GlobalSearch'
 import {
   getNotificationInbox,
   markInboxAllRead,
@@ -23,7 +24,10 @@ export default function Navbar({
   onHotelChange,
   switchingHotelId,
   hotelSwitchError,
+  onNavigate,
+  onReturnToPlatform,
 }) {
+  const [searchOpen, setSearchOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
@@ -35,7 +39,10 @@ export default function Navbar({
   const hotelId = tenantContext?.selectedHotelId || currentStaff?.hotel_id || currentStaff?.hotels?.id
   const userName = currentStaff?.full_name || 'Admin'
   const hotelName = tenantContext?.selectedHotel?.hotel_name || currentStaff?.hotels?.hotel_name || currentStaff?.hotel_name || 'StayQR Hotel'
-  const roleName = formatRole(normalizeRole(currentRole || currentStaff?.role || 'manager'))
+  const normalizedRole = normalizeRole(currentRole || currentStaff?.role || 'manager')
+  const isPlatformAccount = Boolean(tenantContext?.isPlatformAdmin)
+  const isPlatformSupportMode = Boolean(tenantContext?.isPlatformSupportMode)
+  const roleName = formatRole(normalizedRole)
   const unreadCount = notifications.filter((item) => item.status === 'unread').length
   activeHotelIdRef.current = hotelId || null
 
@@ -75,6 +82,19 @@ export default function Navbar({
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
+  }, [])
+
+  useEffect(() => {
+    const handleSearchShortcut = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setSearchOpen(true)
+        setNotifOpen(false)
+        setUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('keydown', handleSearchShortcut)
+    return () => document.removeEventListener('keydown', handleSearchShortcut)
   }, [])
 
   async function loadNotifications(id) {
@@ -156,8 +176,7 @@ export default function Navbar({
 
   return (
     <header
-      className="navbar"
-      style={{ left: sidebarCollapsed ? 64 : 'var(--sidebar-w)' }}
+      className={`navbar${sidebarCollapsed ? ' navbar--sidebar-collapsed' : ''}`}
     >
       <div className="navbar-left">
         <button
@@ -183,7 +202,17 @@ export default function Navbar({
       </div>
 
       <div className="navbar-right">
-        <button className="navbar-icon-btn" title="Search" type="button">
+        <button
+          className="navbar-icon-btn"
+          title="Search (Ctrl/Command + K)"
+          type="button"
+          onClick={() => {
+            setSearchOpen(true)
+            setNotifOpen(false)
+            setUserMenuOpen(false)
+          }}
+          aria-label="Search hotel workspace"
+        >
           <SearchIcon />
         </button>
 
@@ -193,22 +222,34 @@ export default function Navbar({
             onClick={handleOpenNotifications}
             title="Notifications"
             type="button"
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+            aria-expanded={notifOpen}
+            aria-haspopup="dialog"
           >
             <BellIcon />
             {unreadCount > 0 && (
-              <span className="notif-live-count">
+              <span className="notif-live-count" aria-hidden="true">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
 
           {notifOpen && (
-            <div className="notif-dropdown">
+            <div
+              className="notif-dropdown"
+              role="dialog"
+              aria-label="Hotel notifications"
+            >
               <div className="notif-header">
-                <span>Notifications</span>
+                <span className="notif-heading-copy">
+                  <strong>Notifications</strong>
+                  <small>Live hotel activity</small>
+                </span>
 
                 <div className="notif-header-actions">
-                  <span className="notif-count">{unreadCount} new</span>
+                  <span className="notif-count">
+                    {unreadCount > 0 ? `${unreadCount} unread` : 'All read'}
+                  </span>
 
                   {unreadCount > 0 && (
                     <button className="notif-mark-read" onClick={handleMarkAllRead} type="button">
@@ -218,33 +259,54 @@ export default function Navbar({
                 </div>
               </div>
 
-              {notifications.length === 0 ? (
-                <div className="notif-empty">
-                  <div>🔔</div>
-                  <p>No notifications yet</p>
-                  <span>Live hotel updates will appear here.</span>
-                </div>
-              ) : (
-                notifications.map((notification) => (
+              <div className="notif-list" aria-live="polite">
+                {notifications.length === 0 ? (
+                  <div className="notif-empty">
+                    <div className="notif-empty-icon"><BellIcon /></div>
+                    <p>No notifications yet</p>
+                    <span>New hotel activity will appear here.</span>
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <button
+                      key={notification.id}
+                      className={`notif-item ${notification.status === 'read' ? 'read' : 'unread'}`}
+                      onClick={() => handleNotificationClick(notification)}
+                      type="button"
+                    >
+                      <span className={`notif-item-icon ${getNotificationTone(notification)}`} aria-hidden="true">
+                        {getNotificationIcon(notification.source_type || notification.event_key || 'general')}
+                      </span>
+
+                      <span className="notif-item-body">
+                        <span className="notif-item-title">{notification.title}</span>
+                        <span className="notif-item-message">{notification.message}</span>
+                        <span className="notif-item-meta">
+                          <span>{timeAgo(notification.created_at)}</span>
+                          {notification.status === 'unread' && <span>New</span>}
+                        </span>
+                      </span>
+
+                      {notification.status === 'unread' && <span className="notif-unread-dot" aria-hidden="true" />}
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {onNavigate && (
+                <div className="notif-footer">
                   <button
-                    key={notification.id}
-                    className={`notif-item ${notification.status === 'read' ? 'read' : 'unread'}`}
-                    onClick={() => handleNotificationClick(notification)}
+                    className="notif-open-centre"
                     type="button"
+                    onClick={() => {
+                      setNotifOpen(false)
+                      onNavigate('operationscenter')
+                    }}
                   >
-                    <div className={`notif-item-icon ${notification.severity || 'info'}`}>
-                      {getNotificationIcon(notification.severity || 'info')}
-                    </div>
-
-                    <div className="notif-item-body">
-                      <p className="notif-item-title">{notification.title}</p>
-                      <p className="notif-item-message">{notification.message}</p>
-                      <p className="notif-item-time">{timeAgo(notification.created_at)}</p>
-                    </div>
-
-                    {notification.status === 'unread' && <span className="notif-unread-dot" />}
+                    Open notification centre
+                    <span aria-hidden="true">ΓåÆ</span>
                   </button>
-                ))
+                </div>
               )}
             </div>
           )}
@@ -286,14 +348,32 @@ export default function Navbar({
               </div>
 
               <div className="navbar-user-menu-section">
-                <span className="navbar-user-menu-label">Active property</span>
-                <HotelSwitcher
-                  tenantContext={tenantContext}
-                  onHotelChange={onHotelChange}
-                  switchingHotelId={switchingHotelId}
-                  error={hotelSwitchError}
-                  variant="navbar"
-                />
+                {isPlatformAccount ? (
+                  <div className="navbar-platform-scope">
+                    <strong>{isPlatformSupportMode ? `View as ${hotelName}` : 'StayQR platform scope'}</strong>
+                    <span>
+                      {isPlatformSupportMode
+                        ? 'Audited, time-bound hotel support session is active.'
+                        : 'Hotel access requires a timed, audited support session.'}
+                    </span>
+                    {isPlatformSupportMode && (
+                      <button type="button" className="navbar-platform-return" onClick={onReturnToPlatform}>
+                        Return to Super Admin
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <span className="navbar-user-menu-label">Active property</span>
+                    <HotelSwitcher
+                      tenantContext={tenantContext}
+                      onHotelChange={onHotelChange}
+                      switchingHotelId={switchingHotelId}
+                      error={hotelSwitchError}
+                      variant="navbar"
+                    />
+                  </>
+                )}
               </div>
 
               <button className="navbar-logout-btn" onClick={handleLogout} type="button">
@@ -304,23 +384,41 @@ export default function Navbar({
           )}
         </div>
       </div>
+      <GlobalSearch
+        open={searchOpen}
+        hotelId={hotelId}
+        onClose={() => setSearchOpen(false)}
+        onNavigate={onNavigate}
+      />
     </header>
   )
 }
 
 function getNotificationIcon(type) {
+  const normalizedType = String(type || '').toLowerCase()
   const icons = {
-    service_status: '🛎️',
-    service_request: '🛎️',
-    checkout: '🚪',
-    food_order: '🍽️',
-    payment: '💳',
-    housekeeping: '🧹',
-    review: '⭐',
-    general: '🔔',
+    service_status: '≡ƒ¢Ä∩╕Å',
+    service_request: '≡ƒ¢Ä∩╕Å',
+    checkout: '≡ƒÜ¬',
+    food_order: '≡ƒì╜∩╕Å',
+    payment: '≡ƒÆ│',
+    housekeeping: '≡ƒº╣',
+    review: 'Γ¡É',
+    general: '≡ƒöö',
   }
 
-  return icons[type] || '🔔'
+  const matchedType = Object.keys(icons).find((key) => normalizedType.includes(key))
+  return icons[matchedType] || '≡ƒöö'
+}
+
+function getNotificationTone(notification) {
+  const severity = String(notification?.severity || '').toLowerCase()
+  const eventKey = String(notification?.event_key || '').toLowerCase()
+
+  if (severity === 'critical' || severity === 'error') return 'critical'
+  if (severity === 'warning' || severity === 'warn') return 'warning'
+  if (severity === 'success' || eventKey.includes('completed') || eventKey.includes('paid')) return 'success'
+  return 'info'
 }
 
 function timeAgo(dateValue) {

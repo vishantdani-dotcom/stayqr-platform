@@ -10,6 +10,7 @@ import {
   extendTrial,
   getActiveSupportSessions,
   getCommercialData,
+  getPostlaunchBatch2PlatformMetrics,
   getHotelUsage,
   getPlatformAnnouncements,
   reactivateSubscription,
@@ -45,8 +46,9 @@ const EMPTY_DATA = {
   webhook_events: [],
 }
 
-export default function SuperAdmin({ onNavigate }) {
+export default function SuperAdmin({ onNavigate, onViewHotel }) {
   const [data, setData] = useState(EMPTY_DATA)
+  const [platformMetrics, setPlatformMetrics] = useState({})
   const [announcements, setAnnouncements] = useState([])
   const [supportSessions, setSupportSessions] = useState([])
   const [activeTab, setActiveTab] = useState('overview')
@@ -63,14 +65,16 @@ export default function SuperAdmin({ onNavigate }) {
     setError('')
 
     try {
-      const [commercial, announcementRows, sessionRows] = await Promise.all([
+      const [commercial, announcementRows, sessionRows, metricRows] = await Promise.all([
         getCommercialData(150),
         getPlatformAnnouncements(),
         getActiveSupportSessions(),
+        getPostlaunchBatch2PlatformMetrics(),
       ])
       setData(commercial)
       setAnnouncements(announcementRows)
       setSupportSessions(sessionRows)
+      setPlatformMetrics(metricRows || {})
     } catch (loadError) {
       setError(
         loadError?.message ||
@@ -287,9 +291,11 @@ export default function SuperAdmin({ onNavigate }) {
         <OverviewTab
           data={data}
           summary={summary}
+          platformMetrics={platformMetrics}
           onOpenTab={setActiveTab}
           onCreateLink={(hotel) => openDialog('payment-link', { hotel })}
           onManageHotel={(hotel) => openDialog('hotel-actions', { hotel })}
+          onViewHotel={(hotel) => openDialog('safe-support', { hotel })}
         />
       )}
 
@@ -324,6 +330,7 @@ export default function SuperAdmin({ onNavigate }) {
           onEndSession={(session) =>
             openDialog('safe-support-end', { session })
           }
+          onResumeSession={(session) => onViewHotel?.(session.hotel_id)}
         />
       )}
 
@@ -412,9 +419,10 @@ export default function SuperAdmin({ onNavigate }) {
               hotel={dialog.hotel}
               onCancel={closeDialog}
               onError={actionFailed}
-              onSuccess={(result) =>
-                completeAction('Safe support session started.', result)
-              }
+              onSuccess={async (result) => {
+                await completeAction('Audited View as Hotel access started.', result)
+                await onViewHotel?.(dialog.hotel.id)
+              }}
             />
           )}
 
@@ -446,7 +454,15 @@ export default function SuperAdmin({ onNavigate }) {
   )
 }
 
-function OverviewTab({ data, summary, onOpenTab, onCreateLink, onManageHotel }) {
+function OverviewTab({
+  data,
+  summary,
+  platformMetrics,
+  onOpenTab,
+  onCreateLink,
+  onManageHotel,
+  onViewHotel,
+}) {
   const hotels = summary.hotels || {}
   const subscriptions = summary.subscriptions || {}
   const revenue = summary.revenue || {}
@@ -501,6 +517,36 @@ function OverviewTab({ data, summary, onOpenTab, onCreateLink, onManageHotel }) 
           }
           meta={`${usage.hotels_over_room_limit || 0} room · ${usage.hotels_over_staff_limit || 0} staff`}
           tone="warning"
+        />
+        <MetricCard
+          label="Total guests"
+          value={platformMetrics.total_guests || 0}
+          meta={`${platformMetrics.active_stays || 0} active stays`}
+          tone="blue"
+        />
+        <MetricCard
+          label="Guest document scans"
+          value={platformMetrics.document_scans || 0}
+          meta="Private hotel-scoped records"
+          tone="neutral"
+        />
+        <MetricCard
+          label="Reservations"
+          value={platformMetrics.reservations || 0}
+          meta={`${platformMetrics.rooms || 0} rooms across platform`}
+          tone="green"
+        />
+        <MetricCard
+          label="Hotel staff"
+          value={platformMetrics.staff || 0}
+          meta="Active and inactive records"
+          tone="neutral"
+        />
+        <MetricCard
+          label="Guest guide QR scans"
+          value={platformMetrics.guest_guide_qr_scans_total || 0}
+          meta={`${platformMetrics.guest_guide_qr_scans_unique || 0} unique guest access links`}
+          tone="gold"
         />
       </div>
 
@@ -597,6 +643,9 @@ function OverviewTab({ data, summary, onOpenTab, onCreateLink, onManageHotel }) 
                 <button type="button" onClick={() => onCreateLink(hotel)}>
                   Payment link
                 </button>
+                <button type="button" onClick={() => onViewHotel(hotel)}>
+                  View as Hotel
+                </button>
               </div>
             </article>
           ))}
@@ -680,7 +729,7 @@ function HotelsTab({ hotels, onAction, onPayment, onUsage, onSupport }) {
                           Usage
                         </button>
                         <button type="button" onClick={() => onSupport(hotel)}>
-                          Support
+                          View as Hotel
                         </button>
                       </div>
                     </td>
@@ -825,7 +874,7 @@ function PaymentLinksTab({ links }) {
   )
 }
 
-function SupportTab({ tickets, supportSessions, hotels, onCreate, onTicket, onEndSession }) {
+function SupportTab({ tickets, supportSessions, hotels, onCreate, onTicket, onEndSession, onResumeSession }) {
   return (
     <section className="commercial-tab-panel">
       <div className="panel-heading-row">
@@ -852,9 +901,14 @@ function SupportTab({ tickets, supportSessions, hotels, onCreate, onTicket, onEn
                       {session.permissions?.map(humanize).join(', ') || 'Read only'} · expires {formatDateTime(session.expires_at)}
                     </span>
                   </div>
-                  <button type="button" className="small-action danger" onClick={() => onEndSession(session)}>
-                    End access
-                  </button>
+                  <div className="row-actions">
+                    <button type="button" className="small-action" onClick={() => onResumeSession(session)}>
+                      View hotel
+                    </button>
+                    <button type="button" className="small-action danger" onClick={() => onEndSession(session)}>
+                      End access
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -1643,12 +1697,12 @@ function SafeSupportForm({ hotel, onCancel, onError, onSuccess }) {
 
   return (
     <form className="commercial-form" onSubmit={submit}>
-      <div className="security-callout"><strong>No silent impersonation</strong><span>This creates an explicit, time-bound and immutable support-access audit trail.</span></div>
+      <div className="security-callout"><strong>No silent impersonation</strong><span>This creates an explicit, time-bound and immutable View as Hotel audit trail. After starting it, StayQR enters that hotel through this audited session only.</span></div>
       <div className="dialog-context-card"><div><span>Hotel</span><strong>{hotel.hotel_name}</strong></div><div><span>Lifecycle</span><StatusBadge status={hotel.lifecycle_status || hotel.subscription_status} /></div></div>
       <Field label="Reason"><textarea required rows="4" value={reason} onChange={(event) => setReason(event.target.value)} /></Field>
       <Field label="Duration"><select value={duration} onChange={(event) => setDuration(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">2 hours</option><option value="240">4 hours</option></select></Field>
       <Field label="Permissions"><div className="permission-grid">{permissionOptions.map((permission) => <label key={permission}><input type="checkbox" checked={permissions.includes(permission)} onChange={() => togglePermission(permission)} />{humanize(permission)}</label>)}</div></Field>
-      <FormActions onCancel={onCancel} busy={busy} submitLabel="Start safe access" />
+      <FormActions onCancel={onCancel} busy={busy} submitLabel="Start View as Hotel" />
     </form>
   )
 }
@@ -1764,7 +1818,7 @@ function TabCount({ tab, data, announcements }) {
 }
 
 function dialogTitle(dialog) {
-  const titles = { plan: dialog.plan ? 'Edit subscription plan' : 'Create subscription plan', 'hotel-actions': `Manage ${dialog.hotel?.hotel_name || 'hotel'}`, 'payment-link': 'Create Cashfree payment link', usage: 'Authoritative hotel usage', 'support-create': 'Create support ticket', 'support-ticket': 'Triage support ticket', 'safe-support': 'Start safe support access', 'safe-support-end': 'End safe support access', announcement: dialog.announcement ? 'Edit announcement' : 'Create announcement' }
+  const titles = { plan: dialog.plan ? 'Edit subscription plan' : 'Create subscription plan', 'hotel-actions': `Manage ${dialog.hotel?.hotel_name || 'hotel'}`, 'payment-link': 'Create Cashfree payment link', usage: 'Authoritative hotel usage', 'support-create': 'Create support ticket', 'support-ticket': 'Triage support ticket', 'safe-support': 'Start audited View as Hotel', 'safe-support-end': 'End safe support access', announcement: dialog.announcement ? 'Edit announcement' : 'Create announcement' }
   return titles[dialog.type] || 'Commercial action'
 }
 

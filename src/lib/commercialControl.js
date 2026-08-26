@@ -51,6 +51,14 @@ export async function getCommercialData(rowLimit = 100) {
   }
 }
 
+export function getPostlaunchBatch2PlatformMetrics() {
+  return rpc(
+    'get_postlaunch_batch2_platform_metrics',
+    {},
+    'Platform metrics could not be loaded.'
+  )
+}
+
 export function saveSubscriptionPlan(payload) {
   return rpc(
     'save_subscription_plan',

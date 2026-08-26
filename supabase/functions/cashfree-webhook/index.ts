@@ -126,6 +126,34 @@ async function findPaymentLink(adminClient, linkId) {
   if (byReference.error) throw byReference.error;
   return byReference.data;
 }
+async function findAcquisitionIntent(adminClient, linkId) {
+  const selection = [
+    'id',
+    'owner_user_id',
+    'plan_id',
+    'hotel_id',
+    'subscription_id',
+    'status',
+    'billing_cycle',
+    'currency_code',
+    'amount_minor',
+    'provider',
+    'provider_link_id',
+    'reference_id',
+    'provider_payment_id',
+    'provider_url',
+    'expires_at',
+    'paid_at',
+    'completed_at',
+    'metadata'
+  ].join(',');
+  const byProviderId = await adminClient.from('self_service_acquisition_intents').select(selection).eq('provider', 'cashfree').eq('provider_link_id', linkId).maybeSingle();
+  if (byProviderId.error) throw byProviderId.error;
+  if (byProviderId.data) return byProviderId.data;
+  const byReference = await adminClient.from('self_service_acquisition_intents').select(selection).eq('provider', 'cashfree').eq('reference_id', linkId).maybeSingle();
+  if (byReference.error) throw byReference.error;
+  return byReference.data;
+}
 async function markWebhook(adminClient, webhookId, values) {
   const { error } = await adminClient.from('webhook_events').update({
     ...values,
@@ -271,6 +299,176 @@ Deno.serve(async (request)=>{
       throw new Error('Cashfree Payment Link webhook is missing link_id or link_status.');
     }
     const paymentLink = await findPaymentLink(adminClient, linkId);
+    const acquisitionIntent = paymentLink ? null : await findAcquisitionIntent(adminClient, linkId);
+    const eventDate = safeDate(payload.event_time);
+    const transactionId = stringValue(order.transaction_id) || stringValue(order.order_id) || stringValue(data.cf_link_id);
+    const paidAmountMinor = Math.round(Number(data.link_amount_paid || 0) * 100);
+    const currencyCode = stringValue(data.link_currency).toUpperCase();
+
+    if (acquisitionIntent) {
+      const acquisitionMetadata = {
+        ...asObject(acquisitionIntent.metadata),
+        last_cashfree_webhook_id: webhookId,
+        last_cashfree_event_id: providerEventId,
+        last_cashfree_event_time: eventDate.toISOString(),
+        cashfree_link_status: linkStatus,
+        cashfree_cf_link_id: data.cf_link_id ?? null,
+        cashfree_order_id: order.order_id ?? null,
+        cashfree_transaction_id: order.transaction_id ?? null
+      };
+
+      if (linkStatus === 'PAID') {
+        if (currencyCode && currencyCode !== acquisitionIntent.currency_code) {
+          throw new Error('Cashfree acquisition currency does not match the StayQR intent.');
+        }
+        if (!transactionId) {
+          throw new Error('Cashfree paid acquisition is missing its payment identity.');
+        }
+        if (!Number.isFinite(paidAmountMinor) || paidAmountMinor < Number(acquisitionIntent.amount_minor)) {
+          throw new Error('Cashfree paid amount is lower than the StayQR acquisition amount.');
+        }
+
+        if (acquisitionIntent.status === 'completed') {
+          await markWebhook(adminClient, webhookId, {
+            processing_status: 'processed',
+            processed_at: new Date().toISOString(),
+            hotel_id: acquisitionIntent.hotel_id,
+            subscription_id: acquisitionIntent.subscription_id,
+            metadata: {
+              cashfree_link_id: linkId,
+              cashfree_link_status: linkStatus,
+              acquisition_intent_id: acquisitionIntent.id,
+              duplicate_paid_delivery: true
+            }
+          });
+          return json(200, {
+            ok: true,
+            provider: 'cashfree',
+            idempotent: true,
+            processed: true,
+            provider_event_id: providerEventId,
+            link_status: linkStatus,
+            hotel_id: acquisitionIntent.hotel_id,
+            subscription_id: acquisitionIntent.subscription_id
+          });
+        }
+
+        const { error: intentUpdateError } = await adminClient.from('self_service_acquisition_intents').update({
+          status: 'paid',
+          provider_payment_id: transactionId,
+          paid_at: eventDate.toISOString(),
+          failure_reason: null,
+          metadata: {
+            ...acquisitionMetadata,
+            cashfree_link_amount_paid_minor: paidAmountMinor
+          },
+          updated_at: new Date().toISOString()
+        }).eq('id', acquisitionIntent.id);
+        if (intentUpdateError) throw intentUpdateError;
+
+        const periodStart = eventDate;
+        const periodEnd = addBillingPeriod(periodStart, acquisitionIntent.billing_cycle);
+        const { data: acquisitionResult, error: acquisitionError } = await adminClient.rpc('finalize_self_service_acquisition', {
+          target_intent_id: acquisitionIntent.id,
+          provider_payload: {
+            provider_event_id: providerEventId,
+            provider_payment_id: transactionId,
+            current_period_start: periodStart.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            provider_metadata: {
+              cashfree_cf_link_id: data.cf_link_id ?? null,
+              cashfree_order_id: order.order_id ?? null,
+              cashfree_transaction_id: order.transaction_id ?? null,
+              cashfree_link_amount_paid_minor: paidAmountMinor,
+              webhook_id: webhookId
+            }
+          }
+        });
+        if (acquisitionError) throw acquisitionError;
+
+        await markWebhook(adminClient, webhookId, {
+          processing_status: 'processed',
+          processed_at: new Date().toISOString(),
+          hotel_id: acquisitionResult?.hotel_id || null,
+          subscription_id: acquisitionResult?.subscription_id || null,
+          metadata: {
+            cashfree_link_id: linkId,
+            cashfree_link_status: linkStatus,
+            acquisition_intent_id: acquisitionIntent.id,
+            acquisition_result: acquisitionResult
+          }
+        });
+        return json(200, {
+          ok: true,
+          provider: 'cashfree',
+          idempotent: Boolean(acquisitionResult?.idempotent),
+          processed: true,
+          provider_event_id: providerEventId,
+          link_status: linkStatus,
+          hotel_id: acquisitionResult?.hotel_id || null,
+          subscription_id: acquisitionResult?.subscription_id || null
+        });
+      }
+
+      if (linkStatus === 'PARTIALLY_PAID') {
+        const { error } = await adminClient.from('self_service_acquisition_intents').update({
+          status: 'partially_paid',
+          metadata: {
+            ...acquisitionMetadata,
+            cashfree_link_amount_paid_minor: paidAmountMinor
+          },
+          updated_at: new Date().toISOString()
+        }).eq('id', acquisitionIntent.id);
+        if (error) throw error;
+      } else if (linkStatus === 'EXPIRED') {
+        const { error } = await adminClient.from('self_service_acquisition_intents').update({
+          status: 'expired', metadata: acquisitionMetadata, updated_at: new Date().toISOString()
+        }).eq('id', acquisitionIntent.id);
+        if (error) throw error;
+      } else if (linkStatus === 'CANCELLED') {
+        const { error } = await adminClient.from('self_service_acquisition_intents').update({
+          status: 'cancelled', metadata: acquisitionMetadata, updated_at: new Date().toISOString()
+        }).eq('id', acquisitionIntent.id);
+        if (error) throw error;
+      } else {
+        await markWebhook(adminClient, webhookId, {
+          processing_status: 'ignored',
+          processed_at: new Date().toISOString(),
+          metadata: {
+            ignored_reason: 'Unsupported Cashfree acquisition-link status.',
+            cashfree_link_id: linkId,
+            cashfree_link_status: linkStatus,
+            acquisition_intent_id: acquisitionIntent.id
+          }
+        });
+        return json(200, {
+          ok: true,
+          provider: 'cashfree',
+          ignored: true,
+          provider_event_id: providerEventId,
+          link_status: linkStatus
+        });
+      }
+
+      await markWebhook(adminClient, webhookId, {
+        processing_status: 'processed',
+        processed_at: new Date().toISOString(),
+        metadata: {
+          cashfree_link_id: linkId,
+          cashfree_link_status: linkStatus,
+          acquisition_intent_id: acquisitionIntent.id
+        }
+      });
+      return json(200, {
+        ok: true,
+        provider: 'cashfree',
+        idempotent: false,
+        processed: true,
+        provider_event_id: providerEventId,
+        link_status: linkStatus
+      });
+    }
+
     // Cashfree's dashboard test can send a valid signed sample that does not
     // correspond to a real StayQR link. Acknowledge it safely.
     if (!paymentLink) {
@@ -291,11 +489,7 @@ Deno.serve(async (request)=>{
         link_id: linkId
       });
     }
-    const eventDate = safeDate(payload.event_time);
     const existingMetadata = asObject(paymentLink.metadata);
-    const transactionId = stringValue(order.transaction_id) || stringValue(order.order_id) || stringValue(data.cf_link_id);
-    const paidAmountMinor = Math.round(Number(data.link_amount_paid || 0) * 100);
-    const currencyCode = stringValue(data.link_currency).toUpperCase();
     const commonMetadata = {
       ...existingMetadata,
       last_cashfree_webhook_id: webhookId,
@@ -312,6 +506,30 @@ Deno.serve(async (request)=>{
       }
       if (!Number.isFinite(paidAmountMinor) || paidAmountMinor < Number(paymentLink.amount_minor)) {
         throw new Error('Cashfree paid amount is lower than the StayQR payment-link amount.');
+      }
+      if (paymentLink.status === 'paid') {
+        await markWebhook(adminClient, webhookId, {
+          processing_status: 'processed',
+          processed_at: new Date().toISOString(),
+          hotel_id: paymentLink.hotel_id,
+          subscription_id: paymentLink.subscription_id,
+          metadata: {
+            cashfree_link_id: linkId,
+            cashfree_link_status: linkStatus,
+            ledger_id: paymentLink.id,
+            duplicate_paid_delivery: true
+          }
+        });
+        return json(200, {
+          ok: true,
+          provider: 'cashfree',
+          idempotent: true,
+          processed: true,
+          provider_event_id: providerEventId,
+          link_status: linkStatus,
+          hotel_id: paymentLink.hotel_id,
+          subscription_id: paymentLink.subscription_id
+        });
       }
       const { error: linkUpdateError } = await adminClient.from('subscription_payment_links').update({
         status: 'paid',

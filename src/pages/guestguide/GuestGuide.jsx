@@ -444,6 +444,28 @@ function getGreetingText(greetings, locale, period, defaultLocale = 'en') {
 
 
 
+function isVideoMedia(media) {
+  return /^video\/(mp4|webm)$/i.test(String(media?.mime_type || ''))
+}
+
+function GuideMedia({ media, className = '', alt = '', controls = true }) {
+  if (!media?.object_path) return null
+  const src = getGuestGuideMediaUrl(media.object_path)
+  if (isVideoMedia(media)) {
+    return (
+      <video
+        className={className}
+        src={src}
+        controls={controls}
+        playsInline
+        preload="metadata"
+        aria-label={alt || media.title || 'Hotel short video'}
+      />
+    )
+  }
+  return <img className={className} src={src} alt={alt || media.alt_text || media.title || 'Hotel media'} loading="lazy" />
+}
+
 export default function GuestGuide() {
   const [loading, setLoading] = useState(true)
   const [portal, setPortal] = useState(null)
@@ -794,6 +816,10 @@ export default function GuestGuide() {
 
   async function cancelRequest(request) {
     if (!request?.id || requestLoading || request.can_cancel === false) return
+    const confirmed = window.confirm(
+      `${copy.cancel} ${request.request_type || copy.requestService}?`
+    )
+    if (!confirmed) return
 
     try {
       setRequestLoading(true)
@@ -1049,7 +1075,7 @@ export default function GuestGuide() {
           </div>
           {propertyMedia && (
             <button className="ag-feature-photo" type="button" onClick={() => setSelectedMedia(propertyMedia)}>
-              <img src={getGuestGuideMediaUrl(propertyMedia.object_path)} alt={propertyMedia.alt_text || propertyMedia.title || hotelName} loading="lazy" />
+              <GuideMedia media={propertyMedia} alt={propertyMedia.alt_text || propertyMedia.title || hotelName} />
               <span>{propertyMedia.caption || copy.stayqrTagline}</span>
             </button>
           )}
@@ -1109,7 +1135,7 @@ export default function GuestGuide() {
           <div className={`ag-gallery ${gallery.length === 1 ? 'single' : ''}`}>
             {gallery.map((media) => (
               <button type="button" key={media.id} onClick={() => { setSelectedMedia(media); void recordEvent('media_viewed', { metadata: { category: media.category, media_key: media.media_key } }) }}>
-                <img src={getGuestGuideMediaUrl(media.object_path)} alt={media.alt_text || media.title || hotelName} loading="lazy" />
+                <GuideMedia media={media} alt={media.alt_text || media.title || hotelName} />
                 {(media.title || media.caption) && <span><strong>{media.title}</strong><small>{media.caption}</small></span>}
               </button>
             ))}
@@ -1137,7 +1163,7 @@ export default function GuestGuide() {
                   </button>
                   {isOpen && (
                     <div className="ag-accordion-body">
-                      {media && <img src={getGuestGuideMediaUrl(media.object_path)} alt={media.alt_text || item.title} loading="lazy" />}
+                      {media && <GuideMedia media={media} alt={media.alt_text || item.title} />}
                       {Array.isArray(item.instructions) && item.instructions.length > 0 ? (
                         <ol>{item.instructions.map((step, index) => <li key={`${item.id}-${index}`}><span>{index + 1}</span><p>{String(step)}</p></li>)}</ol>
                       ) : item.description ? <p>{item.description}</p> : null}
@@ -1160,12 +1186,27 @@ export default function GuestGuide() {
           {renderCardItems(items)}
           {amenities.length > 0 && (
             <div className="ag-card-grid">
-              {amenities.map((amenity) => (
-                <article className="ag-info-card" key={amenity.id || amenity.name}>
-                  <span className="ag-icon"><GuideIcon name={amenity.icon || amenity.name} /></span>
-                  <div><h3>{amenity.name}</h3><p>{amenity.description || amenity.instructions || copy.available}</p></div>
-                </article>
-              ))}
+              {amenities.map((amenity) => {
+                const amenityMedia = allMedia.filter((media) =>
+                  media.category === 'facility' &&
+                  String(media?.metadata?.amenity_id || '') === String(amenity.id || '')
+                )
+                return (
+                  <article className="ag-info-card ag-amenity-card" key={amenity.id || amenity.name}>
+                    {amenityMedia.length > 0 && (
+                      <div className="ag-amenity-media">
+                        {amenityMedia.slice(0, 3).map((media) => (
+                          <button key={media.id} type="button" onClick={() => setSelectedMedia(media)}>
+                            <GuideMedia media={media} alt={media.alt_text || media.title || amenity.name} />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <span className="ag-icon"><GuideIcon name={amenity.icon || amenity.name} /></span>
+                    <div><h3>{amenity.name}</h3><p>{amenity.description || amenity.instructions || copy.available}</p></div>
+                  </article>
+                )
+              })}
             </div>
           )}
         </section>
@@ -1173,9 +1214,20 @@ export default function GuestGuide() {
     }
 
     if (section.section_type === 'dining') {
+      const diningMedia = allMedia.filter((media) => media.category === 'dining')
       return (
         <section className="ag-section" id={sectionId} key={section.id}>
           <Heading section={section} />
+          {diningMedia.length > 0 && (
+            <div className="ag-gallery">
+              {diningMedia.slice(0, 6).map((media) => (
+                <button type="button" key={media.id} onClick={() => setSelectedMedia(media)}>
+                  <GuideMedia media={media} alt={media.alt_text || media.title || copy.food} />
+                  {(media.title || media.caption) && <span><strong>{media.title}</strong><small>{media.caption}</small></span>}
+                </button>
+              ))}
+            </div>
+          )}
           {renderCardItems(items)}
           <button type="button" className="ag-wide-cta" onClick={() => void openFoodMenu()}><GuideIcon name="food" size={19} />{copy.viewMenuOrder}</button>
         </section>
@@ -1208,6 +1260,20 @@ export default function GuestGuide() {
               ))}
             </div>
           )}
+          <button
+            type="button"
+            className="ag-escalation-cta"
+            onClick={() => void createRequest('Management Escalation')}
+            disabled={requestLoading}
+          >
+            <span className="ag-icon">
+              <GuideIcon name={getRequestIcon('Management Escalation')} size={20} />
+            </span>
+            <span>
+              <strong>Escalate to hotel management</strong>
+              <small>Raise a service or staff concern with the hotel management team.</small>
+            </span>
+          </button>
           {requests.length > 0 && (
             <div className="ag-request-list">
               <h3>{copy.myRequests}</h3>
@@ -1228,7 +1294,7 @@ export default function GuestGuide() {
                       onClick={() => void cancelRequest(request)}
                       disabled={requestLoading}
                     >
-                      {copy.cancelled}
+                      {copy.cancel}
                     </button>
                   )}
                 </article>
@@ -1384,7 +1450,7 @@ export default function GuestGuide() {
 
       <nav className="ag-sticky" aria-label="Guest quick actions"><button type="button" onClick={() => callPhone(receptionPhone)}><GuideIcon name="phone" size={18} /><span>{copy.call}</span></button><button type="button" onClick={() => openWhatsApp(whatsappItem?.action_value || receptionPhone)}><GuideIcon name="whatsapp" size={18} /><span>{copy.whatsapp}</span></button><button type="button" onClick={() => scrollToSection('wifi')}><GuideIcon name="wifi" size={18} /><span>{copy.wifi}</span></button><button type="button" onClick={() => scrollToSection('guest_services')}><GuideIcon name="service" size={18} /><span>{copy.services}</span></button></nav>
 
-      {selectedMedia && <div className="ag-lightbox" role="dialog" aria-modal="true" aria-label="Image preview"><button type="button" onClick={() => setSelectedMedia(null)} aria-label="Close image preview">×</button><img src={getGuestGuideMediaUrl(selectedMedia.object_path)} alt={selectedMedia.alt_text || selectedMedia.title || hotelName} />{(selectedMedia.title || selectedMedia.caption) && <div><strong>{selectedMedia.title}</strong><p>{selectedMedia.caption}</p></div>}</div>}
+      {selectedMedia && <div className="ag-lightbox" role="dialog" aria-modal="true" aria-label="Media preview"><button type="button" onClick={() => setSelectedMedia(null)} aria-label="Close media preview">×</button><GuideMedia media={selectedMedia} alt={selectedMedia.alt_text || selectedMedia.title || hotelName} />{(selectedMedia.title || selectedMedia.caption) && <div><strong>{selectedMedia.title}</strong><p>{selectedMedia.caption}</p></div>}</div>}
       {toast && <div className="ag-toast" role="status">✓ {toast}</div>}
     </main>
   )

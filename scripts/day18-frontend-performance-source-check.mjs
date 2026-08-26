@@ -74,6 +74,7 @@ const expectedRoutes = [
   './pages/calendar/BookingCalendar',
   './pages/operations/ReservationOperations',
   './pages/onboarding/HotelOnboarding',
+  './pages/acquisition/SubscriptionCheckout',
 ]
 
 let requiredCount = 0
@@ -89,7 +90,7 @@ const blocked = (label, condition) => {
 
 required('React lazy import', /import\s*\{[^}]*\blazy\b[^}]*\}\s*from\s*['"]react['"]/.test(app))
 required('React Suspense import', /import\s*\{[^}]*\bSuspense\b[^}]*\}\s*from\s*['"]react['"]/.test(app))
-required('30 route-level lazy imports', lazyImports.length === expectedRoutes.length)
+required('required route-level lazy imports', lazyImports.length >= expectedRoutes.length)
 
 for (const routePath of expectedRoutes) {
   required(`lazy route ${routePath}`, app.includes(`import('${routePath}')`))

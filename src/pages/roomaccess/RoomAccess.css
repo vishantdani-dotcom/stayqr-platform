@@ -1,0 +1,38 @@
+.room-entry-shell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(212, 175, 55, .16), transparent 34%),
+    #080808;
+  color: #fff;
+}
+
+.room-entry-card {
+  width: min(100%, 440px);
+  padding: 30px;
+  border: 1px solid rgba(212, 175, 55, .28);
+  border-radius: 22px;
+  background: #10100f;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .42);
+}
+
+.room-entry-brand { color: #d4af37; font-weight: 900; letter-spacing: .08em; }
+.room-entry-kicker { margin: 30px 0 8px; color: #d4af37; font-size: 11px; font-weight: 900; letter-spacing: .14em; }
+.room-entry-card h1 { margin: 0; font-size: 36px; line-height: 1.05; }
+.room-entry-hotel { margin: 8px 0 0; color: #d4af37; font-weight: 800; }
+.room-entry-copy { margin: 24px 0; color: #aaa; line-height: 1.65; }
+.room-entry-error { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #7b3232; border-radius: 12px; background: #2d1111; color: #ffb7b7; }
+.room-entry-form { display: grid; gap: 14px; }
+.room-entry-form label { display: grid; gap: 8px; color: #aaa; font-size: 12px; font-weight: 800; }
+.room-entry-form input { width: 100%; padding: 15px; border: 1px solid #353535; border-radius: 12px; background: #080808; color: #fff; text-align: center; font-size: 28px; font-weight: 900; letter-spacing: .28em; }
+.room-entry-form button { min-height: 48px; border: 0; border-radius: 12px; background: #d4af37; color: #080808; font-weight: 900; cursor: pointer; }
+.room-entry-form button:disabled { opacity: .5; cursor: not-allowed; }
+.room-entry-card small { display: block; margin-top: 20px; color: #737373; line-height: 1.5; }
+
+@media (max-width: 520px) {
+  .room-entry-shell { padding: 14px; }
+  .room-entry-card { padding: 22px 18px; border-radius: 18px; }
+  .room-entry-card h1 { font-size: 30px; }
+}

@@ -37,7 +37,7 @@ html,
 body,
 #root {
   width: 100%;
-  max-width: none;
+  max-width: 100%;
   min-height: 100%;
   margin: 0;
   border: 0;
@@ -47,16 +47,37 @@ body,
 
 .app-shell {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
   background: #0f0f0f;
 }
 
 .app-main {
   min-height: 100vh;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: calc(100% - var(--sidebar-w));
+  max-width: calc(100% - var(--sidebar-w));
+  min-width: 0;
+  margin-left: var(--sidebar-w);
+  overflow-x: clip;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-main.app-main--sidebar-collapsed {
+  width: calc(100% - 64px);
+  max-width: calc(100% - 64px);
+  margin-left: 64px;
 }
 
 .app-content {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
   padding-top: var(--navbar-h);
 }
 
@@ -89,8 +110,20 @@ body,
 .cs-title { margin: 12px 0 7px; }
 .cs-sub { color: var(--text-muted); line-height: 1.6; }
 
-@media (max-width: 768px) {
-  .app-main { margin-left: 0 !important; }
+@media (max-width: 900px) {
+  .app-shell,
+  .app-main,
+  .app-main.app-main--sidebar-collapsed,
+  .app-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .app-main,
+  .app-main.app-main--sidebar-collapsed {
+    margin-left: 0;
+  }
 }
 
 * {

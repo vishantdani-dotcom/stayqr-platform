@@ -276,3 +276,35 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Post-launch Batch B — permanent room QR lifecycle */
+.secure-qr-permanent {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(212, 175, 55, .28);
+  border-radius: 15px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, .09), rgba(8, 8, 8, .96));
+}
+
+.secure-qr-permanent-copy > span,
+.secure-qr-issued-pin > span {
+  color: #d4af37;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.secure-qr-permanent-copy strong { display: block; margin-top: 5px; }
+.secure-qr-permanent-copy p { margin: 6px 0 0; color: #999; font-size: 12px; line-height: 1.5; }
+.secure-qr-permanent-grid { display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr); gap: 16px; align-items: center; margin-top: 14px; }
+.secure-qr-permanent-actions { display: grid; gap: 9px; align-content: start; }
+.secure-qr-pin-status { color: #aaa; font-size: 11px; }
+.secure-qr-issued-pin { display: grid; gap: 4px; padding: 12px; border: 1px solid #8b6d21; border-radius: 12px; background: #211a08; }
+.secure-qr-issued-pin strong { color: #f2d164; font-size: 30px; letter-spacing: .18em; }
+.secure-qr-issued-pin small { color: #a69d83; line-height: 1.4; }
+
+@media (max-width: 620px) {
+  .secure-qr-permanent-grid { grid-template-columns: 1fr; }
+  .secure-qr-permanent-grid > img,
+  .secure-qr-permanent-grid > svg { justify-self: center; }
+}

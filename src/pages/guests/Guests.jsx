@@ -4,6 +4,7 @@ import { getCurrentHotel } from "../../lib/currentHotel";
 import { checkoutGuestSession } from "../../lib/day5Reservations";
 import { notifyCalendarInvalidated } from "../../lib/bookingCalendar";
 import GuestDirectory from "./GuestDirectory";
+import GuestCommunications from "./GuestCommunications";
 import "./Guests.css";
 
 export default function Guests({
@@ -1356,10 +1357,19 @@ export default function Guests({
         >
           Guest directory & history
         </button>
+        <button
+          type="button"
+          className={activeView === "communications" ? "active" : ""}
+          onClick={() => setActiveView("communications")}
+        >
+          Communications
+        </button>
       </div>
 
       {activeView === "directory" ? (
         <GuestDirectory currentHotel={currentHotel} onNotice={showNotice} />
+      ) : activeView === "communications" ? (
+        <GuestCommunications currentHotel={currentHotel} onNotice={showNotice} />
       ) : (
       <div className="rooms-card">
         {loading ? (

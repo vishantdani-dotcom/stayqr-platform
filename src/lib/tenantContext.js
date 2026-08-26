@@ -143,12 +143,16 @@ async function fetchTenantContext() {
         full_name,
         email,
         phone,
+        phone_verified_at,
+        avatar_path,
         role,
         status,
         auth_user_id,
         hotels (
           id,
           hotel_name,
+          logo_url,
+          cover_url,
           location,
           status,
           slug,
@@ -172,6 +176,8 @@ async function fetchTenantContext() {
         hotels (
           id,
           hotel_name,
+          logo_url,
+          cover_url,
           location,
           status,
           slug,
@@ -188,24 +194,39 @@ async function fetchTenantContext() {
   if (membershipResult.error) throw membershipResult.error
 
   let platformHotels = []
+  let supportAccessSessions = []
 
   if (platformAdmin) {
-    const { data, error } = await supabase
-      .from('hotels')
-      .select(`
-        id,
-        hotel_name,
-        location,
-        status,
-        slug,
-        timezone,
-        currency_code,
-        subscription_status
-      `)
-      .order('hotel_name', { ascending: true })
+    const [hotelsResult, supportResult] = await Promise.all([
+      supabase
+        .from('hotels')
+        .select(`
+          id,
+          hotel_name,
+          logo_url,
+          cover_url,
+          location,
+          status,
+          slug,
+          timezone,
+          currency_code,
+          subscription_status
+        `)
+        .order('hotel_name', { ascending: true }),
+      supabase
+        .from('support_access_sessions')
+        .select('id, hotel_id, platform_admin_user_id, reason, status, permissions, started_at, expires_at, ended_at')
+        .eq('platform_admin_user_id', user.id)
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString())
+        .order('started_at', { ascending: false }),
+    ])
 
-    if (error) throw error
-    platformHotels = data || []
+    if (hotelsResult.error) throw hotelsResult.error
+    if (supportResult.error) throw supportResult.error
+
+    platformHotels = hotelsResult.data || []
+    supportAccessSessions = supportResult.data || []
   }
 
   const hotelAccess = mergeHotelAccess({
@@ -218,28 +239,41 @@ async function fetchTenantContext() {
   const storedAccess = hotelAccess.find(
     (access) => access.hotel.id === storedHotelId
   )
+  const isPlatformAdmin = Boolean(platformAdmin)
+  const activeSupportSession = isPlatformAdmin
+    ? supportAccessSessions.find((session) => session.hotel_id === storedHotelId) || null
+    : null
 
-  const selectedAccess =
-    storedAccess ||
-    hotelAccess.find((access) => isOperationalHotel(access.hotel)) ||
-    hotelAccess[0] ||
-    null
+  const selectedAccess = isPlatformAdmin
+    ? activeSupportSession
+      ? storedAccess || null
+      : null
+    : storedAccess ||
+      hotelAccess.find((access) => isOperationalHotel(access.hotel)) ||
+      hotelAccess[0] ||
+      null
 
-  if (selectedAccess && selectedAccess.hotel.id !== storedHotelId) {
+  if (isPlatformAdmin && storedHotelId && !activeSupportSession) {
+    storeHotelId(user.id, null)
+  } else if (!isPlatformAdmin && selectedAccess && selectedAccess.hotel.id !== storedHotelId) {
     storeHotelId(user.id, selectedAccess.hotel.id)
   }
 
-  const isPlatformAdmin = Boolean(platformAdmin)
   const selectedHotel = selectedAccess?.hotel || null
+  const isPlatformSupportMode = Boolean(isPlatformAdmin && activeSupportSession && selectedHotel)
   const selectedRole = isPlatformAdmin
-    ? 'platform_admin'
+    ? isPlatformSupportMode
+      ? 'platform_support'
+      : 'platform_admin'
     : normalizeRoleValue(
         selectedAccess?.staff?.role || selectedAccess?.membership?.role
       )
 
-  let permissions = []
+  let permissions = isPlatformSupportMode
+    ? activeSupportSession.permissions || ['read_only']
+    : []
 
-  if (selectedHotel?.id) {
+  if (selectedHotel?.id && !isPlatformAdmin) {
     const { data: permissionRows, error: permissionError } = await supabase.rpc(
       'get_my_hotel_permissions',
       { target_hotel_id: selectedHotel.id }
@@ -271,6 +305,8 @@ async function fetchTenantContext() {
             user.email ||
             null,
           phone: selectedAccess?.staff?.phone || null,
+          phone_verified_at: selectedAccess?.staff?.phone_verified_at || null,
+          avatar_path: selectedAccess?.staff?.avatar_path || null,
           role: selectedRole,
           department: selectedAccess?.staff?.department || null,
           status: 'active',
@@ -285,12 +321,15 @@ async function fetchTenantContext() {
     platformAdmin: platformAdmin || null,
     hotelAccess,
     hotels: hotelAccess.map((access) => access.hotel),
+    supportAccessSessions,
+    activeSupportSession,
+    isPlatformSupportMode,
     selectedHotel,
     selectedHotelId: selectedHotel?.id || null,
     currentStaff,
     currentRole: selectedRole,
     permissions,
-    requiresHotelSelection: hotelAccess.length > 1 && !storedAccess,
+    requiresHotelSelection: !isPlatformAdmin && hotelAccess.length > 1 && !storedAccess,
   }
 }
 
@@ -316,13 +355,23 @@ export function clearTenantContextCache() {
 }
 
 export async function selectTenantHotel(hotelId) {
-  const context = await loadTenantContext()
+  const context = await loadTenantContext({ force: true })
   const access = context?.hotelAccess.find(
     (candidate) => candidate.hotel.id === hotelId
   )
 
   if (!access) {
     throw new Error('You do not have access to the selected hotel.')
+  }
+
+  if (context?.isPlatformAdmin) {
+    const activeSession = context.supportAccessSessions?.find(
+      (session) => session.hotel_id === hotelId
+    )
+
+    if (!activeSession) {
+      throw new Error('Start an audited View as Hotel session from Super Admin before entering this hotel.')
+    }
   }
 
   const userId = context?.user?.id
@@ -336,6 +385,10 @@ export async function selectTenantHotel(hotelId) {
 
     if (nextContext?.selectedHotelId !== hotelId) {
       throw new Error('StayQR could not activate the selected hotel.')
+    }
+
+    if (context?.isPlatformAdmin && !nextContext?.isPlatformSupportMode) {
+      throw new Error('StayQR could not confirm the audited View as Hotel session.')
     }
 
     return nextContext

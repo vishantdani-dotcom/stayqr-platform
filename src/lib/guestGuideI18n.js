@@ -41,6 +41,7 @@ const EN = {
   accepted: 'Accepted',
   staffOnWay: 'Staff on the way',
   completed: 'Completed',
+  cancel: 'Cancel',
   cancelled: 'Cancelled',
   emergencyContact: 'Emergency Contact',
   urgentHelp: 'For urgent help, contact the hotel team immediately.',

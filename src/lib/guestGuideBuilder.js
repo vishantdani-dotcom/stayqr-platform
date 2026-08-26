@@ -92,7 +92,11 @@ export const GUEST_GUIDE_MEDIA_CATEGORIES = [
 export const GUEST_GUIDE_SCOPE_TYPES = ['hotel', 'room_type', 'room']
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-const MAX_MEDIA_BYTES = 8 * 1024 * 1024
+const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/webm'])
+const VIDEO_ALLOWED_CATEGORIES = new Set(['property', 'room', 'facility', 'dining', 'custom'])
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024
+const MAX_VIDEO_BYTES = 20 * 1024 * 1024
+export const MAX_GUEST_GUIDE_VIDEO_SECONDS = 30
 
 function requireHotelId(hotelId) {
   const value = String(hotelId || '').trim()
@@ -286,15 +290,29 @@ export async function uploadGuestGuideMediaFile({
   category = 'custom',
 }) {
   if (!(file instanceof File)) {
-    throw new Error('Choose an image before uploading.')
+    throw new Error('Choose an image or short video before uploading.')
   }
 
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    throw new Error('Guest-guide images must be JPG, PNG or WebP.')
+  const isImage = ALLOWED_IMAGE_TYPES.has(file.type)
+  const isVideo = ALLOWED_VIDEO_TYPES.has(file.type)
+  if (!isImage && !isVideo) {
+    throw new Error('Media must be JPG, PNG, WebP, MP4 or WebM.')
   }
 
-  if (file.size <= 0 || file.size > MAX_MEDIA_BYTES) {
-    throw new Error('Guest-guide images must be smaller than 8 MB.')
+  if (isVideo && !VIDEO_ALLOWED_CATEGORIES.has(String(category || '').toLowerCase())) {
+    throw new Error('Short videos are limited to hotel/property, room, facility, dining and custom guest-guide media.')
+  }
+
+  if (file.size <= 0 || (isImage && file.size > MAX_IMAGE_BYTES) || (isVideo && file.size > MAX_VIDEO_BYTES)) {
+    throw new Error(isVideo ? 'Short videos must be 20 MB or smaller.' : 'Images must be 8 MB or smaller.')
+  }
+
+  let durationSeconds = null
+  if (isVideo) {
+    durationSeconds = await readVideoDurationSeconds(file)
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > MAX_GUEST_GUIDE_VIDEO_SECONDS) {
+      throw new Error(`Guest-guide videos must be ${MAX_GUEST_GUIDE_VIDEO_SECONDS} seconds or shorter.`)
+    }
   }
 
   const objectPath = buildGuestGuideObjectPath({
@@ -320,8 +338,138 @@ export async function uploadGuestGuideMediaFile({
     bucketId: GUEST_GUIDE_BUCKET,
     objectPath,
     mimeType: file.type,
+    mediaKind: isVideo ? 'video' : 'image',
+    durationSeconds,
     publicUrl: getGuestGuideMediaUrl(objectPath),
   }
+}
+
+async function readVideoDurationSeconds(file) {
+  const browserDuration = await readVideoDurationFromElement(file)
+  if (Number.isFinite(browserDuration) && browserDuration > 0) return browserDuration
+
+  // Valid MP4 files can contain duration metadata even when the current browser
+  // cannot decode the embedded codec. Read the MP4 container metadata directly
+  // so short-video validation is not coupled to browser playback support.
+  if (file.type === 'video/mp4' || /\.mp4$/i.test(file.name || '')) {
+    const parsedDuration = await readMp4DurationSeconds(file)
+    if (Number.isFinite(parsedDuration) && parsedDuration > 0) return parsedDuration
+  }
+
+  throw new Error(
+    'StayQR could not read this video duration. Use a valid MP4/WebM short video (H.264 MP4 is recommended).'
+  )
+}
+
+async function readVideoDurationFromElement(file) {
+  if (typeof document === 'undefined' || typeof URL === 'undefined') return NaN
+  const objectUrl = URL.createObjectURL(file)
+  try {
+    return await new Promise((resolve) => {
+      const video = document.createElement('video')
+      let settled = false
+      const finish = (value) => {
+        if (settled) return
+        settled = true
+        resolve(value)
+      }
+      const timeout = window.setTimeout(() => finish(NaN), 5000)
+      video.preload = 'metadata'
+      video.muted = true
+      video.playsInline = true
+      video.onloadedmetadata = () => {
+        window.clearTimeout(timeout)
+        finish(Number(video.duration))
+      }
+      video.onerror = () => {
+        window.clearTimeout(timeout)
+        finish(NaN)
+      }
+      video.src = objectUrl
+      video.load()
+    })
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
+async function readMp4DurationSeconds(file) {
+  try {
+    const buffer = await file.arrayBuffer()
+    const view = new DataView(buffer)
+
+    const readType = (offset) => {
+      if (offset + 4 > view.byteLength) return ''
+      return String.fromCharCode(
+        view.getUint8(offset),
+        view.getUint8(offset + 1),
+        view.getUint8(offset + 2),
+        view.getUint8(offset + 3)
+      )
+    }
+
+    const findBox = (start, end, wanted) => {
+      let offset = start
+      while (offset + 8 <= end) {
+        let size = view.getUint32(offset)
+        const type = readType(offset + 4)
+        let headerSize = 8
+
+        if (size === 1) {
+          if (offset + 16 > end) return null
+          const high = view.getUint32(offset + 8)
+          const low = view.getUint32(offset + 12)
+          const largeSize = high * 2 ** 32 + low
+          if (!Number.isSafeInteger(largeSize)) return null
+          size = largeSize
+          headerSize = 16
+        } else if (size === 0) {
+          size = end - offset
+        }
+
+        if (size < headerSize || offset + size > end) return null
+        if (type === wanted) return { offset, size, headerSize }
+        offset += size
+      }
+      return null
+    }
+
+    const moov = findBox(0, view.byteLength, 'moov')
+    if (!moov) return NaN
+    const mvhd = findBox(
+      moov.offset + moov.headerSize,
+      moov.offset + moov.size,
+      'mvhd'
+    )
+    if (!mvhd) return NaN
+
+    const payload = mvhd.offset + mvhd.headerSize
+    if (payload + 20 > view.byteLength) return NaN
+    const version = view.getUint8(payload)
+
+    if (version === 0) {
+      const timescale = view.getUint32(payload + 12)
+      const duration = view.getUint32(payload + 16)
+      return timescale > 0 ? duration / timescale : NaN
+    }
+
+    if (version === 1) {
+      if (payload + 32 > view.byteLength) return NaN
+      const timescale = view.getUint32(payload + 20)
+      const high = view.getUint32(payload + 24)
+      const low = view.getUint32(payload + 28)
+      const duration = high * 2 ** 32 + low
+      return timescale > 0 && Number.isSafeInteger(duration) ? duration / timescale : NaN
+    }
+
+    return NaN
+  } catch {
+    return NaN
+  }
+}
+
+export function isGuestGuideVideo(mimeType) {
+  return ALLOWED_VIDEO_TYPES.has(String(mimeType || '').toLowerCase())
 }
 
 export async function removeGuestGuideMediaFile(objectPath) {

@@ -25,6 +25,7 @@ import {
   getOperationalDiagnostics,
   setOperationalIncidentStatus,
 } from '../../lib/day18Monitoring'
+import { createSupportTicket } from '../../lib/commercialControl'
 import './OperationsCenter.css'
 
 const TABS = [
@@ -47,6 +48,13 @@ const emptyPreference = {
   quiet_hours_start: '',
   quiet_hours_end: '',
   event_overrides: {},
+}
+
+const emptySupportTicketForm = {
+  subject: '',
+  category: 'general',
+  priority: 'normal',
+  description: '',
 }
 
 const emptyDiagnostics = {
@@ -73,7 +81,13 @@ function isoStart(days = 7) {
   return d.toISOString()
 }
 
-export default function OperationsCenter({ hotel, currentRole, initialTab = 'notifications' }) {
+export default function OperationsCenter({
+  hotel,
+  currentRole,
+  initialTab = 'notifications',
+  initialAction = null,
+  navigationRequestId = null,
+}) {
   const hotelId = hotel?.id
   const safeInitialTab = TABS.some(([id]) => id === initialTab) ? initialTab : 'notifications'
   const [tab, setTab] = useState(safeInitialTab)
@@ -85,6 +99,10 @@ export default function OperationsCenter({ hotel, currentRole, initialTab = 'not
   const [inbox, setInbox] = useState({ unread_count: 0, items: [] })
   const [activity, setActivity] = useState([])
   const [support, setSupport] = useState({ tickets: [] })
+  const [supportComposerOpen, setSupportComposerOpen] = useState(
+    initialAction === 'create-ticket'
+  )
+  const [supportTicketForm, setSupportTicketForm] = useState(emptySupportTicketForm)
   const [announcements, setAnnouncements] = useState([])
   const [events, setEvents] = useState([])
   const [templates, setTemplates] = useState([])
@@ -135,6 +153,12 @@ export default function OperationsCenter({ hotel, currentRole, initialTab = 'not
     const nextTab = TABS.some(([id]) => id === initialTab) ? initialTab : 'notifications'
     setTab(nextTab)
   }, [initialTab])
+
+  useEffect(() => {
+    if (initialAction !== 'create-ticket') return
+    setTab('support')
+    setSupportComposerOpen(true)
+  }, [initialAction, navigationRequestId])
 
   const showToast = useCallback((message) => {
     setToast(message)
@@ -263,6 +287,41 @@ export default function OperationsCenter({ hotel, currentRole, initialTab = 'not
     } catch (err) {
       console.error(err)
       setError(err?.message || 'The action could not be completed.')
+    } finally {
+      setSaving('')
+    }
+  }
+
+  async function submitSupportTicket(event) {
+    event.preventDefault()
+
+    const subject = supportTicketForm.subject.trim()
+    const description = supportTicketForm.description.trim()
+
+    if (!subject || !description) {
+      setError('Support subject and description are required.')
+      return
+    }
+
+    setSaving('support-create')
+    setError('')
+
+    try {
+      await createSupportTicket(
+        hotelId,
+        subject,
+        description,
+        supportTicketForm.category,
+        supportTicketForm.priority
+      )
+
+      setSupportTicketForm(emptySupportTicketForm)
+      setSupportComposerOpen(false)
+      setSupport((await getSupportWorkspace(hotelId)) || { tickets: [] })
+      showToast('Support ticket created.')
+    } catch (err) {
+      console.error(err)
+      setError(err?.message || 'The support ticket could not be created.')
     } finally {
       setSaving('')
     }
@@ -497,8 +556,98 @@ export default function OperationsCenter({ hotel, currentRole, initialTab = 'not
       )}
 
       {!loading && tab === 'support' && (
-        <Panel title="Support Workspace" subtitle="Hotel-scoped tickets and complete ticket event history.">
-          <div className="d17-card-list">
+        <Panel title="Support Workspace" subtitle="Hotel-scoped support requests and complete ticket event history.">
+          <div className="d17-support-toolbar">
+            <div>
+              <strong>Need help from StayQR?</strong>
+              <span>Support hours: 09:00–19:00 IST, Monday–Saturday.</span>
+            </div>
+            <button
+              type="button"
+              className="d17-support-toggle"
+              onClick={() => {
+                setError('')
+                setSupportComposerOpen((open) => !open)
+              }}
+            >
+              {supportComposerOpen ? 'Cancel' : 'Create support ticket'}
+            </button>
+          </div>
+
+          {supportComposerOpen && (
+            <form className="d17-support-form" onSubmit={submitSupportTicket}>
+              <div className="d17-form-grid">
+                <Field label="Subject">
+                  <input
+                    value={supportTicketForm.subject}
+                    maxLength={160}
+                    placeholder="Briefly describe the issue"
+                    onChange={(event) => setSupportTicketForm((current) => ({
+                      ...current,
+                      subject: event.target.value,
+                    }))}
+                    required
+                  />
+                </Field>
+                <Field label="Category">
+                  <select
+                    value={supportTicketForm.category}
+                    onChange={(event) => setSupportTicketForm((current) => ({
+                      ...current,
+                      category: event.target.value,
+                    }))}
+                  >
+                    <option value="general">General</option>
+                    <option value="technical">Technical</option>
+                    <option value="operations">Operations</option>
+                    <option value="billing">Billing</option>
+                  </select>
+                </Field>
+                <Field label="Priority">
+                  <select
+                    value={supportTicketForm.priority}
+                    onChange={(event) => setSupportTicketForm((current) => ({
+                      ...current,
+                      priority: event.target.value,
+                    }))}
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="Description">
+                <textarea
+                  rows="6"
+                  value={supportTicketForm.description}
+                  maxLength={4000}
+                  placeholder="Include what happened, what you expected, and any useful steps to reproduce it."
+                  onChange={(event) => setSupportTicketForm((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))}
+                  required
+                />
+              </Field>
+
+              <div className="d17-support-form-actions">
+                <button
+                  type="submit"
+                  className="d17-primary"
+                  disabled={saving === 'support-create'}
+                >
+                  {saving === 'support-create' ? 'Submitting…' : 'Submit issue'}
+                </button>
+                <small>
+                  StayQR will record this request against {hotel?.hotel_name || 'the active hotel'}.
+                </small>
+              </div>
+            </form>
+          )}
+
+          <div className="d17-card-list d17-support-ticket-list">
             {(support.tickets || []).length === 0 ? <Empty text="No support tickets for this hotel." /> : support.tickets.map((ticket) => (
               <article className="d17-ticket" key={ticket.id}>
                 <header><div><small>{ticket.ticket_number}</small><h3>{ticket.subject}</h3></div><span className={`d17-pill status-${ticket.status}`}>{ticket.status}</span></header>

@@ -507,14 +507,14 @@ export default function Payments() {
 
   if (loading) {
     return (
-      <div style={page}>
+      <div className="payments-page" style={page}>
         Loading payments...
       </div>
     );
   }
 
   return (
-    <div style={page}>
+    <div className="payments-page" style={page}>
       <div style={header}>
         <div>
           <p style={kicker}>

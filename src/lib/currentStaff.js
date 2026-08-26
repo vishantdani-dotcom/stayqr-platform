@@ -42,6 +42,7 @@ const HOTEL_ADMIN_ACCESS = [
   'housekeeping',
   'maintenance',
   'amenities',
+  'media',
   'hotel',
   'guidebuilder',
   'reports',
@@ -96,8 +97,24 @@ export const ROLE_ACCESS = {
   housekeeping: ['dashboard', 'rooms', 'housekeeping', 'maintenance', 'services'],
   restaurant: ['dashboard', 'menu', 'foodorders'],
   accounts: ['dashboard', 'payments', 'folios', 'charges', 'reports', 'invoices', 'operationscenter'],
-  platform_admin: ['superadmin', ...HOTEL_ADMIN_ACCESS],
-  super_admin: ['superadmin', ...HOTEL_ADMIN_ACCESS],
+  platform_admin: ['superadmin'],
+  super_admin: ['superadmin'],
+}
+
+
+const PLATFORM_SUPPORT_SECTION_ACCESS = {
+  read_only: ['dashboard'],
+  hotel_configuration: ['dashboard', 'rooms', 'qr', 'menu', 'amenities', 'media', 'hotel', 'guidebuilder'],
+  subscription_support: ['dashboard', 'payments', 'folios', 'reports', 'invoices'],
+  ticket_support: ['dashboard', 'services', 'operationscenter'],
+}
+
+function canAccessPlatformSupportSection(section, permissions = []) {
+  if (section === 'superadmin') return false
+
+  return (permissions || []).some((permission) =>
+    (PLATFORM_SUPPORT_SECTION_ACCESS[permission] || []).includes(section)
+  )
 }
 
 const SECTION_PERMISSION = {
@@ -119,6 +136,7 @@ const SECTION_PERMISSION = {
   housekeeping: 'housekeeping.view',
   maintenance: 'rooms.view',
   amenities: 'hotel.manage',
+  media: 'hotel.manage',
   hotel: 'hotel.manage',
   guidebuilder: 'hotel.manage',
   reports: 'reports.view',
@@ -139,6 +157,10 @@ export function canAccessSection(role, section, permissions = []) {
 
   if (['platform_admin', 'super_admin'].includes(normalizedRole)) {
     return (ROLE_ACCESS[normalizedRole] || []).includes(section)
+  }
+
+  if (normalizedRole === 'platform_support') {
+    return canAccessPlatformSupportSection(section, permissions)
   }
 
   if (Array.isArray(permissions) && permissions.length > 0) {

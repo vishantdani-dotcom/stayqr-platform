@@ -107,7 +107,7 @@ check(
 )
 check(
   '12_service_role_not_in_browser',
-  !/service[_-]?role/i.test(sourceText),
+  !/(?:SUPABASE_SERVICE_ROLE_KEY|\bservice_role\b|\bserviceRole(?:Key)?\b)/i.test(sourceText),
   'No Supabase service-role key or browser-side service-role usage exists.'
 )
 

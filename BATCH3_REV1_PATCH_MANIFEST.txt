@@ -1,0 +1,37 @@
+STAYQR POST-LAUNCH BATCH 3 / BATCH C — REV1
+
+Scope: Items 6 + 7
+Guest identity/KYC scanner/Aadhaar offline verification + Guest 360/export/consent/WhatsApp
+
+Packaged files before manifest: 30
+
+- RUN_BATCH3_STAGING_FUNCTIONS.ps1
+- RUN_FIRST_BATCH3_REV1.ps1
+- docs/releases/POSTLAUNCH_BATCH3_GUEST_IDENTITY_CRM_REV1.md
+- package.json
+- scripts/validate-postlaunch-batch2.mjs
+- scripts/validate-postlaunch-batch3-security.mjs
+- scripts/validate-postlaunch-batch3.mjs
+- scripts/validate-responsive-platform.mjs
+- src/components/guests/DocumentScanner.css
+- src/components/guests/DocumentScanner.jsx
+- src/components/guests/GuestIdentityCompliance.css
+- src/components/guests/GuestIdentityCompliance.jsx
+- src/lib/guestCompliance.js
+- src/pages/guests/GuestCommunications.css
+- src/pages/guests/GuestCommunications.jsx
+- src/pages/guests/GuestDirectory.css
+- src/pages/guests/GuestDirectory.jsx
+- src/pages/guests/Guests.jsx
+- supabase/audit/202608210092_postlaunch_batch3_ACCEPTANCE_REV1.sql
+- supabase/config.toml
+- supabase/functions/purge-guest-retention/deno.json
+- supabase/functions/purge-guest-retention/index.ts
+- supabase/functions/verify-aadhaar-offline/deno.json
+- supabase/functions/verify-aadhaar-offline/index.ts
+- supabase/functions/whatsapp-send/deno.json
+- supabase/functions/whatsapp-send/index.ts
+- supabase/functions/whatsapp-status-webhook/deno.json
+- supabase/functions/whatsapp-status-webhook/index.ts
+- supabase/migrations/202608210092_postlaunch_batch3_guest_identity_crm.sql
+- supabase/staging/202608210092_postlaunch_batch3_STAGING_APPLY_AND_ACCEPT.sql

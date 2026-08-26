@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfflinePaperlessKyc referenceId="999999999999" version="1.0">
+  <UidData>
+    <Poi name="SYNTHETIC TEST GUEST" dob="01-01-2000" gender="M"/>
+    <Poa house="TEST" street="TEST" dist="TEST" state="TEST" pc="000000" country="India"/>
+  </UidData>
+  <!-- Intentionally NO XML Digital Signature.
+       This file exists only to prove StayQR rejects unsigned Offline XML. -->
+</OfflinePaperlessKyc>

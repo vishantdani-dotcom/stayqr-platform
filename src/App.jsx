@@ -23,12 +23,14 @@ const Rooms = lazy(() => import('./pages/rooms/Rooms'))
 const CheckIn = lazy(() => import('./pages/checkin/CheckIn'))
 const Guests = lazy(() => import('./pages/guests/Guests'))
 const GuestGuide = lazy(() => import('./pages/guestguide/GuestGuide'))
+const RoomAccess = lazy(() => import('./pages/roomaccess/RoomAccess'))
 const FoodMenu = lazy(() => import('./pages/food/FoodMenu'))
 const FoodOrders = lazy(() => import('./pages/foodorders/FoodOrders'))
 const ServiceRequests = lazy(() => import('./pages/services/ServiceRequests'))
 const Payments = lazy(() => import('./pages/payments/Payments'))
 const FolioSettlement = lazy(() => import('./pages/folios/FolioSettlement'))
 const Amenities = lazy(() => import('./pages/amenities/Amenities'))
+const MediaManager = lazy(() => import('./pages/media/MediaManager'))
 const Charges = lazy(() => import('./pages/charges/Charges'))
 const Housekeeping = lazy(() => import('./pages/housekeeping/Housekeeping'))
 const Maintenance = lazy(() => import('./pages/maintenance/Maintenance'))
@@ -48,6 +50,7 @@ const Reservations = lazy(() => import('./pages/reservations/Reservations'))
 const BookingCalendar = lazy(() => import('./pages/calendar/BookingCalendar'))
 const ReservationOperations = lazy(() => import('./pages/operations/ReservationOperations'))
 const HotelOnboarding = lazy(() => import('./pages/onboarding/HotelOnboarding'))
+const SubscriptionCheckout = lazy(() => import('./pages/acquisition/SubscriptionCheckout'))
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/legal/TermsOfService'))
 const DataProcessingAgreement = lazy(() => import('./pages/legal/DataProcessingAgreement'))
@@ -76,6 +79,7 @@ const SECTION_TITLES = {
   housekeeping: 'housekeeping',
   maintenance: 'maintenance',
   amenities: 'amenities',
+  media: 'media manager',
   hotel: 'hotel profile',
   guidebuilder: 'guest guide builder',
   reports: 'reports',
@@ -146,9 +150,11 @@ export default function App() {
       setActiveSection((currentSection) =>
         canAccessSection(context.currentRole, currentSection, context.permissions)
           ? currentSection
-          : context.isPlatformAdmin
-            ? 'superadmin'
-            : 'dashboard'
+          : context.isPlatformSupportMode
+            ? 'dashboard'
+            : context.isPlatformAdmin
+              ? 'superadmin'
+              : 'dashboard'
       )
     } catch (error) {
       console.error('StayQR tenant context error:', error)
@@ -237,6 +243,19 @@ export default function App() {
 
     return () => subscription.unsubscribe()
   }, [initAuth, loadUserContext])
+
+  useEffect(() => {
+    const expiresAt = tenantContext?.activeSupportSession?.expires_at
+    if (!tenantContext?.isPlatformSupportMode || !expiresAt) return undefined
+
+    const expiresInMs = Math.max(0, new Date(expiresAt).getTime() - Date.now())
+    const timer = window.setTimeout(() => {
+      clearSelectedTenantHotel()
+      loadUserContext()
+    }, Math.min(expiresInMs + 250, 2147483000))
+
+    return () => window.clearTimeout(timer)
+  }, [loadUserContext, tenantContext?.activeSupportSession?.expires_at, tenantContext?.isPlatformSupportMode])
 
   useEffect(() => {
     const handleExternalNavigation = (event) => {
@@ -340,6 +359,14 @@ export default function App() {
     )
   }
 
+  if (window.location.pathname.startsWith('/room/')) {
+    return (
+      <StandaloneRouteBoundary routeKey="permanent-room-access" label="room access">
+        <RoomAccess />
+      </StandaloneRouteBoundary>
+    )
+  }
+
   if (
   window.location.pathname.startsWith('/guest/') ||
   window.location.pathname.startsWith('/g/')
@@ -384,7 +411,37 @@ export default function App() {
   if (!session) {
     return (
       <StandaloneRouteBoundary routeKey="login" label="secure login">
-        <Login />
+        <Login initialMode={authPath === '/signup' ? 'signup' : 'login'} />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (['/checkout', '/checkout/success', '/checkout/recover'].includes(authPath)) {
+    return (
+      <StandaloneRouteBoundary routeKey={authPath} label="subscription checkout">
+        <SubscriptionCheckout
+          session={session}
+          routeMode={
+            authPath === '/checkout/success'
+              ? 'success'
+              : authPath === '/checkout/recover'
+                ? 'recover'
+                : 'checkout'
+          }
+        />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (authPath === '/setup' && tenantContext?.selectedHotel) {
+    return (
+      <StandaloneRouteBoundary routeKey="hotel-setup" label="hotel setup">
+        <HotelOnboarding
+          session={session}
+          tenantContext={tenantContext}
+          onHotelReady={handleOnboardingReady}
+          standalone
+        />
       </StandaloneRouteBoundary>
     )
   }
@@ -434,9 +491,11 @@ export default function App() {
       setActiveSection((currentSection) =>
         canAccessSection(nextContext.currentRole, currentSection, nextContext.permissions)
           ? currentSection
-          : nextContext.isPlatformAdmin
-            ? 'superadmin'
-            : 'dashboard'
+          : nextContext.isPlatformSupportMode
+            ? 'dashboard'
+            : nextContext.isPlatformAdmin
+              ? 'superadmin'
+              : 'dashboard'
       )
     } catch (error) {
       console.error('Hotel switch failed:', error)
@@ -448,13 +507,71 @@ export default function App() {
     }
   }
 
-  const handleNavigate = (section) => {
+  const handleAuditedHotelView = async (hotelId) => {
+    if (!hotelId || switchingHotelId) return
+
+    setSwitchingHotelId(hotelId)
+    setHotelSwitchError('')
+
+    try {
+      const nextContext = await selectTenantHotel(hotelId)
+
+      if (!nextContext?.selectedHotel || !nextContext?.isPlatformSupportMode) {
+        throw new Error('StayQR could not enter the audited View as Hotel session.')
+      }
+
+      setTenantContext(nextContext)
+      setCurrentStaff(nextContext.currentStaff)
+      setCurrentRole(nextContext.currentRole)
+      setOnboardingRequired(false)
+      setNavigationRequest(null)
+      setMobileMenuOpen(false)
+      setActiveSection('dashboard')
+    } catch (error) {
+      console.error('Audited hotel view failed:', error)
+      setHotelSwitchError(
+        error?.message || 'StayQR could not enter the audited hotel session.'
+      )
+      throw error
+    } finally {
+      setSwitchingHotelId(null)
+    }
+  }
+
+  const handleReturnToPlatform = async () => {
+    setHotelSwitchError('')
+    clearSelectedTenantHotel()
+
+    try {
+      const nextContext = await loadTenantContext({ force: true })
+      setTenantContext(nextContext)
+      setCurrentStaff(nextContext?.currentStaff || null)
+      setCurrentRole(nextContext?.currentRole || 'platform_admin')
+      setNavigationRequest(null)
+      setMobileMenuOpen(false)
+      setActiveSection('superadmin')
+    } catch (error) {
+      console.error('Return to platform scope failed:', error)
+      setHotelSwitchError(
+        error?.message || 'StayQR could not return to platform scope.'
+      )
+    }
+  }
+
+  const handleNavigate = (section, detail = null) => {
     if (!canAccessSection(currentRole, section, tenantContext?.permissions || [])) {
       alert('You do not have access to this section.')
       return
     }
 
-    setNavigationRequest(null)
+    setNavigationRequest(
+      detail
+        ? {
+            ...detail,
+            requestId: `${Date.now()}-${detail.entityId || section}`,
+          }
+        : null
+    )
     setActiveSection(section)
     setMobileMenuOpen(false)
   }
@@ -478,6 +595,7 @@ export default function App() {
           <Dashboard
             hotel={tenantContext?.selectedHotel || null}
             staff={currentStaff}
+            onNavigate={handleNavigate}
           />
         )
       case 'rooms':
@@ -526,6 +644,8 @@ export default function App() {
         return <Maintenance hotel={tenantContext?.selectedHotel || null} />
       case 'amenities':
         return <Amenities />
+      case 'media':
+        return <MediaManager />
       case 'hotel':
         return <HotelProfile />
       case 'guidebuilder':
@@ -537,6 +657,9 @@ export default function App() {
           <OperationsCenter
             hotel={tenantContext?.selectedHotel || null}
             currentRole={currentRole}
+            initialTab={navigationRequest?.initialTab || 'notifications'}
+            initialAction={navigationRequest?.initialAction || null}
+            navigationRequestId={navigationRequest?.requestId || null}
           />
         )
       case 'settings':
@@ -560,7 +683,7 @@ export default function App() {
       case 'staff':
         return <StaffManagement />
       case 'superadmin':
-        return <SuperAdmin onNavigate={handleNavigate} />
+        return <SuperAdmin onNavigate={handleNavigate} onViewHotel={handleAuditedHotelView} />
       case 'onboarding':
         return (
           <HotelOnboarding
@@ -589,6 +712,7 @@ export default function App() {
         onHotelChange={handleHotelChange}
         switchingHotelId={switchingHotelId}
         hotelSwitchError={hotelSwitchError}
+        onReturnToPlatform={handleReturnToPlatform}
       />
 
       {mobileMenuOpen && (
@@ -599,10 +723,7 @@ export default function App() {
       )}
 
       <div
-        className="app-main"
-        style={{
-          marginLeft: sidebarCollapsed ? 64 : 'var(--sidebar-w)',
-        }}
+        className={`app-main${sidebarCollapsed ? ' app-main--sidebar-collapsed' : ''}`}
       >
         <Navbar
           sidebarCollapsed={sidebarCollapsed}
@@ -614,6 +735,8 @@ export default function App() {
           onHotelChange={handleHotelChange}
           switchingHotelId={switchingHotelId}
           hotelSwitchError={hotelSwitchError}
+          onNavigate={handleNavigate}
+          onReturnToPlatform={handleReturnToPlatform}
         />
 
         <main

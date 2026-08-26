@@ -2,6 +2,7 @@
 import './Sidebar.css'
 import { normalizeRole, canAccessSection } from '../../lib/currentStaff'
 import HotelSwitcher from '../hotel/HotelSwitcher'
+import stayqrLogo from '../../assets/stayqr-logo.png'
 
 const NAV_ITEMS = [
   {
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
       { id: 'housekeeping', label: 'Housekeeping', icon: BellIcon, badge: null },
       { id: 'maintenance', label: 'Maintenance', icon: SettingsIcon, badge: null },
       { id: 'amenities', label: 'Amenities', icon: StarIcon, badge: null },
+      { id: 'media', label: 'Media Manager', icon: BuildingIcon, badge: null },
     ],
   },
   {
@@ -59,8 +61,11 @@ export default function Sidebar({
   onHotelChange,
   switchingHotelId,
   hotelSwitchError,
+  onReturnToPlatform,
 }) {
   const role = normalizeRole(currentRole || currentStaff?.role)
+  const isPlatformAccount = Boolean(tenantContext?.isPlatformAdmin)
+  const isPlatformSupportMode = Boolean(tenantContext?.isPlatformSupportMode)
   const userName = currentStaff?.full_name || 'Admin'
   const userRole = currentStaff?.role || role
 
@@ -76,16 +81,11 @@ export default function Sidebar({
       }`}
     >
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">
-          <QrSquareIcon />
-        </div>
-
-        {!collapsed && (
-          <div className="sidebar-logo-text">
-            <span className="sidebar-brand">StayQR</span>
-            <span className="sidebar-brand-sub">Admin</span>
-          </div>
-        )}
+        <img
+          className={`sidebar-logo-image ${collapsed ? 'compact' : ''}`}
+          src={stayqrLogo}
+          alt="StayQR"
+        />
 
         <button
           className="sidebar-toggle"
@@ -99,13 +99,29 @@ export default function Sidebar({
 
       {!collapsed && (
         <div className="sidebar-hotel-switcher-wrap">
-          <HotelSwitcher
-            tenantContext={tenantContext}
-            onHotelChange={onHotelChange}
-            switchingHotelId={switchingHotelId}
-            error={hotelSwitchError}
-            variant="sidebar"
-          />
+          {isPlatformAccount ? (
+            <div className="sidebar-platform-scope">
+              <strong>{isPlatformSupportMode ? 'View as Hotel' : 'StayQR platform'}</strong>
+              <span>
+                {isPlatformSupportMode
+                  ? `${tenantContext?.selectedHotel?.hotel_name || 'Hotel'} · audited access active`
+                  : 'Use Super Admin for timed hotel support access.'}
+              </span>
+              {isPlatformSupportMode && (
+                <button type="button" className="sidebar-platform-return" onClick={onReturnToPlatform}>
+                  Return to Super Admin
+                </button>
+              )}
+            </div>
+          ) : (
+            <HotelSwitcher
+              tenantContext={tenantContext}
+              onHotelChange={onHotelChange}
+              switchingHotelId={switchingHotelId}
+              error={hotelSwitchError}
+              variant="sidebar"
+            />
+          )}
         </div>
       )}
 
@@ -398,17 +414,6 @@ function SettingsIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="3" />
       <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
-    </svg>
-  )
-}
-
-function QrSquareIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="8" height="8" rx="1" />
-      <rect x="14" y="2" width="8" height="8" rx="1" />
-      <rect x="2" y="14" width="8" height="8" rx="1" />
-      <path d="M14 14h2v2h-2z M18 14h2 M14 18h2 M18 18h2v2h-2z M20 16v2" />
     </svg>
   )
 }

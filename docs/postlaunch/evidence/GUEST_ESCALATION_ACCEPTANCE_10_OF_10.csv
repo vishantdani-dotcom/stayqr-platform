@@ -1,0 +1,11 @@
+seq,check_name,passed,details
+1,management_escalation_rpc_path_present,true,Existing signed guest-service RPC remains installed.
+2,every_hotel_has_exactly_one_management_type,true,5 hotel(s) checked.
+3,management_type_active_guest_visible,true,All Management Escalation rows are active and guest-visible.
+4,management_department_routing,true,Management Escalation routes to management.
+5,management_priority_urgent,true,Management Escalation defaults to urgent priority.
+6,management_sla_configured,true,"ETA, SLA and escalation timing are configured."
+7,management_escalation_non_chargeable_contract,true,Non-chargeable contract: charge_enabled=false and default_charge_amount=NULL.
+8,apex_management_escalation_ready,true,hotel-apex-stay-inn
+9,future_hotel_seed_trigger_present,true,Future hotels automatically receive the Management Escalation type.
+10,no_duplicate_management_catalogue_rows,true,No hotel has an ambiguous duplicate Management Escalation catalogue row.

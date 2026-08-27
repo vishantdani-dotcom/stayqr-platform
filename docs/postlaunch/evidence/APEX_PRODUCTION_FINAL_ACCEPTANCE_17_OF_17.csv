@@ -1,0 +1,18 @@
+seq,check_name,passed,details
+1,apex_real_hotel_exists,true,Hotel Apex Stay Inn / hotel-apex-stay-inn
+2,reservation_canary_checked_out,true,status=completed checked_out=2026-08-27 20:12:06.622365+00
+3,reservation_qr_access_closed,true,active reservation-canary tokens=0
+4,reservation_folio_reconciled,true,status=settled charges=2060.00 collections=2060.00 balance=0.00
+5,reservation_invoice_reconciled,true,invoice=HOTE-INV/2026-27/000002 status=paid payment=paid total=2060.00 paid=2060.00 pending=0
+6,reservation_food_delivered_once,true,food_orders=1 latest_status=delivered folio_item=b9c5f043-377c-4a86-92ea-2c90f407acd6
+7,reservation_service_completed,true,status=completed completed_at=2026-08-27 20:10:16.297848+00
+8,reservation_housekeeping_room_closed,true,hk=ready room=available
+9,walkin_canary_checked_out,true,status=completed checked_out=2026-08-27 20:16:54.441014+00
+10,walkin_folio_reconciled,true,status=settled charges=2060.00 collections=2060.00 balance=0.00
+11,walkin_invoice_reconciled,true,invoice=HOTE-INV/2026-27/000003 status=paid payment=paid total=2060.00 paid=2060.00 pending=0
+12,walkin_housekeeping_room_closed,true,hk=ready room=available
+13,apex_subscription_active_paid,true,plan=GROWTH status=active mode=paid provider=cashfree
+14,apex_active_owner_present,true,active linked owners=1
+15,no_open_critical_production_errors,true,open critical production errors=0
+16,no_open_urgent_apex_support_ticket,true,open urgent Apex support tickets=0
+17,invoice_allocator_hardening_present,true,Day 20F invoice allocator hardening present

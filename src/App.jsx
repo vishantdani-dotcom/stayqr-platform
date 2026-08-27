@@ -61,6 +61,8 @@ const SupportEscalationPolicy = lazy(() => import('./pages/legal/SupportEscalati
 const SubscriptionPolicy = lazy(() => import('./pages/legal/SubscriptionPolicy'))
 const SecurityResponsibleDisclosure = lazy(() => import('./pages/legal/SecurityResponsibleDisclosure'))
 const CookieBrowserStorageNotice = lazy(() => import('./pages/legal/CookieBrowserStorageNotice'))
+const RevenueGrowth = lazy(() => import('./pages/revenue/RevenueGrowth'))
+const PublicBooking = lazy(() => import('./pages/publicbooking/PublicBooking'))
 
 const SECTION_TITLES = {
   dashboard: 'dashboard',
@@ -89,6 +91,7 @@ const SECTION_TITLES = {
   staff: 'staff management',
   superadmin: 'platform administration',
   onboarding: 'hotel onboarding',
+  revenue: 'revenue growth',
 }
 
 import './styles/globals.css'
@@ -347,6 +350,14 @@ export default function App() {
     return (
       <StandaloneRouteBoundary routeKey="cookie-browser-storage-notice" label="cookie and browser storage notice">
         <CookieBrowserStorageNotice />
+      </StandaloneRouteBoundary>
+    )
+  }
+
+  if (window.location.pathname.startsWith('/book/')) {
+    return (
+      <StandaloneRouteBoundary routeKey="public-booking" label="direct hotel booking">
+        <PublicBooking />
       </StandaloneRouteBoundary>
     )
   }
@@ -652,6 +663,13 @@ export default function App() {
         return <GuestGuideBuilder />
       case 'reports':
         return <Reports />
+      case 'revenue':
+        return (
+          <RevenueGrowth
+            hotel={tenantContext?.selectedHotel || null}
+            onNavigate={handleNavigate}
+          />
+        )
       case 'operationscenter':
         return (
           <OperationsCenter

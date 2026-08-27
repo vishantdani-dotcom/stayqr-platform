@@ -50,6 +50,7 @@ const HOTEL_ADMIN_ACCESS = [
   'invoices',
   'settings',
   'onboarding',
+  'revenue',
 ]
 
 export const ROLE_ACCESS = {
@@ -67,6 +68,7 @@ export const ROLE_ACCESS = {
     'folios',
     'services',
     'invoices',
+    'revenue',
   ],
   front_desk: [
     'dashboard',
@@ -80,6 +82,7 @@ export const ROLE_ACCESS = {
     'folios',
     'services',
     'invoices',
+    'revenue',
   ],
   frontdesk: [
     'dashboard',
@@ -93,10 +96,11 @@ export const ROLE_ACCESS = {
     'folios',
     'services',
     'invoices',
+    'revenue',
   ],
   housekeeping: ['dashboard', 'rooms', 'housekeeping', 'maintenance', 'services'],
   restaurant: ['dashboard', 'menu', 'foodorders'],
-  accounts: ['dashboard', 'payments', 'folios', 'charges', 'reports', 'invoices', 'operationscenter'],
+  accounts: ['dashboard', 'payments', 'folios', 'charges', 'reports', 'invoices', 'operationscenter', 'revenue'],
   platform_admin: ['superadmin'],
   super_admin: ['superadmin'],
 }
@@ -140,6 +144,7 @@ const SECTION_PERMISSION = {
   hotel: 'hotel.manage',
   guidebuilder: 'hotel.manage',
   reports: 'reports.view',
+  revenue: 'reservations.view',
   invoices: 'invoices.view',
   settings: 'hotel.manage',
   operationscenter: 'hotel.manage',
@@ -164,6 +169,19 @@ export function canAccessSection(role, section, permissions = []) {
   }
 
   if (Array.isArray(permissions) && permissions.length > 0) {
+    if (section === 'revenue') {
+      return permissions.some((permission) =>
+        [
+          'reservations.view',
+          'reservations.manage',
+          'payments.view',
+          'payments.manage',
+          'reports.view',
+          'hotel.manage',
+        ].includes(permission)
+      )
+    }
+
     return hasPermission(permissions, SECTION_PERMISSION[section])
   }
 

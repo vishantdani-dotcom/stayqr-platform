@@ -220,7 +220,7 @@ export async function recordUidaiSecureQrVerification({
 }
 
 export async function getWhatsAppProviderReadiness(hotelId) {
-  const [profileResult, templateResult] = await Promise.all([
+  const [profileResult, templateResult, settingsResult, healthResult] = await Promise.all([
     supabase
       .from("hotel_whatsapp_provider_profiles")
       .select("hotel_id, provider, business_account_id, phone_number_id, sender_display_name, status, last_verified_at")
@@ -232,11 +232,25 @@ export async function getWhatsAppProviderReadiness(hotelId) {
       .eq("hotel_id", hotelId)
       .eq("status", "published")
       .order("updated_at", { ascending: false }),
+    supabase
+      .from("whatsapp_channel_settings")
+      .select("hotel_id, channel_enabled, transactional_enabled, marketing_enabled, failure_threshold, cooldown_minutes, updated_at")
+      .eq("hotel_id", hotelId)
+      .maybeSingle(),
+    supabase
+      .from("whatsapp_delivery_health")
+      .select("hotel_id, circuit_state, failure_streak, cooldown_until, last_success_at, last_failure_at, last_error_code, updated_at")
+      .eq("hotel_id", hotelId)
+      .maybeSingle(),
   ]);
   if (profileResult.error) throw profileResult.error;
   if (templateResult.error) throw templateResult.error;
+  if (settingsResult.error && !["42P01", "PGRST205"].includes(settingsResult.error.code)) throw settingsResult.error;
+  if (healthResult.error && !["42P01", "PGRST205"].includes(healthResult.error.code)) throw healthResult.error;
   return {
     profile: profileResult.data || null,
     templates: templateResult.data || [],
+    settings: settingsResult.data || null,
+    health: healthResult.data || null,
   };
 }

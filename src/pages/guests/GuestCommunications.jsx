@@ -25,6 +25,8 @@ export default function GuestCommunications({ currentHotel, onNotice }) {
   const [recipients, setRecipients] = useState([]);
   const [providerProfile, setProviderProfile] = useState(null);
   const [templates, setTemplates] = useState([]);
+  const [channelSettings, setChannelSettings] = useState(null);
+  const [deliveryHealth, setDeliveryHealth] = useState(null);
   const [search, setSearch] = useState("");
   const [consentFilter, setConsentFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState([]);
@@ -66,6 +68,8 @@ export default function GuestCommunications({ currentHotel, onNotice }) {
       setRecipients(recipientResult.data || []);
       setProviderProfile(providerReadiness.profile);
       setTemplates(providerReadiness.templates);
+      setChannelSettings(providerReadiness.settings);
+      setDeliveryHealth(providerReadiness.health);
     } catch (error) {
       console.error("Guest communications load error:", error);
       onNotice?.("error", error.message || "Unable to load communication audience.");
@@ -113,7 +117,7 @@ export default function GuestCommunications({ currentHotel, onNotice }) {
     [approvedTemplates, campaign.templateLanguage, campaign.templateName]
   );
 
-  const metaReady = providerProfile?.status === "active" && approvedTemplates.length > 0;
+  const metaReady = providerProfile?.status === "active" && approvedTemplates.length > 0 && channelSettings?.channel_enabled === true && deliveryHealth?.circuit_state !== "open";
 
   async function changeConsent(row, purpose, grant) {
     if (grant && !window.confirm(`Confirm that ${row.full_name || "this guest"} explicitly consented to receive ${purpose} WhatsApp messages from this hotel.`)) {

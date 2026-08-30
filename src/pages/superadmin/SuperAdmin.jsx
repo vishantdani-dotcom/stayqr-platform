@@ -1697,10 +1697,10 @@ function SafeSupportForm({ hotel, onCancel, onError, onSuccess }) {
 
   return (
     <form className="commercial-form" onSubmit={submit}>
-      <div className="security-callout"><strong>No silent impersonation</strong><span>This creates an explicit, time-bound and immutable View as Hotel audit trail. After starting it, StayQR enters that hotel through this audited session only.</span></div>
+      <div className="security-callout"><strong>No silent impersonation</strong><span>This creates an explicit, time-bound and immutable View as Hotel audit trail. V1.1-C allows one active support session per Platform Admin, for up to 120 minutes, and never extends expiry through activity.</span></div>
       <div className="dialog-context-card"><div><span>Hotel</span><strong>{hotel.hotel_name}</strong></div><div><span>Lifecycle</span><StatusBadge status={hotel.lifecycle_status || hotel.subscription_status} /></div></div>
       <Field label="Reason"><textarea required rows="4" value={reason} onChange={(event) => setReason(event.target.value)} /></Field>
-      <Field label="Duration"><select value={duration} onChange={(event) => setDuration(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">2 hours</option><option value="240">4 hours</option></select></Field>
+      <Field label="Duration"><select value={duration} onChange={(event) => setDuration(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">2 hours (maximum)</option></select></Field>
       <Field label="Permissions"><div className="permission-grid">{permissionOptions.map((permission) => <label key={permission}><input type="checkbox" checked={permissions.includes(permission)} onChange={() => togglePermission(permission)} />{humanize(permission)}</label>)}</div></Field>
       <FormActions onCancel={onCancel} busy={busy} submitLabel="Start View as Hotel" />
     </form>

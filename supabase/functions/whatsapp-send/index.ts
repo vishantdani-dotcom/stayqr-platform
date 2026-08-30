@@ -99,6 +99,27 @@ Deno.serve(async (request) => {
     if (providerProfileError) throw providerProfileError;
     if (!providerProfile?.phone_number_id) throw new Error('This hotel does not have an active hotel-owned Meta Cloud sender configured.');
 
+    const { data: channelSettings, error: channelSettingsError } = await admin
+      .from('whatsapp_channel_settings')
+      .select('channel_enabled,transactional_enabled,marketing_enabled,failure_threshold,cooldown_minutes')
+      .eq('hotel_id', recipient.hotel_id).maybeSingle();
+    if (channelSettingsError && !['42P01', 'PGRST205'].includes(channelSettingsError.code || '')) throw channelSettingsError;
+    if (!channelSettings?.channel_enabled) throw new Error('Automated WhatsApp is disabled for this hotel.');
+    if (campaign.purpose === 'marketing' && !channelSettings.marketing_enabled) throw new Error('Marketing WhatsApp delivery is disabled for this hotel.');
+    if (campaign.purpose !== 'marketing' && channelSettings.transactional_enabled === false) throw new Error('Transactional WhatsApp delivery is disabled for this hotel.');
+
+    const { data: deliveryHealth, error: deliveryHealthError } = await admin
+      .from('whatsapp_delivery_health')
+      .select('circuit_state,failure_streak,success_streak,cooldown_until')
+      .eq('hotel_id', recipient.hotel_id).maybeSingle();
+    if (deliveryHealthError && !['42P01', 'PGRST205'].includes(deliveryHealthError.code || '')) throw deliveryHealthError;
+    if (deliveryHealth?.circuit_state === 'open' && deliveryHealth.cooldown_until && new Date(deliveryHealth.cooldown_until).getTime() > Date.now()) {
+      return json(request, 503, { ok: false, error: 'WhatsApp provider circuit is temporarily open after repeated provider failures.' });
+    }
+    if (deliveryHealth?.circuit_state === 'open') {
+      await admin.from('whatsapp_delivery_health').upsert({ hotel_id: recipient.hotel_id, circuit_state: 'half_open', last_attempt_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+    }
+
     const { data: approvedTemplate, error: templateError } = await admin
       .from('whatsapp_templates')
       .select('id,template_name,locale,provider_name,provider_status,provider_language,status')
@@ -239,6 +260,11 @@ Deno.serve(async (request) => {
         }).eq('id', campaign.id).eq('hotel_id', recipient.hotel_id);
       }
 
+      await admin.from('whatsapp_delivery_health').upsert({
+        hotel_id: recipient.hotel_id, circuit_state: 'closed', failure_streak: 0,
+        success_streak: Number(deliveryHealth?.success_streak || 0) + 1, opened_at: null, cooldown_until: null,
+        last_attempt_at: sentAt, last_success_at: sentAt, last_error_code: null, last_error_message: null, updated_at: sentAt,
+      });
       return json(request, 200, { ok: true, idempotent: false, status: 'sent', provider_message_id: providerMessageId });
     } catch (providerError) {
       const failureMessage = String(providerError instanceof Error ? providerError.message : 'Meta WhatsApp delivery failed.').slice(0, 500);
@@ -253,6 +279,17 @@ Deno.serve(async (request) => {
         recipient_id: recipient.id, channel: 'whatsapp', event_type: 'failed', actor_user_id: user.id,
         metadata: { provider_http_status: providerHttpStatus, message: failureMessage },
       }, { onConflict: 'recipient_id,event_type', ignoreDuplicates: true });
+      const nextFailureStreak = Number(deliveryHealth?.failure_streak || 0) + 1;
+      const threshold = Math.max(2, Number(channelSettings?.failure_threshold || 3));
+      const cooldownMinutes = Math.max(5, Number(channelSettings?.cooldown_minutes || 15));
+      const shouldOpen = nextFailureStreak >= threshold;
+      await admin.from('whatsapp_delivery_health').upsert({
+        hotel_id: recipient.hotel_id, circuit_state: shouldOpen ? 'open' : 'closed',
+        failure_streak: nextFailureStreak, success_streak: 0, opened_at: shouldOpen ? failedAt : null,
+        cooldown_until: shouldOpen ? new Date(Date.now() + cooldownMinutes * 60_000).toISOString() : null,
+        last_attempt_at: failedAt, last_failure_at: failedAt, last_error_code: providerCode,
+        last_error_message: failureMessage, updated_at: failedAt,
+      });
       return json(request, 502, { ok: false, error: failureMessage });
     }
   } catch (error) {

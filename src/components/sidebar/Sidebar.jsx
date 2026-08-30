@@ -16,6 +16,7 @@ const NAV_ITEMS = [
       { id: 'guests', label: 'Guests', icon: UsersIcon, badge: null },
       { id: 'checkin', label: 'Check-In/Out', icon: KeyIcon, badge: null },
       { id: 'revenue', label: 'Revenue Growth', icon: ChartIcon, badge: 'v1.1' },
+      { id: 'platformhub', label: 'Platform Hub', icon: BuildingIcon, badge: 'v1.1' },
       { id: 'menu', label: 'Menu Management', icon: '🍽️', badge: null },
       { id: 'staff', label: 'Staff', icon: '👥', badge: null },
     ],

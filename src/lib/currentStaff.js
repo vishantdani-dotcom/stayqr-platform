@@ -51,6 +51,7 @@ const HOTEL_ADMIN_ACCESS = [
   'settings',
   'onboarding',
   'revenue',
+  'opsautomation',
 ]
 
 export const ROLE_ACCESS = {
@@ -98,9 +99,9 @@ export const ROLE_ACCESS = {
     'invoices',
     'revenue',
   ],
-  housekeeping: ['dashboard', 'rooms', 'housekeeping', 'maintenance', 'services'],
-  restaurant: ['dashboard', 'menu', 'foodorders'],
-  accounts: ['dashboard', 'payments', 'folios', 'charges', 'reports', 'invoices', 'operationscenter', 'revenue'],
+  housekeeping: ['dashboard', 'rooms', 'housekeeping', 'maintenance', 'services', 'opsautomation'],
+  restaurant: ['dashboard', 'menu', 'foodorders', 'opsautomation'],
+  accounts: ['dashboard', 'payments', 'folios', 'charges', 'reports', 'invoices', 'operationscenter', 'revenue', 'opsautomation'],
   platform_admin: ['superadmin'],
   super_admin: ['superadmin'],
 }
@@ -145,6 +146,7 @@ const SECTION_PERMISSION = {
   guidebuilder: 'hotel.manage',
   reports: 'reports.view',
   revenue: 'reservations.view',
+  opsautomation: 'hotel.manage',
   invoices: 'invoices.view',
   settings: 'hotel.manage',
   operationscenter: 'hotel.manage',
@@ -169,6 +171,22 @@ export function canAccessSection(role, section, permissions = []) {
   }
 
   if (Array.isArray(permissions) && permissions.length > 0) {
+    if (section === 'opsautomation') {
+      return permissions.some((permission) =>
+        [
+          'services.view',
+          'services.manage',
+          'housekeeping.view',
+          'housekeeping.manage',
+          'foodorders.view',
+          'foodorders.manage',
+          'reports.view',
+          'rooms.view',
+          'hotel.manage',
+        ].includes(permission)
+      )
+    }
+
     if (section === 'revenue') {
       return permissions.some((permission) =>
         [

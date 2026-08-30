@@ -30,6 +30,7 @@ const NAV_ITEMS = [
       { id: 'foodorders', label: 'Food Orders', icon: CardIcon, badge: null },
       { id: 'charges', label: 'Charges', icon: DollarIcon, badge: null },
       { id: 'housekeeping', label: 'Housekeeping', icon: BellIcon, badge: null },
+      { id: 'opsautomation', label: 'Ops Automation', icon: SettingsIcon, badge: 'v1.1' },
       { id: 'maintenance', label: 'Maintenance', icon: SettingsIcon, badge: null },
       { id: 'amenities', label: 'Amenities', icon: StarIcon, badge: null },
       { id: 'media', label: 'Media Manager', icon: BuildingIcon, badge: null },

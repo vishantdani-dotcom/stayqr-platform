@@ -62,6 +62,7 @@ const SubscriptionPolicy = lazy(() => import('./pages/legal/SubscriptionPolicy')
 const SecurityResponsibleDisclosure = lazy(() => import('./pages/legal/SecurityResponsibleDisclosure'))
 const CookieBrowserStorageNotice = lazy(() => import('./pages/legal/CookieBrowserStorageNotice'))
 const RevenueGrowth = lazy(() => import('./pages/revenue/RevenueGrowth'))
+const OperationsAutomation = lazy(() => import('./pages/opsautomation/OperationsAutomation'))
 const PublicBooking = lazy(() => import('./pages/publicbooking/PublicBooking'))
 
 const SECTION_TITLES = {
@@ -92,6 +93,7 @@ const SECTION_TITLES = {
   superadmin: 'platform administration',
   onboarding: 'hotel onboarding',
   revenue: 'revenue growth',
+  opsautomation: 'operations automation',
 }
 
 import './styles/globals.css'
@@ -670,6 +672,8 @@ export default function App() {
             onNavigate={handleNavigate}
           />
         )
+      case 'opsautomation':
+        return <OperationsAutomation hotel={tenantContext?.selectedHotel || null} />
       case 'operationscenter':
         return (
           <OperationsCenter

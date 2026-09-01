@@ -6,6 +6,7 @@ import {
   setGuestConsent,
   verifyAadhaarOfflineXml,
 } from "../../lib/guestCompliance";
+import { requestUidaiOnlineAuthentication } from "../../lib/commercialReady";
 import "./GuestIdentityCompliance.css";
 
 const MAX_OFFLINE_XML = 512 * 1024;
@@ -39,6 +40,7 @@ export default function GuestIdentityCompliance({
     dob: "",
     gender: "",
   });
+  const [onlineAuth, setOnlineAuth] = useState({ aadhaar: "", otp: "", requestId: "", status: "" });
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.status === "active") || null,
@@ -221,6 +223,48 @@ export default function GuestIdentityCompliance({
     }
   }
 
+  async function authenticateOnline(event) {
+    event.preventDefault();
+    if (!hasConsent(GUEST_CONSENT_PURPOSES.AADHAAR_ONLINE)) {
+      onNotice?.("error", "Record Aadhaar online authentication consent first.");
+      return;
+    }
+    const aadhaar = onlineAuth.aadhaar.replace(/\D/g, "");
+    if (!onlineAuth.requestId && aadhaar.length !== 12) {
+      onNotice?.("error", "Enter the guest's 12-digit Aadhaar number. It is sent only to the authorized provider and is not stored by StayQR.");
+      return;
+    }
+    if (onlineAuth.requestId && onlineAuth.otp.replace(/\D/g, "").length < 4) {
+      onNotice?.("error", "Enter the OTP received by the guest.");
+      return;
+    }
+    setBusy("uidai_online");
+    try {
+      const result = await requestUidaiOnlineAuthentication({
+        hotelId: currentHotel.id,
+        guestId: guest.id,
+        guestSessionId: activeSession?.id || null,
+        aadhaarNumber: aadhaar || null,
+        mode: "otp",
+        otp: onlineAuth.requestId ? onlineAuth.otp.replace(/\D/g, "") : null,
+        requestId: onlineAuth.requestId || null,
+      });
+      if (result.status === "otp_sent" || result.status === "pending_otp") {
+        setOnlineAuth({ aadhaar: "", otp: "", requestId: result.request_id, status: "OTP sent to the Aadhaar-linked mobile number." });
+        onNotice?.("success", "UIDAI authentication OTP requested. Aadhaar number was not retained.");
+      } else {
+        setOnlineAuth({ aadhaar: "", otp: "", requestId: "", status: result.status === "verified" ? "Online authentication verified." : `Provider status: ${result.status}` });
+        onNotice?.(result.status === "verified" ? "success" : "error", result.status === "verified" ? "Formal UIDAI online authentication verified." : `UIDAI provider returned ${result.status}.`);
+        await load();
+        await onChanged?.();
+      }
+    } catch (error) {
+      onNotice?.("error", error.message || "UIDAI online authentication failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   if (!canManage) {
     return (
       <section className="guest-identity-compliance guest-profile-section">
@@ -236,6 +280,7 @@ export default function GuestIdentityCompliance({
 
   const kycConsent = hasConsent(GUEST_CONSENT_PURPOSES.KYC_CAPTURE);
   const aadhaarConsent = hasConsent(GUEST_CONSENT_PURPOSES.AADHAAR_OFFLINE);
+  const aadhaarOnlineConsent = hasConsent(GUEST_CONSENT_PURPOSES.AADHAAR_ONLINE);
 
   return (
     <section className="guest-identity-compliance guest-profile-section guest-kyc-step-card">
@@ -263,6 +308,13 @@ export default function GuestIdentityCompliance({
           busy={busy === GUEST_CONSENT_PURPOSES.AADHAAR_OFFLINE}
           onGrant={() => changeConsent(GUEST_CONSENT_PURPOSES.AADHAAR_OFFLINE, true)}
           onRevoke={() => changeConsent(GUEST_CONSENT_PURPOSES.AADHAAR_OFFLINE, false)}
+        />
+        <ConsentCard
+          title="Aadhaar online authentication"
+          active={aadhaarOnlineConsent}
+          busy={busy === GUEST_CONSENT_PURPOSES.AADHAAR_ONLINE}
+          onGrant={() => changeConsent(GUEST_CONSENT_PURPOSES.AADHAAR_ONLINE, true)}
+          onRevoke={() => changeConsent(GUEST_CONSENT_PURPOSES.AADHAAR_ONLINE, false)}
         />
       </div>
 
@@ -403,6 +455,21 @@ export default function GuestIdentityCompliance({
         </div>
       </details>
 
+      <details className="guest-identity-methods">
+        <summary>
+          <div><strong>Formal UIDAI online authentication</strong><small>Available only after an authorized AUA/Sub-AUA provider is active.</small></div>
+          <span>{aadhaarOnlineConsent ? "Consent granted" : "Consent required"}</span>
+        </summary>
+        <div className="guest-identity-methods-body">
+          <form className="guest-identity-method-card guest-uidai-online" onSubmit={authenticateOnline}>
+            <div className="guest-identity-method-copy"><span className="guest-identity-method-icon" aria-hidden="true">OTP</span><div><strong>Authorized online OTP authentication</strong><p>StayQR sends the identity data directly to the configured authorized provider. Aadhaar number, OTP and PID are never written to the StayQR database.</p></div></div>
+            {!onlineAuth.requestId ? <label>Aadhaar number<input inputMode="numeric" autoComplete="off" maxLength="14" value={onlineAuth.aadhaar} onChange={(event) => setOnlineAuth((current) => ({ ...current, aadhaar: event.target.value.replace(/\D/g, "").slice(0, 12) }))} placeholder="12 digits — not stored" disabled={!aadhaarOnlineConsent || busy === "uidai_online"} /></label> : <label>OTP received by guest<input inputMode="numeric" autoComplete="one-time-code" maxLength="8" value={onlineAuth.otp} onChange={(event) => setOnlineAuth((current) => ({ ...current, otp: event.target.value.replace(/\D/g, "").slice(0, 8) }))} placeholder="Enter OTP" disabled={busy === "uidai_online"} /></label>}
+            <button type="submit" disabled={!aadhaarOnlineConsent || busy === "uidai_online"}>{busy === "uidai_online" ? "Contacting authorized provider…" : onlineAuth.requestId ? "Verify OTP" : "Request authentication OTP"}</button>
+            {onlineAuth.status && <div className="guest-xml-inline-notice info">{onlineAuth.status}</div>}
+          </form>
+        </div>
+      </details>
+
       {verifications.length > 0 && (
         <details className="guest-verification-evidence">
           <summary>
@@ -415,10 +482,11 @@ export default function GuestIdentityCompliance({
           <div className="guest-verification-list">
             {verifications.map((item) => {
               const secureReader = item.verification_method === "aadhaar_secure_qr_uidai_reader";
+              const onlineProvider = item.verification_method === "aadhaar_online_auth";
               return (
                 <article key={item.id}>
                   <div>
-                    <strong>{secureReader ? "UIDAI Secure QR Reader" : "UIDAI offline XML"}</strong>
+                    <strong>{onlineProvider ? "UIDAI online authentication" : secureReader ? "UIDAI Secure QR Reader" : "UIDAI offline XML"}</strong>
                     <span className={`guest-chip ${item.status === "verified" ? "verified" : "neutral"}`}>
                       {item.status}
                     </span>

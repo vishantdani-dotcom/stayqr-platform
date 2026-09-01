@@ -2,25 +2,24 @@
 
 const SUPPORTESCALATIONPOLICY_HTML = String.raw`
 <p>This Support + Escalation Policy describes StayQR’s standard customer-support channels, severity model, acknowledgement targets and escalation process for active StayQR subscriptions.</p>
-<h2>1. Support Channel</h2>
-<p>Primary support channel:</p>
-<p><strong>support@stayqr.in</strong></p>
+<h2>1. Support Channels</h2>
+<p>Primary support channel: the dedicated StayQR WhatsApp support number displayed inside the authenticated StayQR application after provider configuration.</p>
+<p>In-app support tickets and <strong>support@stayqr.in</strong> remain available as fallback channels.</p>
 <p>Support requests should include the Hotel/property name, affected feature, relevant time, screenshots/error details and sufficient information to reproduce or understand the issue.</p>
 <p>Do not email passwords, full payment-card details, unnecessary identity documents or service-role/API secrets.</p>
-<h2>2. Standard Staffed Support Hours</h2>
-<p>Standard staffed support hours are:</p>
-<p><strong>09:00–19:00 India Standard Time (IST), Monday–Saturday</strong></p>
-<p>Support requests may be submitted at any time.</p>
-<p>Critical reports submitted outside staffed hours are handled on a reasonable-efforts basis until staffed support resumes, unless a separately signed Enterprise / Custom agreement provides enhanced coverage.</p>
+<h2>2. 24×7 Support Coverage</h2>
+<p>Support requests may be submitted <strong>24 hours a day, 7 days a week</strong>.</p>
+<p>Critical after-hours incidents are escalated to the StayQR founder, who owns after-hours triage and coordination.</p>
+<p>24×7 intake and triage is not a guarantee of immediate final resolution. Provider dependencies, reproducibility, security controls and the availability of a safe workaround may affect restoration and resolution time.</p>
 <h2>3. Severity Levels</h2>
 <h3>P0 / Critical</h3>
 <p>Examples:</p>
 <ul><li>widespread core production outage;</li><li>confirmed tenant-isolation failure;</li><li>confirmed or reasonably suspected material security incident;</li><li>material data-loss or financial-integrity risk;</li><li>inability of multiple Hotels to access core production functionality with no reasonable workaround.</li></ul>
-<p><strong>Acknowledgement target:</strong> within 2 staffed-support hours.</p>
+<p><strong>Handling:</strong> immediate priority classification and after-hours founder escalation.</p>
 <h3>P1 / High</h3>
 <p>Examples:</p>
 <ul><li>major production feature materially unavailable;</li><li>severe degradation affecting normal Hotel operations;</li><li>important workflow blocked with no reasonable normal workaround.</li></ul>
-<p><strong>Acknowledgement target:</strong> within 4 staffed-support hours.</p>
+<p><strong>Handling:</strong> high-priority triage and escalation based on operational impact.</p>
 <h3>P2 / Medium</h3>
 <p>Examples:</p>
 <ul><li>partial impairment;</li><li>non-critical feature issue;</li><li>issue with a practical workaround;</li><li>isolated operational defect.</li></ul>
@@ -132,7 +131,7 @@ export default function SupportEscalationPolicy() {
         <article className="sq-legal-card">
           <h1>StayQR Support + Escalation Policy</h1>
           <p className="sq-legal-meta">
-            <strong>Effective Date:</strong> 17 August 2026 &nbsp; <strong>Last Updated:</strong> 17 August 2026
+            <strong>Effective Date:</strong> 17 August 2026 &nbsp; <strong>Last Updated:</strong> 01 September 2026
           </p>
           <div dangerouslySetInnerHTML={{ __html: SUPPORTESCALATIONPOLICY_HTML }} />
         </article>

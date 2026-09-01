@@ -65,6 +65,7 @@ const RevenueGrowth = lazy(() => import('./pages/revenue/RevenueGrowth'))
 const OperationsAutomation = lazy(() => import('./pages/opsautomation/OperationsAutomation'))
 const PlatformHub = lazy(() => import('./pages/platformhub/PlatformHub'))
 const PublicBooking = lazy(() => import('./pages/publicbooking/PublicBooking'))
+const OwnerBilling = lazy(() => import('./pages/billing/OwnerBilling'))
 
 const SECTION_TITLES = {
   dashboard: 'dashboard',
@@ -96,6 +97,7 @@ const SECTION_TITLES = {
   revenue: 'revenue growth',
   opsautomation: 'operations automation',
   platformhub: 'platform hub',
+  billing: 'owner billing',
 }
 
 import './styles/globals.css'
@@ -682,6 +684,14 @@ export default function App() {
             hotel={tenantContext?.selectedHotel || null}
             tenantContext={tenantContext}
             onHotelChange={handleHotelChange}
+            onNavigate={handleNavigate}
+          />
+        )
+      case 'billing':
+        return (
+          <OwnerBilling
+            hotel={tenantContext?.selectedHotel || null}
+            staff={currentStaff}
             onNavigate={handleNavigate}
           />
         )

@@ -224,6 +224,22 @@
   min-height: 38px;
 }
 
+.guest-uidai-online label {
+  display: grid;
+  gap: 6px;
+  color: #aaa;
+  font-size: 10px;
+}
+
+.guest-uidai-online input {
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid #303030;
+  border-radius: 9px;
+  background: #111;
+  color: #fff;
+}
+
 .guest-secure-qr-confirm {
   padding: 9px 10px;
   background: #0a0a0a;

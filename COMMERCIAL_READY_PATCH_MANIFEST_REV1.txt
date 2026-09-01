@@ -1,0 +1,43 @@
+StayQR Commercial-Ready Final Completion REV1 — Patch Manifest
+
+Modified from locked source
+.env.example
+package.json
+src/App.jsx
+src/components/guests/GuestIdentityCompliance.css
+src/components/guests/GuestIdentityCompliance.jsx
+src/components/sidebar/Sidebar.jsx
+src/lib/currentStaff.js
+src/lib/guestCompliance.js
+src/pages/dashboard/Dashboard.jsx
+src/pages/legal/SupportEscalationPolicy.jsx
+src/pages/operationscenter/OperationsCenter.jsx
+supabase/config.toml
+
+Added implementation
+src/components/cards/ActivationScore.css
+src/components/cards/ActivationScore.jsx
+src/lib/commercialReady.js
+src/pages/billing/OwnerBilling.css
+src/pages/billing/OwnerBilling.jsx
+supabase/functions/cashfree-recurring/index.ts
+supabase/functions/cashfree-subscription-webhook/index.ts
+supabase/functions/uidai-online-auth/index.ts
+supabase/migrations/202609010103_commercial_ready_final_completion_REV1.sql
+
+Added acceptance, operations and rollback
+scripts/validate-commercial-ready.mjs
+supabase/staging/202609010103_commercial_ready_FINAL_STAGING_APPLY_AND_ACCEPT.sql
+supabase/rollback/202609010103_commercial_ready_ROLLBACK_REV1.sql
+docs/commercial-ready/COMMERCIAL_READY_24X7_SUPPORT_RUNBOOK_REV1.md
+docs/commercial-ready/COMMERCIAL_READY_BROWSER_ACCEPTANCE_REV1.md
+docs/commercial-ready/COMMERCIAL_READY_PROVIDER_CONFIGURATION_REV1.md
+docs/commercial-ready/COMMERCIAL_READY_ROLLBACK_REV1.md
+README_COMMERCIAL_READY_FINAL_COMPLETION_REV1.md
+RUN_COMMERCIAL_READY_FINAL_COMPLETION_REV1.ps1
+RUN_COMMERCIAL_READY_STAGING_FUNCTIONS_REV1.ps1
+RUN_COMMERCIAL_READY_FINAL_ACCEPTANCE_AND_LOCK_REV1.ps1
+COMMERCIAL_READY_FINAL_VALIDATION_REV1.txt
+COMMERCIAL_READY_PATCH_MANIFEST_REV1.txt
+
+All other source files are preserved from the verified locked input package.

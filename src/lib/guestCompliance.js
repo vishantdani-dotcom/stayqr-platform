@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 export const GUEST_CONSENT_PURPOSES = Object.freeze({
   KYC_CAPTURE: "kyc_capture",
   AADHAAR_OFFLINE: "aadhaar_offline_verification",
+  AADHAAR_ONLINE: "aadhaar_online_authentication",
   WHATSAPP_TRANSACTIONAL: "whatsapp_transactional",
   WHATSAPP_MARKETING: "whatsapp_marketing",
   DATA_EXPORT: "data_export",

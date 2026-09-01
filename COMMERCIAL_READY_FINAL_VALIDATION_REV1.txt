@@ -1,0 +1,32 @@
+StayQR Commercial-Ready Final Completion REV1
+Validation date: 2026-09-01 UTC
+
+BASE SOURCE
+- Commit identity: 5f914d4cd049353e9926b26ffb1599e53a6f1772
+- Source ZIP SHA-256: C92CD5A75F2C007357A00C13835FD2770F2DD0C22134510734F0839E1B96740E
+- Source ZIP checksum result: PASS
+
+LOCAL SOURCE ACCEPTANCE
+- Commercial-Ready source validator: PASS 74/74
+- ESLint: PASS, 0 errors; 7 pre-existing hook warnings in untouched source files
+- Vite production build: PASS, 401 modules transformed
+- Cashfree recurring Edge Function syntax/bundle parse: PASS
+- Cashfree subscription webhook Edge Function syntax/bundle parse: PASS
+- UIDAI online authentication Edge Function syntax/bundle parse: PASS
+- Transactional migration PostgreSQL parse: PASS
+- Consolidated staging SQL PostgreSQL parse: PASS
+- Rollback SQL PostgreSQL parse: PASS
+- Staging acceptance inventory: 52 checks
+- Browser acceptance inventory: 50 checks
+
+SAFETY STATE
+- Production Git/DB/Netlify/Edge Functions changed: NO
+- Staging database/functions changed: NO
+- CASHFREE_SUBSCRIPTIONS_ENABLED default: false
+- WHATSAPP_AUTOMATION_ENABLED default: false
+- UIDAI_ONLINE_AUTH_ENABLED default: false
+- Provider credentials included: NO
+- Provider active status fabricated: NO
+
+The staging SQL and browser acceptance suites are supplied for execution against
+StayQR Staging. Their runtime results cannot be claimed before they are executed.

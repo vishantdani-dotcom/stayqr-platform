@@ -5,6 +5,7 @@ import HotelOverviewCard from '../../components/cards/HotelOverviewCard'
 import RoomsTable from '../../components/table/RoomsTable'
 import QuickActions from '../../components/buttons/QuickActions'
 import AddRoomModal from '../../components/modals/AddRoomModal'
+import ActivationScore from '../../components/cards/ActivationScore'
 import './Dashboard.css'
 
 const EMPTY_ANALYTICS = {
@@ -242,6 +243,14 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
       </section>
 
       <section className="dash-section">
+        <ActivationScore
+          hotelId={currentHotel?.id}
+          onNavigate={onNavigate}
+          refreshKey={lastFetch?.getTime?.() || 0}
+        />
+      </section>
+
+      <section className="dash-section">
         <div style={analyticsGrid}>
           <AnalyticsCard title="Total Rooms" value={analytics.totalRooms} icon="🏨" />
           <AnalyticsCard title="Available Rooms" value={analytics.availableRooms} icon="🟢" />
@@ -269,7 +278,7 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
         <div>
           <p className="dash-support-kicker">STAYQR SUPPORT</p>
           <h2>Need assistance?</h2>
-          <p>Support hours: 09:00–19:00 IST, Monday–Saturday.</p>
+          <p>24×7 support for critical incidents, with founder-owned after-hours escalation.</p>
         </div>
         <div className="dash-support-actions">
           <button

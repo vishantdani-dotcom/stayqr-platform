@@ -560,7 +560,7 @@ export default function OperationsCenter({
           <div className="d17-support-toolbar">
             <div>
               <strong>Need help from StayQR?</strong>
-              <span>Support hours: 09:00–19:00 IST, Monday–Saturday.</span>
+              <span>24×7 support intake. Critical after-hours incidents escalate to the StayQR founder.</span>
             </div>
             <button
               type="button"

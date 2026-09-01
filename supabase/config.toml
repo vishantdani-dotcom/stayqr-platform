@@ -18,10 +18,19 @@ verify_jwt = false
 [functions.cashfree-webhook]
 verify_jwt = false
 
+[functions.cashfree-recurring]
+verify_jwt = false
+
+[functions.cashfree-subscription-webhook]
+verify_jwt = false
+
 # Post-Launch Batch 3 / Batch C. These functions perform their own authorization
 # or webhook signature verification and therefore must bypass legacy gateway JWT
 # verification (the project uses asymmetric signing keys).
 [functions.verify-aadhaar-offline]
+verify_jwt = false
+
+[functions.uidai-online-auth]
 verify_jwt = false
 
 [functions.whatsapp-send]

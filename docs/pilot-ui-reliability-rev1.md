@@ -2,11 +2,12 @@
 
 Date: 3 September 2026 (Asia/Kolkata).
 
-Status: implemented locally and published to staging. **Not released to production.** Full live Food Orders and Housekeeping workflow acceptance remains pending a staging hotel owner/manager login.
+Status: implemented locally and published to staging. **Live staging Food Orders, checkout and Housekeeping acceptance passed on 3 September 2026. Not released to production.** The unrelated legacy validation blockers below remain open.
 
 ## Scope and deployment
 
 - Branch: `commercial-ready/final-completion`.
+- Implementation commit: `c8d923a583e0befbfca3f4618475d8843fd82565`.
 - Parent commit: `bdc5ae719992e193edd15cdd784b615591e37bdc`; initial working tree was clean.
 - Staging Supabase: `eecinuhvkxlbdvyuazal` only.
 - Staging Netlify site: `73c4d1f8-d264-4572-a670-2d4984b0a0a5` (`stayqr-pilot-staging`).
@@ -44,6 +45,8 @@ Files: `src/lib/dashboardAnalytics.js`; `src/pages/dashboard/Dashboard.jsx`; `sr
 | Staging artifact isolation | Staging reference present; production database reference and privileged-key markers absent |
 | Deployed HTTPS/security headers, immutable asset, SPA deep link | Pass |
 | Changed SQL | Executed and regression-tested on staging PostgreSQL |
+| Live owner-browser workflows | Food cancellation, zero-total checkout, housekeeping assignment/checklist/rework/pass/ready and task cancellation passed |
+| Read-only browser-fixture database acceptance | 18/18 pass; zero failed checks |
 | Edge Functions | Unchanged; no redeployment or new syntax validation required by this patch |
 | Whitespace/diff check | Pass |
 
@@ -62,7 +65,7 @@ The entire legacy `npm run check` is **not green**. Its Day 9 check expects `req
 
 The migration was applied explicitly using the staging project reference and SQL file, not through a blanket migration push. The inverse rollback file is supplied but **was not run**.
 
-## Browser evidence and remaining acceptance
+## Browser evidence
 
 The local fixture imports the actual shared dialog and has no authentication or network calls. Tested required/whitespace rejection without a submission, Back and Escape without a write, error/input retention, disabled saving controls, trimmed successful values, optional blank inspection notes, staff selection, no-active-staff protection, close/focus restoration, and desktop appearance.
 
@@ -70,4 +73,36 @@ To reproduce: run `npm run dev -- --host 127.0.0.1 --port 5174 --strictPort`, th
 
 An explicitly approved 60-minute, staging-only View as Hotel session used `hotel_configuration` and `read_only` for 20E Test Hotel. The deployed dashboard showed the new food-revenue label and explanation, zero food revenue, two available rooms and no active guests. That role deliberately does not permit Food Orders or Housekeeping (`src/lib/currentStaff.js`), so those restrictions were not bypassed or broadened. The support session was explicitly ended, verified in the database at **3 September 2026, 00:22:15 IST**.
 
-Next action: sign in to the staging preview as an existing owner or manager of 20E Test Hotel. Then validate the new cancellation/assignment/inspection dialogs against the existing trusted workflows, using clearly labelled staging-only fixtures and no payment collection. A separate explicit approval is still required for any production rollout. Keep Cashfree disabled.
+### Completed live owner acceptance
+
+The user then signed in as the existing owner of **20E Test Hotel** on the correct staging preview. No new support session or additional permission was granted. Testing used room 102 and a synthetic guest labelled `STAGING QA UI c8d923a`, with no guest contact or identity details.
+
+- Ordered one existing `coke` item for INR 20 through the signed guest menu. Food cancellation rejected a whitespace-only reason; Back closed without changing the order. A valid reason cancelled the order once, and both the kitchen and guest views agreed. Dashboard Food Orders Today was 1 while Food Revenue Today remained INR 0.
+- Checked out the synthetic INR 2,500 room charge with a full complimentary discount. The UI correctly showed zero total, paid and remaining amounts and explicitly said no collection would be recorded. The invoice, checkout event and cleaning-task note all reference `20ET-INV/2026-27/000011`. There are **zero payment collection records** for this stay; a room-charge ledger entry is not money collected.
+- Housekeeping assignment rejected an empty selection and accepted the existing active hotel owner. Completion was blocked until all eight required checklist items were checked. A whitespace-only inspection failure reason was rejected; a valid simulated reason produced a failed inspection and an audited rework cycle. Escape dismissed the pass dialog without passing; optional blank notes were accepted on the subsequent submission. Explicit room-ready approval restored room 102 to available.
+- A separate, clearly labelled dummy room-cleaning task tested cancellation. Whitespace was rejected and Back made no change; the valid cancellation was recorded exactly once. No open tasks remain for room 102.
+- The previous guest food link was rejected after checkout as invalid, expired or no longer active. Database readback confirms its guest access tokens are revoked. The synthetic guest tab was closed.
+- Final owner dashboard: two available rooms, zero occupied/cleaning rooms, zero active guests, one food order today and INR 0 food revenue. Cashfree readiness remains `pending` / `not_configured`.
+
+Unlike the earlier transactional SQL regression, these browser-created records are **retained as labelled staging audit history**: the completed synthetic stay, zero-total invoice, cancelled food order, ready cleaning task and cancelled dummy task. No production records or real payments were created, and no test-history deletion was performed.
+
+| Staging evidence | Identifier |
+| --- | --- |
+| Hotel | `c6f16ea5-dcb0-40c3-a483-e628a5ea177c` (`20e-test-hotel`) |
+| Completed guest session | `e50ee898-1edd-44f2-b2de-bbbc78de8a95` |
+| Cancelled food order | `14526a5a-1a60-4d52-874d-d8172ee6bfee` |
+| Zero-total invoice | `33a7254a-dd6a-408c-ab01-f47a8d3bf49f` |
+| Ready checkout-cleaning task | `4487fcbc-a7d2-4710-b05d-95f330f9c590` |
+| Cancelled dummy task | `f84f255e-a39a-4554-87d2-cc4b75679696` |
+
+`supabase/staging/202609020105_pilot_ui_reliability_BROWSER_ACCEPTANCE_REV1.sql` verifies these exact records in a read-only transaction. It passed **18/18** checks against staging, including invoice consistency, no collections, saved cancellation reasons, checklist completion, the rework event counts, token revocation, room availability and unchanged Cashfree readiness. It contains no guest access token values and makes no changes.
+
+### Existing configuration gap encountered
+
+Creating the cancellation-only fixture as a **Turndown** task was rejected because staging has no active checklist template for that task type. No Turndown task was created. The test used the existing room-cleaning template instead. This is a staging configuration gap, not a regression in the new cancellation dialog; no template or production setting was changed.
+
+## Next action
+
+No further owner login is needed for this acceptance run. Review and resolve the pre-existing Day 9 validation mismatch and missing external marketing file before treating the entire release gate as green. Configure a Turndown checklist only if that optional workflow is required. Any additional fixes or configuration changes need their own scoped work; this acceptance run did not bypass the blockers.
+
+A separate explicit approval is still required before releasing implementation commit `c8d923a` or its checkout migration to production. Keep Cashfree disabled. The follow-up evidence/report changes do not require another frontend deployment.

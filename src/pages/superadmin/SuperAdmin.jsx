@@ -15,6 +15,7 @@ import {
   getPlatformAnnouncements,
   reactivateSubscription,
   reconcileExpiredSubscriptions,
+  recordManualSubscriptionPayment,
   renewSubscription,
   savePlatformAnnouncement,
   saveSubscriptionPlan,
@@ -28,7 +29,7 @@ const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'hotels', label: 'Hotels & subscriptions' },
   { id: 'plans', label: 'Plans' },
-  { id: 'payments', label: 'Payment links' },
+  { id: 'payments', label: 'Billing ledger' },
   { id: 'support', label: 'Support' },
   { id: 'events', label: 'Events & webhooks' },
   { id: 'announcements', label: 'Announcements' },
@@ -41,6 +42,7 @@ const EMPTY_DATA = {
   plans: [],
   usage: [],
   payment_links: [],
+  manual_payments: [],
   support_tickets: [],
   subscription_events: [],
   webhook_events: [],
@@ -126,6 +128,21 @@ export default function SuperAdmin({ onNavigate, onViewHotel }) {
     )
   }, [data.payment_links, normalizedQuery])
 
+  const filteredManualPayments = useMemo(() => {
+    if (!normalizedQuery) return data.manual_payments
+    return data.manual_payments.filter((payment) =>
+      [
+        payment.hotel_name,
+        payment.plan_name,
+        payment.payment_method,
+        payment.payment_reference,
+        payment.status,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalizedQuery))
+    )
+  }, [data.manual_payments, normalizedQuery])
+
   const filteredTickets = useMemo(() => {
     if (!normalizedQuery) return data.support_tickets
     return data.support_tickets.filter((ticket) =>
@@ -199,8 +216,8 @@ export default function SuperAdmin({ onNavigate, onViewHotel }) {
           <span className="commercial-kicker">Platform control centre</span>
           <h1>Super Admin</h1>
           <p>
-            Global commercial operations for plans, hotel subscriptions, Cashfree
-            payment links, usage, support and immutable lifecycle evidence.
+            Global commercial operations for plans, hotel subscriptions, pilot
+            manual billing, usage, support and immutable lifecycle evidence.
           </p>
         </div>
 
@@ -234,8 +251,8 @@ export default function SuperAdmin({ onNavigate, onViewHotel }) {
       <div className="commercial-runtime-strip">
         <div>
           <span className="runtime-dot" />
-          <strong>Cashfree</strong>
-          <span>Test environment connected</span>
+          <strong>Pilot billing</strong>
+          <span>Verified offline collection</span>
         </div>
         <div>
           <span>Last server snapshot</span>
@@ -281,7 +298,7 @@ export default function SuperAdmin({ onNavigate, onViewHotel }) {
           </label>
           <span className="commercial-result-count">
             {activeTab === 'hotels' && `${filteredHotels.length} hotels`}
-            {activeTab === 'payments' && `${filteredLinks.length} links`}
+            {activeTab === 'payments' && `${filteredLinks.length + filteredManualPayments.length} records`}
             {activeTab === 'support' && `${filteredTickets.length} tickets`}
           </span>
         </div>
@@ -318,7 +335,12 @@ export default function SuperAdmin({ onNavigate, onViewHotel }) {
         />
       )}
 
-      {activeTab === 'payments' && <PaymentLinksTab links={filteredLinks} />}
+      {activeTab === 'payments' && (
+        <PaymentLinksTab
+          links={filteredLinks}
+          manualPayments={filteredManualPayments}
+        />
+      )}
 
       {activeTab === 'support' && (
         <SupportTab
@@ -798,18 +820,70 @@ function PlansTab({ plans, onCreate, onEdit }) {
   )
 }
 
-function PaymentLinksTab({ links }) {
+function PaymentLinksTab({ links, manualPayments }) {
   const paid = links.filter((link) => link.status === 'paid')
   const open = links.filter((link) => ['created', 'issued', 'partially_paid'].includes(link.status))
   const failed = links.filter((link) => ['failed', 'expired', 'cancelled'].includes(link.status))
+  const manualTotal = manualPayments.reduce(
+    (sum, payment) => sum + Number(payment.amount_minor || 0),
+    0
+  )
 
   return (
     <section className="commercial-tab-panel">
       <div className="commercial-metrics-grid compact">
-        <MetricCard label="Ledger rows" value={links.length} meta="Visible records" tone="neutral" />
-        <MetricCard label="Paid" value={paid.length} meta={formatMoney(paid.reduce((sum, link) => sum + Number(link.amount_minor || 0), 0), 'INR', true)} tone="green" />
+        <MetricCard label="Ledger rows" value={links.length + manualPayments.length} meta="Visible records" tone="neutral" />
+        <MetricCard label="Manual confirmed" value={manualPayments.length} meta={formatMoney(manualTotal, 'INR', true)} tone="green" />
         <MetricCard label="Open" value={open.length} meta="Awaiting final state" tone="blue" />
-        <MetricCard label="Failed / closed" value={failed.length} meta="Review exceptions" tone={failed.length ? 'warning' : 'neutral'} />
+        <MetricCard label="Cashfree paid / failed" value={`${paid.length} / ${failed.length}`} meta="Provider records retained" tone={failed.length ? 'warning' : 'neutral'} />
+      </div>
+
+      <div className="commercial-card table-card">
+        <SectionHeader eyebrow="Pilot billing" title="Confirmed offline payments" />
+        {manualPayments.length === 0 ? (
+          <EmptyState title="No offline payments recorded" text="Use Manage on a hotel to record a verified UPI, bank transfer or cash payment." />
+        ) : (
+          <div className="commercial-table-wrap">
+            <table className="commercial-table payment-table">
+              <thead>
+                <tr>
+                  <th>Hotel / plan</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Receipt / reference</th>
+                  <th>Paid at</th>
+                  <th>Subscription period</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {manualPayments.map((payment) => (
+                  <tr key={payment.id}>
+                    <td>
+                      <strong>{payment.hotel_name}</strong>
+                      <span>{payment.plan_name}</span>
+                    </td>
+                    <td>
+                      <strong>{formatMoney(payment.amount_minor, payment.currency_code, true)}</strong>
+                      <span>{humanize(payment.billing_cycle)}</span>
+                    </td>
+                    <td><StatusBadge status={payment.payment_method} /></td>
+                    <td>
+                      <code className="compact-code">{truncate(payment.payment_reference, 28)}</code>
+                      <span>{payment.note || 'Verified by Super Admin'}</span>
+                    </td>
+                    <td>{formatDateTime(payment.paid_at)}</td>
+                    <td>
+                      <strong>{formatDate(payment.period_start)}</strong>
+                      <span>to {formatDate(payment.period_end)}</span>
+                    </td>
+                    <td><StatusBadge status={payment.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="commercial-card table-card">
@@ -1170,15 +1244,8 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
   const lifecycle = String(
     hotel.lifecycle_status || hotel.subscription_status || ''
   ).toLowerCase()
-  const requiresPaymentRecovery = ['expired', 'cancelled'].includes(lifecycle)
   const canRenew = ['active', 'past_due', 'suspended'].includes(lifecycle)
-  const defaultAction = ['trial', 'trialing'].includes(lifecycle)
-    ? 'extend'
-    : lifecycle === 'suspended'
-      ? 'reactivate'
-      : requiresPaymentRecovery
-        ? ''
-        : 'change-plan'
+  const defaultAction = 'manual-payment'
   const [action, setAction] = useState(defaultAction)
   const [reason, setReason] = useState('')
   const [days, setDays] = useState('7')
@@ -1195,6 +1262,9 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
   const [periodEnd, setPeriodEnd] = useState(
     toLocalDateTime(addDays(new Date(), billingCycle === 'annual' ? 365 : 30))
   )
+  const [paidAt, setPaidAt] = useState(toLocalDateTime(new Date()))
+  const [paymentMethod, setPaymentMethod] = useState('upi')
+  const [paymentReference, setPaymentReference] = useState('')
   const [immediate, setImmediate] = useState(false)
   const [actionKey] = useState(() => createActionKey('day9:admin-action'))
   const [busy, setBusy] = useState(false)
@@ -1218,7 +1288,35 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
       let result
       let message
 
-      if (action === 'extend') {
+      if (action === 'manual-payment') {
+        const amountMinor = Math.round(Number(amount || 0) * 100)
+        if (amountMinor <= 0) {
+          throw new Error('Enter the positive amount actually received.')
+        }
+        if (paymentReference.trim().length < 3) {
+          throw new Error('Enter the UPI transaction, bank reference or cash receipt number.')
+        }
+        result = await recordManualSubscriptionPayment(hotel.id, {
+          plan_id: planId,
+          billing_cycle: billingCycle,
+          amount_minor: amountMinor,
+          currency_code:
+            selectedPlan?.currency_code ||
+            hotel.subscription_currency ||
+            'INR',
+          payment_method: paymentMethod,
+          payment_reference: paymentReference.trim(),
+          paid_at: new Date(paidAt).toISOString(),
+          period_start: new Date(periodStart).toISOString(),
+          period_end: new Date(periodEnd).toISOString(),
+          note: reason.trim(),
+          idempotency_key: actionKey,
+          metadata: { pilot_manual_billing: true },
+        })
+        message = result?.lifecycle_action === 'renewed'
+          ? 'Offline payment recorded and subscription renewed.'
+          : 'Offline payment recorded and paid subscription activated.'
+      } else if (action === 'extend') {
         result = await extendTrial(hotel.id, days, reason, actionKey)
         message = `Trial extended by ${days} days.`
       } else if (action === 'suspend') {
@@ -1280,6 +1378,7 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
   }
 
   const reasonRequired = [
+    'manual-payment',
     'extend',
     'suspend',
     'reactivate',
@@ -1287,36 +1386,6 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
     'renew',
     'cancel',
   ].includes(action)
-
-  if (requiresPaymentRecovery) {
-    return (
-      <div className="commercial-form">
-        <div className="dialog-context-card">
-          <div><span>Hotel</span><strong>{hotel.hotel_name}</strong></div>
-          <div><span>Current plan</span><strong>{hotel.plan_name || 'No plan'}</strong></div>
-          <div><span>Lifecycle</span><StatusBadge status={lifecycle} /></div>
-        </div>
-        <div className="security-callout recovery-callout">
-          <strong>Payment recovery required</strong>
-          <span>
-            Expired and cancelled subscriptions are not renewable through the
-            manual renewal RPC. Close this window and use the Link action to
-            create a controlled Cashfree payment link. A successful signed
-            webhook is the authoritative recovery path.
-          </span>
-        </div>
-        <div className="form-actions">
-          <button
-            type="button"
-            className="commercial-btn secondary"
-            onClick={onCancel}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <form className="commercial-form" onSubmit={submit}>
@@ -1328,6 +1397,7 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
 
       <Field label="Action">
         <select value={action} onChange={(event) => setAction(event.target.value)}>
+          <option value="manual-payment">Record offline payment &amp; activate / renew</option>
           {['trial', 'trialing'].includes(lifecycle) && (
             <option value="extend">Extend trial</option>
           )}
@@ -1356,9 +1426,9 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
         </Field>
       )}
 
-      {['change-plan', 'renew'].includes(action) && (
+      {['manual-payment', 'change-plan', 'renew'].includes(action) && (
         <div className="form-grid two">
-          {action === 'change-plan' && (
+          {['manual-payment', 'change-plan'].includes(action) && (
             <Field label="Target plan">
               <select
                 required
@@ -1404,7 +1474,7 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
         </div>
       )}
 
-      {action === 'renew' && (
+      {['manual-payment', 'renew'].includes(action) && (
         <div className="form-grid two">
           <Field label="Period start">
             <input
@@ -1425,6 +1495,53 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
         </div>
       )}
 
+      {action === 'manual-payment' && (
+        <>
+          <div className="security-callout">
+            <strong>Pilot manual billing</strong>
+            <span>
+              Confirm the money has been received before submitting. This creates
+              an immutable payment record and activates or renews the hotel in one
+              controlled action. It does not contact Cashfree.
+            </span>
+          </div>
+          <div className="form-grid two">
+            <Field label="Payment method">
+              <select
+                value={paymentMethod}
+                onChange={(event) => setPaymentMethod(event.target.value)}
+              >
+                <option value="upi">UPI / PhonePe</option>
+                <option value="bank_transfer">Bank transfer</option>
+                <option value="cash">Cash</option>
+                <option value="other">Other verified method</option>
+              </select>
+            </Field>
+            <Field label="Payment received at">
+              <input
+                type="datetime-local"
+                required
+                value={paidAt}
+                onChange={(event) => setPaidAt(event.target.value)}
+              />
+            </Field>
+          </div>
+          <Field
+            label="UPI transaction / bank reference / cash receipt number"
+            hint="Must be unique; minimum 3 characters"
+          >
+            <input
+              required
+              minLength="3"
+              maxLength="120"
+              value={paymentReference}
+              onChange={(event) => setPaymentReference(event.target.value)}
+              placeholder="Example: UPI-20260902-001"
+            />
+          </Field>
+        </>
+      )}
+
       {action === 'cancel' && (
         <label className="danger-choice">
           <input
@@ -1442,13 +1559,18 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
         </label>
       )}
 
-      <Field label="Reason / audit note" required={reasonRequired}>
+      <Field
+        label={action === 'manual-payment' ? 'Payment audit note' : 'Reason / audit note'}
+        required={reasonRequired}
+      >
         <textarea
           rows="4"
           required={reasonRequired}
           value={reason}
           onChange={(event) => setReason(event.target.value)}
-          placeholder="Explain why this commercial action is required."
+          placeholder={action === 'manual-payment'
+            ? 'Example: September pilot plan paid and verified by founder.'
+            : 'Explain why this commercial action is required.'}
         />
       </Field>
 
@@ -1459,7 +1581,7 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
       <FormActions
         onCancel={onCancel}
         busy={busy}
-        submitLabel="Confirm action"
+        submitLabel={action === 'manual-payment' ? 'Record payment & activate' : 'Confirm action'}
         danger={['suspend', 'cancel'].includes(action)}
       />
     </form>
@@ -1812,7 +1934,7 @@ function Features({ features }) {
 }
 
 function TabCount({ tab, data, announcements }) {
-  const counts = { hotels: data.hotels.length, plans: data.plans.length, payments: data.payment_links.length, support: data.support_tickets.length, events: data.subscription_events.length + data.webhook_events.length, announcements: announcements.length }
+  const counts = { hotels: data.hotels.length, plans: data.plans.length, payments: data.payment_links.length + data.manual_payments.length, support: data.support_tickets.length, events: data.subscription_events.length + data.webhook_events.length, announcements: announcements.length }
   if (!(tab in counts)) return null
   return <span>{counts[tab]}</span>
 }

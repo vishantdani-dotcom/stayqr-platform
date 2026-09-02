@@ -37,8 +37,12 @@ export default function OwnerBilling({ hotel, staff, onNavigate }) {
   const provider = workspace?.providers?.cashfree_recurring || {}
   const support = workspace?.support || {}
   const requests = billing.owner_requests || []
+  const manualPayments = billing.manual_payments || []
   const autopayActive = ACTIVE_STATES.has(String(subscription?.autopay_status || '').toLowerCase())
   const canInvokeProvider = provider.status === 'active'
+  const manualBilling = (
+    subscription?.billing_mode === 'paid' && subscription?.provider === 'manual'
+  ) || manualPayments.length > 0
 
   const currentPlanRank = plans.findIndex((item) => item.id === subscription?.plan_id)
 
@@ -112,7 +116,7 @@ export default function OwnerBilling({ hotel, staff, onNavigate }) {
         <Summary label="Current plan" value={plan?.plan_name || 'Not assigned'} />
         <Summary label="Subscription" value={label(subscription?.status || hotel?.subscription_status || 'unknown')} />
         <Summary label="Billing" value={label(subscription?.billing_cycle || 'not configured')} />
-        <Summary label="Next renewal" value={date(subscription?.next_charge_at || subscription?.current_period_end)} />
+        <Summary label={manualBilling ? 'Paid through' : 'Next renewal'} value={date(subscription?.next_charge_at || subscription?.current_period_end)} />
       </section>
 
       {loading ? <section className="owner-billing-card">Loading secure billing workspace…</section> : null}
@@ -125,21 +129,22 @@ export default function OwnerBilling({ hotel, staff, onNavigate }) {
               <Detail label="Price" value={money(subscription?.amount_minor, subscription?.currency_code)} />
               <Detail label="Trial ends" value={date(subscription?.trial_end || subscription?.end_date)} />
               <Detail label="Current period" value={`${date(subscription?.current_period_start)} – ${date(subscription?.current_period_end)}`} />
+              <Detail label="Collection mode" value={manualBilling ? 'Manual / offline pilot billing' : label(subscription?.provider || 'not configured')} />
               <Detail label="Cancellation" value={subscription?.cancel_at_period_end ? 'Scheduled at period end' : 'Not scheduled'} />
             </div>
           </article>
 
           <article className="owner-billing-card">
-            <div className="owner-billing-card-head"><div><span>CASHFREE RECURRING</span><h2>AutoPay mandate</h2></div><Pill tone={autopayActive ? 'good' : 'warn'}>{autopayActive ? 'ACTIVE' : label(subscription?.autopay_status || provider.status || 'pending')}</Pill></div>
-            <p>{provider.status === 'active' ? 'Cashfree recurring capability is provider-enabled for this environment.' : 'Provider activation is pending. StayQR will not show AutoPay as active until Cashfree confirms the mandate.'}</p>
+            <div className="owner-billing-card-head"><div><span>{manualBilling ? 'PILOT MANUAL BILLING' : 'CASHFREE RECURRING'}</span><h2>{manualBilling ? 'Offline payment collection' : 'AutoPay mandate'}</h2></div><Pill tone={autopayActive || manualBilling ? 'good' : 'warn'}>{manualBilling ? 'MANUAL' : autopayActive ? 'ACTIVE' : label(subscription?.autopay_status || provider.status || 'pending')}</Pill></div>
+            <p>{manualBilling ? 'Your StayQR plan is collected offline during the pilot. Each confirmed payment is recorded by StayQR and your paid-through date is shown above.' : provider.status === 'active' ? 'Cashfree recurring capability is provider-enabled for this environment.' : 'Provider activation is pending. StayQR will not show AutoPay as active until Cashfree confirms the mandate.'}</p>
             <div className="owner-billing-details">
-              <Detail label="Mandate" value={label(subscription?.mandate_status || 'not created')} />
-              <Detail label="Last charge" value={label(subscription?.last_charge_status || 'none')} />
-              <Detail label="Retry count" value={subscription?.recurring_retry_count ?? 0} />
-              <Detail label="Provider environment" value={label(provider.environment || 'not configured')} />
+              <Detail label={manualBilling ? 'Last payment' : 'Mandate'} value={manualBilling ? dateTime(manualPayments[0]?.paid_at || subscription?.last_payment_at) : label(subscription?.mandate_status || 'not created')} />
+              <Detail label={manualBilling ? 'Payment method' : 'Last charge'} value={manualBilling ? label(manualPayments[0]?.payment_method || 'offline') : label(subscription?.last_charge_status || 'none')} />
+              <Detail label={manualBilling ? 'Receipt / reference' : 'Retry count'} value={manualBilling ? manualPayments[0]?.payment_reference || 'Recorded by StayQR' : subscription?.recurring_retry_count ?? 0} />
+              <Detail label="AutoPay" value={canInvokeProvider ? label(subscription?.autopay_status || 'available') : 'Deferred for pilot'} />
             </div>
-            <button type="button" disabled={Boolean(busy) || autopayActive} onClick={() => action('enable_autopay')}>{busy === 'enable_autopay' ? 'Starting…' : autopayActive ? 'AutoPay active' : 'Set up AutoPay'}</button>
-            {subscription?.last_charge_status === 'failed' && <button className="secondary" type="button" disabled={Boolean(busy)} onClick={() => action('retry_payment')}>Retry failed payment</button>}
+            <button type="button" disabled={Boolean(busy) || autopayActive || !canInvokeProvider} onClick={() => action('enable_autopay')}>{busy === 'enable_autopay' ? 'Starting…' : autopayActive ? 'AutoPay active' : !canInvokeProvider ? 'AutoPay unavailable during pilot' : 'Set up AutoPay'}</button>
+            {subscription?.last_charge_status === 'failed' && canInvokeProvider && <button className="secondary" type="button" disabled={Boolean(busy)} onClick={() => action('retry_payment')}>Retry failed payment</button>}
           </article>
 
           <article className="owner-billing-card owner-billing-plans">
@@ -163,8 +168,8 @@ export default function OwnerBilling({ hotel, staff, onNavigate }) {
           <article className="owner-billing-card owner-billing-history">
             <span>PAYMENT &amp; REQUEST HISTORY</span><h2>Recent activity</h2>
             <div className="owner-history-list">
-              {[...(billing.payment_history || []), ...requests].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 12).map((item) => <div key={`${item.id}-${item.action || item.status}`}><div><strong>{label(item.action || item.event_type || 'payment')}</strong><small>{dateTime(item.created_at || item.occurred_at)}</small></div><Pill tone={['paid', 'completed', 'active'].includes(item.status) ? 'good' : item.status === 'failed' ? 'bad' : 'warn'}>{label(item.status)}</Pill></div>)}
-              {(billing.payment_history || []).length === 0 && requests.length === 0 && <p>No billing activity yet.</p>}
+              {[...manualPayments.map((payment) => ({ ...payment, action: 'manual_payment', created_at: payment.paid_at })), ...(billing.payment_history || []), ...requests].sort((a, b) => new Date(b.created_at || b.occurred_at || 0) - new Date(a.created_at || a.occurred_at || 0)).slice(0, 12).map((item) => <div key={`${item.id}-${item.action || item.status}`}><div><strong>{label(item.action || item.event_type || 'payment')}{item.amount_minor ? ` · ${money(item.amount_minor, item.currency_code)}` : ''}</strong><small>{dateTime(item.created_at || item.occurred_at)}{item.payment_reference ? ` · ${item.payment_reference}` : ''}</small></div><Pill tone={['paid', 'completed', 'active', 'confirmed'].includes(item.status) ? 'good' : item.status === 'failed' ? 'bad' : 'warn'}>{label(item.status)}</Pill></div>)}
+              {(billing.payment_history || []).length === 0 && requests.length === 0 && manualPayments.length === 0 && <p>No billing activity yet.</p>}
             </div>
           </article>
 

@@ -23,11 +23,18 @@ export function createActionKey(prefix = 'day9') {
 }
 
 export async function getCommercialData(rowLimit = 100) {
-  const data = await rpc(
-    'get_super_admin_commercial_data',
-    { row_limit: rowLimit },
-    'Commercial control data could not be loaded.'
-  )
+  const [data, manualPayments] = await Promise.all([
+    rpc(
+      'get_super_admin_commercial_data',
+      { row_limit: rowLimit },
+      'Commercial control data could not be loaded.'
+    ),
+    rpc(
+      'get_manual_subscription_payments',
+      { p_hotel_id: null, p_row_limit: rowLimit },
+      'The manual-payment ledger could not be loaded.'
+    ),
+  ])
 
   return {
     generated_at: data?.generated_at || null,
@@ -39,6 +46,7 @@ export async function getCommercialData(rowLimit = 100) {
     payment_links: Array.isArray(data?.payment_links)
       ? data.payment_links
       : [],
+    manual_payments: Array.isArray(manualPayments) ? manualPayments : [],
     support_tickets: Array.isArray(data?.support_tickets)
       ? data.support_tickets
       : [],
@@ -125,6 +133,14 @@ export function renewSubscription(hotelId, payload) {
     'renew_hotel_subscription',
     { target_hotel_id: hotelId, payload },
     'The subscription could not be renewed.'
+  )
+}
+
+export function recordManualSubscriptionPayment(hotelId, payload) {
+  return rpc(
+    'record_manual_subscription_payment',
+    { p_hotel_id: hotelId, p_payload: payload },
+    'The offline payment could not be recorded.'
   )
 }
 

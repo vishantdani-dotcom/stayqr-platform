@@ -4,11 +4,27 @@ function message(error, fallback) {
   return error?.message || error?.details || fallback
 }
 export async function loadCommercialReadyWorkspace(hotelId) {
-  const { data, error } = await supabase.rpc('get_commercial_ready_workspace', {
-    p_hotel_id: hotelId,
-  })
-  if (error) throw new Error(message(error, 'Commercial-ready workspace could not be loaded.'))
-  return data || {}
+  const [workspaceResult, paymentsResult] = await Promise.all([
+    supabase.rpc('get_commercial_ready_workspace', { p_hotel_id: hotelId }),
+    supabase.rpc('get_manual_subscription_payments', {
+      p_hotel_id: hotelId,
+      p_row_limit: 30,
+    }),
+  ])
+  if (workspaceResult.error) {
+    throw new Error(message(workspaceResult.error, 'Commercial-ready workspace could not be loaded.'))
+  }
+  if (paymentsResult.error) {
+    throw new Error(message(paymentsResult.error, 'Manual-payment history could not be loaded.'))
+  }
+  const workspace = workspaceResult.data || {}
+  return {
+    ...workspace,
+    billing: {
+      ...(workspace.billing || {}),
+      manual_payments: Array.isArray(paymentsResult.data) ? paymentsResult.data : [],
+    },
+  }
 }
 
 export async function submitOwnerBillingAction({

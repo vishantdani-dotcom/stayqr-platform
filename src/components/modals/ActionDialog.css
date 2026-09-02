@@ -1,0 +1,33 @@
+.stayqr-action-dialog {
+  width: min(540px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  box-sizing: border-box;
+  overflow: auto;
+  margin: auto;
+  padding: 24px;
+  color: #f5f5f5;
+  background: #151515;
+  border: 1px solid #6f5d20;
+  border-radius: 18px;
+  box-shadow: 0 20px 80px #0009;
+}
+.stayqr-action-dialog::backdrop { background: #000b; }
+.stayqr-action-dialog form { display: grid; gap: 14px; }
+.stayqr-action-dialog header, .stayqr-action-dialog footer { display: flex; align-items: center; gap: 12px; }
+.stayqr-action-dialog header { justify-content: space-between; }
+.stayqr-action-dialog h2 { margin: 0; font-size: 21px; }
+.stayqr-action-dialog p { margin: 0; line-height: 1.5; color: #c7c7c7; overflow-wrap: anywhere; }
+.stayqr-action-dialog label { color: #e0c358; font-size: 14px; font-weight: 700; }
+.stayqr-action-dialog select, .stayqr-action-dialog textarea {
+  width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid #555;
+  border-radius: 8px; padding: 11px; background: #0b0b0b; color: #fff; font: inherit;
+}
+.stayqr-action-dialog textarea { resize: vertical; }
+.stayqr-action-dialog footer { justify-content: flex-end; flex-wrap: wrap; margin-top: 8px; }
+.stayqr-action-dialog button { min-height: 44px; border: 1px solid #666; border-radius: 9px; background: #222; color: #fff; padding: 10px 16px; font: inherit; cursor: pointer; }
+.stayqr-action-dialog button.primary { background: #d4af37; border-color: #d4af37; color: #111; font-weight: 700; }
+.stayqr-action-dialog button.danger { background: #8c2020; border-color: #d45b5b; }
+.stayqr-action-dialog button.stayqr-action-close { padding: 4px; min-width: 44px; font-size: 24px; }
+.stayqr-action-dialog button:disabled { opacity: .55; cursor: not-allowed; }
+.stayqr-action-dialog :focus-visible { outline: 3px solid #e6c75d; outline-offset: 3px; }
+.stayqr-action-dialog p.stayqr-action-error { color: #ffadad; }

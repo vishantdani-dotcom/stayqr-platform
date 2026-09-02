@@ -2336,8 +2336,9 @@ export default function Guests({
               {settlementCalculation.amountToCollect ===
                 0 && (
                 <div style={paidConfirmationBox}>
-                  ✅ The invoice is already fully
-                  covered by previous payments.
+                  {settlementCalculation.grandTotal === 0
+                    ? "No payment is due after the applied discount. No collection will be recorded."
+                    : "The invoice is fully covered by previous payments."}
                 </div>
               )}
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getCurrentHotel } from '../../lib/currentHotel'
+import ActionDialog from '../../components/modals/ActionDialog'
 import {
   approveHousekeepingRoomReady,
   assignHousekeepingTask,
@@ -32,6 +33,7 @@ export default function Housekeeping({ hotel: hotelProp }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  const [taskDialog, setTaskDialog] = useState(null)
   const [createForm, setCreateForm] = useState({
     roomId: '',
     taskType: 'room_cleaning',
@@ -110,7 +112,7 @@ export default function Housekeeping({ hotel: hotelProp }) {
     roomsWaiting: workspace.rooms_waiting_for_ready || 0,
   }
 
-  const runTaskAction = async (taskId, message, action) => {
+  const runTaskAction = async (taskId, message, action, throwOnError = false) => {
     setBusyTaskId(taskId)
     setError('')
     setSuccess('')
@@ -122,6 +124,7 @@ export default function Housekeeping({ hotel: hotelProp }) {
       if (activeTab === 'mobile') await loadMobile()
     } catch (actionError) {
       setError(actionError.message)
+      if (throwOnError) throw actionError
     } finally {
       setBusyTaskId('')
     }
@@ -142,34 +145,24 @@ export default function Housekeeping({ hotel: hotelProp }) {
     })
   }
 
-  const assignTask = (task) => {
-    const staffId = window.prompt(
-      `Assign ${task.room?.room_number || task.room_number}. Paste staff ID:\n${staff
-        .map((member) => `${member.full_name}: ${member.id}`)
-        .join('\n')}`
-    )
-    if (!staffId) return
-
-    runTaskAction(task.id, 'Task assigned.', () =>
-      assignHousekeepingTask(
-        hotel.id,
-        task.id,
-        staffId.trim(),
-        task.priority || 'normal',
-        task.due_at || null
-      )
-    )
+  const openTaskDialog = (task, action) => {
+    if (!busyTaskId) setTaskDialog({ task, action, hotelId: hotel.id })
   }
 
-  const inspectTask = (task, result) => {
-    const notes = window.prompt(
-      result === 'passed' ? 'Inspection notes (optional):' : 'Why did inspection fail?'
-    )
-    if (result === 'failed' && !notes?.trim()) return
-
-    runTaskAction(task.id, `Inspection ${result}.`, () =>
-      inspectHousekeepingTask(hotel.id, task.id, result, notes || '')
-    )
+  const submitTaskDialog = async (value) => {
+    if (busyTaskId || !taskDialog || taskDialog.hotelId !== hotel?.id) throw new Error('Refresh the hotel before updating this task.')
+    const selectedHotel = await getCurrentHotel()
+    if (selectedHotel?.id !== hotel.id) throw new Error('The selected hotel changed. Reopen this task in its hotel.')
+    const { task, action } = taskDialog
+    if (action === 'assign') {
+      if (!staff.some((member) => member.id === value)) throw new Error('Select an active staff member from this hotel.')
+      return runTaskAction(task.id, 'Task assigned.', () =>
+        assignHousekeepingTask(hotel.id, task.id, value, task.priority || 'normal', task.due_at || null), true)
+    }
+    if (action === 'cancel') {
+      return runTaskAction(task.id, 'Task cancelled.', () => cancelHousekeepingTask(hotel.id, task.id, value), true)
+    }
+    return runTaskAction(task.id, `Inspection ${action}.`, () => inspectHousekeepingTask(hotel.id, task.id, action, value), true)
   }
 
   if (loading) {
@@ -241,7 +234,7 @@ export default function Housekeeping({ hotel: hotelProp }) {
                 key={task.id}
                 task={task}
                 busy={busyTaskId === task.id}
-                onAssign={() => assignTask(task)}
+                onAssign={() => openTaskDialog(task, 'assign')}
                 onStart={() =>
                   runTaskAction(task.id, 'Cleaning started.', () =>
                     startHousekeepingTask(hotel.id, task.id)
@@ -263,19 +256,13 @@ export default function Housekeeping({ hotel: hotelProp }) {
                     completeHousekeepingCleaning(hotel.id, task.id, '')
                   )
                 }
-                onInspect={(result) => inspectTask(task, result)}
+                onInspect={(result) => openTaskDialog(task, result)}
                 onReady={() =>
                   runTaskAction(task.id, 'Room approved ready.', () =>
                     approveHousekeepingRoomReady(hotel.id, task.id, '')
                   )
                 }
-                onCancel={() => {
-                  const reason = window.prompt('Cancellation reason:')
-                  if (!reason?.trim()) return
-                  runTaskAction(task.id, 'Task cancelled.', () =>
-                    cancelHousekeepingTask(hotel.id, task.id, reason)
-                  )
-                }}
+                onCancel={() => openTaskDialog(task, 'cancel')}
               />
             ))
           )}
@@ -376,6 +363,22 @@ export default function Housekeeping({ hotel: hotelProp }) {
             </table>
           </div>
         </div>
+      )}
+
+      {taskDialog && taskDialog.hotelId === hotel?.id && (
+        <ActionDialog
+          key={`${taskDialog.task.id}-${taskDialog.action}`}
+          title={taskDialog.action === 'assign' ? 'Assign housekeeping task' : taskDialog.action === 'cancel' ? 'Cancel housekeeping task' : taskDialog.action === 'passed' ? 'Pass inspection' : 'Fail inspection'}
+          description={`Room ${taskDialog.task.room?.room_number || taskDialog.task.room_number} · ${hotel?.hotel_name}. This action is saved in the housekeeping audit history.`}
+          label={taskDialog.action === 'assign' ? 'Staff member' : taskDialog.action === 'cancel' ? 'Cancellation reason' : taskDialog.action === 'failed' ? 'Inspection failure reason' : 'Inspection notes (optional)'}
+          initialValue={taskDialog.action === 'assign' && staff.some((member) => member.id === taskDialog.task.assigned_staff_id) ? taskDialog.task.assigned_staff_id : ''}
+          options={taskDialog.action === 'assign' ? staff.map((member) => ({ value: member.id, label: `${member.full_name} · ${member.role}` })) : undefined}
+          required={taskDialog.action !== 'passed'}
+          danger={['cancel', 'failed'].includes(taskDialog.action)}
+          confirmLabel={taskDialog.action === 'assign' ? 'Assign task' : taskDialog.action === 'cancel' ? 'Cancel task' : taskDialog.action === 'passed' ? 'Pass inspection' : 'Fail inspection'}
+          onConfirm={submitTaskDialog}
+          onClose={() => setTaskDialog(null)}
+        />
       )}
 
       {createOpen && (

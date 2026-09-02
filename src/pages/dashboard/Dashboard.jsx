@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getCurrentHotel } from '../../lib/currentHotel'
+import { getHotelDateKey, summarizeDashboardFoodOrders } from '../../lib/dashboardAnalytics'
 import HotelOverviewCard from '../../components/cards/HotelOverviewCard'
 import RoomsTable from '../../components/table/RoomsTable'
 import QuickActions from '../../components/buttons/QuickActions'
@@ -75,7 +76,7 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
           .eq('status', 'pending'),
         supabase
           .from('food_orders')
-          .select('total_amount, created_at, order_status')
+          .select('hotel_id, total_amount, created_at, order_status')
           .eq('hotel_id', hotelId),
       ])
 
@@ -93,28 +94,21 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
       const roomsData = roomsResult.data || []
       const guestSessions = guestSessionsResult.data || []
       const foodOrders = foodOrdersResult.data || []
-      const todayKey = toLocalDateKey(new Date())
-
-      const todayOrders = foodOrders.filter(
-        (order) => toLocalDateKey(order.created_at) === todayKey
-      )
-
-      const todayRevenue = todayOrders.reduce(
-        (sum, order) => sum + Number(order.total_amount || 0),
-        0
-      )
+      const timeZone = resolvedHotel.timezone || 'Asia/Kolkata'
+      const todayKey = getHotelDateKey(new Date(), timeZone)
+      const { todayOrders, todayRevenue } = summarizeDashboardFoodOrders(foodOrders, { hotelId, timeZone })
 
       const activeSessions = guestSessions.filter(
         (session) => session.status === 'active'
       )
 
       const checkInsToday = guestSessions.filter(
-        (session) => toLocalDateKey(session.checkin_time) === todayKey
+        (session) => getHotelDateKey(session.checkin_time, timeZone) === todayKey
       ).length
 
       const checkOutsDue = activeSessions.filter((session) => {
         const effectiveCheckout = session.extended_until || session.checkout_time
-        return toLocalDateKey(effectiveCheckout) === todayKey
+        return getHotelDateKey(effectiveCheckout, timeZone) === todayKey
       }).length
 
       const nextAnalytics = {
@@ -125,7 +119,7 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
         totalGuests: guestsResult.count || 0,
         activeGuests: activeSessions.length,
         pendingRequests: requestsResult.count || 0,
-        todayOrders: todayOrders.length,
+        todayOrders,
         todayRevenue,
         checkInsToday,
         checkOutsDue,
@@ -261,7 +255,8 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
           <AnalyticsCard title="Pending Requests" value={analytics.pendingRequests} icon="🛎️" />
           <AnalyticsCard title="Food Orders Today" value={analytics.todayOrders} icon="🍽️" />
           <AnalyticsCard
-            title="Revenue Today"
+            title="Food Revenue Today"
+            detail="Delivered orders placed today; not cash collected."
             value={formatCurrency(analytics.todayRevenue, currentHotel?.currency_code)}
             icon="💰"
           />
@@ -312,13 +307,14 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
   )
 }
 
-function AnalyticsCard({ title, value, icon }) {
+function AnalyticsCard({ title, value, icon, detail }) {
   return (
     <div style={analyticsCard}>
       <div style={analyticsIcon}>{icon}</div>
       <div>
         <p style={analyticsTitle}>{title}</p>
         <h3 style={analyticsValue}>{value}</h3>
+        {detail && <small style={{ color: '#aaa', lineHeight: 1.5 }}>{detail}</small>}
       </div>
     </div>
   )
@@ -343,17 +339,6 @@ function formatTime(date) {
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-function toLocalDateKey(value) {
-  if (!value) return ''
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 function formatCurrency(value, currencyCode = 'INR') {

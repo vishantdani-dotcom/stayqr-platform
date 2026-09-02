@@ -8,6 +8,7 @@ import {
   updateFoodOrderStatus,
 } from '../../lib/day15Operations'
 import { supabase } from '../../lib/supabase'
+import ActionDialog from '../../components/modals/ActionDialog'
 import './FoodOrders.css'
 
 const COLUMNS = [
@@ -33,6 +34,7 @@ export default function FoodOrders() {
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState('')
   const [toast, setToast] = useState('')
+  const [cancellation, setCancellation] = useState(null)
   const knownIds = useRef(new Set())
   const initialLoadDone = useRef(false)
 
@@ -151,10 +153,10 @@ export default function FoodOrders() {
     }
   }
 
-  async function cancelOrder(order) {
-    if (!window.confirm('Cancel this food order?')) return
-    const reason = window.prompt('Cancellation reason:', 'Item unavailable')
-    if (reason === null) return
+  async function cancelOrder(order, reason) {
+    if (busyId || !hotel?.id || cancellation?.hotelId !== hotel.id) throw new Error('Refresh the hotel before cancelling this order.')
+    const selectedHotel = await getCurrentHotel()
+    if (selectedHotel?.id !== hotel.id) throw new Error('The selected hotel changed. Reopen this order in its hotel.')
     setBusyId(order.id)
     try {
       await updateFoodOrderStatus({
@@ -163,10 +165,10 @@ export default function FoodOrders() {
         status: 'cancelled',
         note: reason,
       })
-      await Promise.all([loadOrders(hotel.id), loadAnalytics(hotel.id)])
       showToast('Order cancelled and guest notified.')
-    } catch (error) {
-      showToast(error.message || 'Unable to cancel the order.')
+      await Promise.all([loadOrders(hotel.id), loadAnalytics(hotel.id)]).catch(() => {
+        showToast('Order cancelled. Refresh to reload the kitchen dashboard.')
+      })
     } finally {
       setBusyId('')
     }
@@ -235,7 +237,7 @@ export default function FoodOrders() {
                     busy={busyId === order.id}
                     onMove={() => moveOrder(order, NEXT_STATUS[status])}
                     onEta={(value) => changeEta(order, value)}
-                    onCancel={() => cancelOrder(order)}
+                    onCancel={() => setCancellation({ order, hotelId: hotel.id })}
                     onPrint={() => printKot(order)}
                   />
                 ))}
@@ -269,6 +271,18 @@ export default function FoodOrders() {
       )}
 
       {toast && <div className="day15-toast">{toast}</div>}
+      {cancellation?.hotelId === hotel?.id && cancellation && (
+        <ActionDialog
+          key={cancellation.order.id}
+          title="Cancel food order"
+          description={`Room ${cancellation.order.rooms?.room_number || '—'} · Order ${String(cancellation.order.id).slice(0, 8).toUpperCase()}. The reason is saved in the audit history and the guest is notified.`}
+          label="Cancellation reason"
+          confirmLabel="Cancel order"
+          danger
+          onConfirm={(reason) => cancelOrder(cancellation.order, reason)}
+          onClose={() => setCancellation(null)}
+        />
+      )}
     </div>
   )
 }

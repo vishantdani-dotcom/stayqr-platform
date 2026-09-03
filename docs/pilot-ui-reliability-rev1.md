@@ -2,7 +2,7 @@
 
 Date: 3 September 2026 (Asia/Kolkata).
 
-Status: implemented locally and published to staging. **Live staging Food Orders, checkout and Housekeeping acceptance passed on 3 September 2026. Not released to production.** Both legacy validation blockers are now resolved and the full local check/build passed. A separate performance check found a 1.1 KiB initial-download overage; see [Pilot validation gate repair REV1](pilot-validation-gates-rev1.md) before considering production rollout.
+Status: implemented locally and published to staging. **Live staging Food Orders, checkout and Housekeeping acceptance passed on 3 September 2026. Not released to production.** Both legacy validation blockers are resolved; see [Pilot validation gate repair REV1](pilot-validation-gates-rev1.md). The subsequent performance correction is documented in [Pilot initial-download optimization REV1](pilot-bundle-performance-rev1.md).
 
 ## Scope and deployment
 

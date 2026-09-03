@@ -42,7 +42,19 @@ export default defineConfig({
     chunkSizeWarningLimit: 650,
     rollupOptions: {
       output: {
-        manualChunks: stayqrVendorChunk,
+        codeSplitting: {
+          groups: [
+            // Pin the shared dynamic-import helper before vendor groups can
+            // absorb it through their recursive dependencies. Otherwise the
+            // shell and Supabase pull PDF code into the initial download.
+            {
+              name: 'vendor-preload',
+              test: (id) => id === '\0vite/preload-helper.js',
+              priority: 100,
+            },
+            { name: stayqrVendorChunk },
+          ],
+        },
       },
     },
   },

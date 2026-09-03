@@ -4,7 +4,7 @@ Date: 3 September 2026 (Asia/Kolkata).
 
 Scope: local validation scripts and documentation only. Starting commit `a6bdf914ce5bc9d529e4421eb7ffdde35f6c22f7` on `commercial-ready/final-completion`; initial working tree clean. No application source, SQL, Edge Function, provider setting, deployment or marketing content is changed.
 
-Status: **both requested validation blockers resolved; the complete `npm run check` passed**, including its final optimized frontend build configured for staging. No checks in that command were skipped. A separately run performance-budget check exposed a remaining 1.1 KiB initial-download overage, detailed below; this is not an all-release-gates-green declaration. The required original base `5f914d4cd049353e9926b26ffb1599e53a6f1772` remains an ancestor.
+Status at `7c92cd8`: **both requested validation blockers resolved; the complete `npm run check` passed**, including its final optimized frontend build configured for staging. No checks in that command were skipped. A separately run performance-budget check exposed a 1.1 KiB initial-download overage, detailed below. Its subsequent correction and verification are recorded in [Pilot initial-download optimization REV1](pilot-bundle-performance-rev1.md). The required original base `5f914d4cd049353e9926b26ffb1599e53a6f1772` remains an ancestor.
 
 ## Day 9 commercial gate
 
@@ -66,4 +66,4 @@ The manifest's initial static-import closure includes the document-library vendo
 
 These files do not enter the frontend bundle, so no staging redeployment or database migration is needed. The live staging acceptance for implementation commit `c8d923a` remains recorded in `docs/pilot-ui-reliability-rev1.md`. No further login or synthetic payment is needed for this repair.
 
-Next: reduce the initial bundle below its existing performance limit locally, then validate any runtime/bundling change on staging. Production rollout of the accepted UI fix and its checkout migration still requires separate explicit approval. Cashfree remains disabled/unchanged. The optional missing staging Turndown checklist is not configured by this change.
+Follow-up: see [the initial-download optimization report](pilot-bundle-performance-rev1.md) for the performance correction and staging evidence. Production rollout of the accepted UI fix and its checkout migration still requires separate explicit approval. Cashfree remains disabled/unchanged. The optional missing staging Turndown checklist is not configured by this change.

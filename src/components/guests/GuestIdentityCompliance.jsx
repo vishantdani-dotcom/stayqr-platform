@@ -259,6 +259,8 @@ export default function GuestIdentityCompliance({
         await onChanged?.();
       }
     } catch (error) {
+      // Sensitive Aadhaar/OTP input is cleared after every provider attempt, including failures.
+      setOnlineAuth((current) => ({ ...current, aadhaar: "", otp: "" }));
       onNotice?.("error", error.message || "UIDAI online authentication failed.");
     } finally {
       setBusy("");

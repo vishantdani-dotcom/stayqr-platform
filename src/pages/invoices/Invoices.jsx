@@ -786,7 +786,7 @@ function InvoiceTab({
                   <small>Room {invoice.room?.room_number || '—'}</small>
                 </td>
                 <td>{invoice.financial_year_label || '—'}</td>
-                <td>{formatMoney(invoice.taxable_amount || invoice.subtotal_amount)}</td>
+                <td>{formatMoney(invoice.taxable_amount ?? invoice.subtotal_amount)}</td>
                 <td>{formatMoney(invoice.tax_amount)}</td>
                 <td>{formatMoney(invoice.total_amount)}</td>
                 <td>
@@ -1394,7 +1394,7 @@ function InvoiceModal({ invoice, snapshot, hotel, printRef, onClose }) {
                 <td>{item.line_number || index + 1}</td>
                 <td>{item.description}</td>
                 <td>{item.hsn_sac_code || '—'}</td>
-                <td>{formatMoney(item.taxable_amount || item.amount)}</td>
+                <td>{formatMoney(item.taxable_amount ?? item.amount)}</td>
                 <td>{Number(item.tax_rate_percent || 0)}%</td>
                 <td>{formatMoney(Number(item.cgst_amount || 0) + Number(item.sgst_amount || 0) + Number(item.igst_amount || 0) + Number(item.cess_amount || 0))}</td>
                 <td>{formatMoney(item.amount)}</td>
@@ -1409,7 +1409,7 @@ function InvoiceModal({ invoice, snapshot, hotel, printRef, onClose }) {
         </table>
 
         <div className="day12-paper-summary">
-          <SummaryRow label="Taxable amount" value={invoice.taxable_amount || invoice.subtotal_amount} />
+          <SummaryRow label="Taxable amount" value={invoice.taxable_amount ?? invoice.subtotal_amount} />
           <SummaryRow label="CGST" value={invoice.cgst_amount} />
           <SummaryRow label="SGST" value={invoice.sgst_amount} />
           <SummaryRow label="IGST" value={invoice.igst_amount} />

@@ -1229,6 +1229,11 @@ export default function Guests({
       return;
     }
 
+    if (settlementCalculation.discountAmount > 0 && !invoiceNotes.trim()) {
+      showNotice("error", "Enter the discount reason in Invoice Notes.");
+      return;
+    }
+
     if (
       discountType === "percentage" &&
       Number(discountValue || 0) > 100
@@ -2187,7 +2192,7 @@ export default function Guests({
                   />
 
                   <label style={label}>
-                    Invoice Notes
+                    Invoice Notes {settlementCalculation.discountAmount > 0 ? "(discount reason required)" : ""}
                   </label>
 
                   <textarea
@@ -2198,7 +2203,7 @@ export default function Guests({
                         event.target.value
                       )
                     }
-                    placeholder="Optional invoice or checkout notes"
+                    placeholder={settlementCalculation.discountAmount > 0 ? "Reason for the approved checkout discount" : "Optional invoice or checkout notes"}
                   />
                 </div>
               </div>

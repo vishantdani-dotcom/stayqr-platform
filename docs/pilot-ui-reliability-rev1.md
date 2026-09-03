@@ -2,7 +2,7 @@
 
 Date: 3 September 2026 (Asia/Kolkata).
 
-Status: implemented locally and published to staging. **Live staging Food Orders, checkout and Housekeeping acceptance passed on 3 September 2026. Not released to production.** The unrelated legacy validation blockers below remain open.
+Status: implemented locally and published to staging. **Live staging Food Orders, checkout and Housekeeping acceptance passed on 3 September 2026. Not released to production.** Both legacy validation blockers are now resolved and the full local check/build passed. A separate performance check found a 1.1 KiB initial-download overage; see [Pilot validation gate repair REV1](pilot-validation-gates-rev1.md) before considering production rollout.
 
 ## Scope and deployment
 
@@ -50,7 +50,7 @@ Files: `src/lib/dashboardAnalytics.js`; `src/pages/dashboard/Dashboard.jsx`; `sr
 | Edge Functions | Unchanged; no redeployment or new syntax validation required by this patch |
 | Whitespace/diff check | Pass |
 
-The entire legacy `npm run check` is **not green**. Its Day 9 check expects `requiresPaymentRecovery`, which is already absent in parent `bdc5ae7` after Pilot Manual Billing. All three source files that gate reads, and the gate itself, are unchanged by this patch. Running the remaining checks separately also finds a pre-existing missing external marketing file: `C:\StayQR_MASTER\01_SOURCE\marketing\stayqr.in_current.html`. Neither issue was hidden or bypassed; unrelated billing/marketing code was not modified.
+At implementation commit `c8d923a`, the entire legacy `npm run check` was **not green**. Its Day 9 check expected `requiresPaymentRecovery`, which was already absent in parent `bdc5ae7` after Pilot Manual Billing. All three source files that gate read, and the gate itself, were unchanged by the UI patch. Running the remaining checks separately also found a pre-existing missing external marketing file: `C:\StayQR_MASTER\01_SOURCE\marketing\stayqr.in_current.html`. Neither issue was hidden or bypassed. See [the follow-up gate repair report](pilot-validation-gates-rev1.md) for the scoped corrections and updated results.
 
 ## SQL regression: failing before, passing after
 
@@ -103,6 +103,6 @@ Creating the cancellation-only fixture as a **Turndown** task was rejected becau
 
 ## Next action
 
-No further owner login is needed for this acceptance run. Review and resolve the pre-existing Day 9 validation mismatch and missing external marketing file before treating the entire release gate as green. Configure a Turndown checklist only if that optional workflow is required. Any additional fixes or configuration changes need their own scoped work; this acceptance run did not bypass the blockers.
+No further owner login is needed for this acceptance run. Follow-up Day 9 and marketing-source gate repair is documented separately. Configure a Turndown checklist only if that optional workflow is required; this acceptance run did not change that configuration.
 
 A separate explicit approval is still required before releasing implementation commit `c8d923a` or its checkout migration to production. Keep Cashfree disabled. The follow-up evidence/report changes do not require another frontend deployment.

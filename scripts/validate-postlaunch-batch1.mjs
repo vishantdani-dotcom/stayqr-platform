@@ -2,11 +2,9 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { resolveMarketingRoot } from './lib/marketing-root.mjs'
 
 const sourceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const marketingRoot = resolve(
-  process.env.STAYQR_MARKETING_ROOT || join(sourceRoot, '..', 'marketing')
-)
 const results = []
 
 function read(relativePath, root = sourceRoot) {
@@ -43,6 +41,8 @@ function parseInlineScripts(html) {
 }
 
 try {
+  const marketingRoot = resolveMarketingRoot(sourceRoot, process.env.STAYQR_MARKETING_ROOT)
+  console.log(`Marketing source under validation: ${marketingRoot} (local source only; not a live-site check)`)
   const marketingCurrent = read('stayqr.in_current.html', marketingRoot)
   const marketingDeploy = read('DEPLOY_stayqr.in/index.html', marketingRoot)
   const pricingBlock = marketingCurrent.match(/<section[^>]+id="pricing"[\s\S]*?<\/section>/i)?.[0] || ''

@@ -13,6 +13,7 @@ import "./GuestIdentityCompliance.css";
 // The hotel Guest 360 UI intentionally does not expose that OTP flow.
 
 const MAX_OFFLINE_XML = 512 * 1024;
+const UIDAI_QR_READER_URL = "https://uidai.gov.in/en/ecosystem/authentication-devices-documents/qr-code-reader.html";
 
 function displayMaskedReference(value) {
   const digits = String(value || "").replace(/\D/g, "");
@@ -24,6 +25,28 @@ function documentLabel(documentRecord) {
   const name = documentRecord?.original_file_name || "Aadhaar document";
   const masked = documentRecord?.document_number_masked ? ` · ${documentRecord.document_number_masked}` : "";
   return `${name}${masked}`;
+}
+
+function normalizeComparable(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function readerMismatchSummary(selected, secureQr) {
+  if (!selected) return [];
+  const extraction = selected?.metadata?.extraction?.extracted_fields || {};
+  const mismatches = [];
+  const selectedDigits = String(selected?.document_number_masked || extraction?.document_number_masked || "").replace(/\D/g, "");
+  const readerLast4 = String(secureQr.referenceLast4 || "").replace(/\D/g, "");
+  if (selectedDigits.length >= 4 && readerLast4.length === 4 && selectedDigits.slice(-4) !== readerLast4) {
+    mismatches.push("Aadhaar last 4 does not match the saved document metadata.");
+  }
+  const extractedName = normalizeComparable(extraction.full_name || extraction.name);
+  const readerName = normalizeComparable(secureQr.name);
+  if (extractedName && readerName && extractedName !== readerName) mismatches.push("Name differs from the saved document extraction.");
+  const extractedDob = normalizeComparable(extraction.date_of_birth || extraction.dob);
+  const readerDob = normalizeComparable(secureQr.dob);
+  if (extractedDob && readerDob && extractedDob !== readerDob) mismatches.push("Date of birth differs from the saved document extraction.");
+  return mismatches;
 }
 
 export default function GuestIdentityCompliance({
@@ -224,11 +247,21 @@ export default function GuestIdentityCompliance({
       return;
     }
     const last4 = secureQr.referenceLast4.replace(/\D/g, "");
-    if (last4 && last4.length !== 4) {
-      onNotice?.("error", "Reference last four must contain exactly 4 digits or be left blank.");
+    if (last4.length !== 4) {
+      onNotice?.("error", "Enter the exact Aadhaar last 4 shown by the official UIDAI reader.");
       return;
     }
-    if (!window.confirm("Record this Aadhaar Secure QR as verified? Confirm only if the official UIDAI Secure QR Reader displayed a digitally verified result for this exact saved document.")) return;
+    if (!secureQr.name.trim()) {
+      onNotice?.("error", "Enter the name shown by the official UIDAI reader.");
+      return;
+    }
+    const selected = aadhaarDocuments.find((item) => item.id === secureQr.documentId) || null;
+    const mismatches = readerMismatchSummary(selected, secureQr);
+    if (mismatches.length) {
+      onNotice?.("error", `Verification blocked: ${mismatches.join(" ")}`);
+      return;
+    }
+    if (!window.confirm("Record this Aadhaar as verified? Continue only if the official UIDAI Secure QR Reader displayed a digitally verified result for this exact saved document and the last 4/name entered below match that verified result.")) return;
 
     setBusy("secure_qr");
     try {
@@ -270,6 +303,13 @@ export default function GuestIdentityCompliance({
 
   const kycConsent = hasConsent(GUEST_CONSENT_PURPOSES.KYC_CAPTURE);
   const aadhaarConsent = hasConsent(GUEST_CONSENT_PURPOSES.AADHAAR_OFFLINE);
+  const selectedSecureQrDocument = aadhaarDocuments.find((item) => item.id === secureQr.documentId) || null;
+  const secureQrMismatches = readerMismatchSummary(selectedSecureQrDocument, secureQr);
+  const secureQrReady = Boolean(
+    aadhaarConsent && secureQr.documentId && secureQr.readerVerified &&
+    secureQr.referenceLast4.replace(/\D/g, "").length === 4 &&
+    secureQr.name.trim() && secureQrMismatches.length === 0
+  );
 
   return (
     <section className="guest-identity-compliance guest-profile-section guest-kyc-step-card">
@@ -293,7 +333,7 @@ export default function GuestIdentityCompliance({
         <span>I confirm the guest has provided consent for the action I am recording.</span>
       </label>
 
-      <details className="guest-identity-methods">
+      <details className="guest-identity-methods" open={aadhaarDocuments.some((item) => item.verification_status !== "verified")}>
         <summary><div><strong>Aadhaar offline verification methods</strong><small>Open only when Aadhaar verification is required.</small></div><span>{aadhaarConsent ? "Consent granted" : "Consent required"}</span></summary>
         <div className="guest-identity-methods-body">
           {aadhaarDocuments.length === 0 && <div className="guest-xml-inline-notice info">Upload the Aadhaar image/PDF in the private KYC section first. Verification evidence must be bound to that exact document.</div>}
@@ -311,18 +351,24 @@ export default function GuestIdentityCompliance({
             {xmlNotice && <div className={`guest-xml-inline-notice ${xmlNotice.type || "info"}`} role={xmlNotice.type === "error" ? "alert" : "status"}>{xmlNotice.message}</div>}
           </form>
 
-          <form className="guest-secure-qr guest-identity-method-card" onSubmit={recordSecureQr}>
-            <div className="guest-identity-method-copy"><span className="guest-identity-method-icon" aria-hidden="true">QR</span><div><strong>UIDAI Secure QR verification</strong><p>Use the official UIDAI Secure QR Reader to validate the digital signature. StayQR records only masked/audited evidence and never stores the raw QR payload.</p></div></div>
+          <form className="guest-secure-qr guest-identity-method-card guest-secure-qr-primary" onSubmit={recordSecureQr}>
+            <div className="guest-identity-method-copy"><span className="guest-identity-method-icon" aria-hidden="true">QR</span><div><strong>Verify with official UIDAI Secure QR Reader — no OTP</strong><p>UIDAI currently requires Aadhaar Secure QR to be read with its official Aadhaar/mAadhaar/Windows reader. StayQR therefore records the verified result from the official reader instead of pretending browser OCR or QR presence proves authenticity.</p></div></div>
+            <a className="guest-uidai-official-link" href={UIDAI_QR_READER_URL} target="_blank" rel="noreferrer">Open official UIDAI QR Reader page ↗</a>
+            <ol className="guest-secure-qr-steps">
+              <li>Open UIDAI's official reader and scan this same saved Aadhaar.</li>
+              <li>Continue only when UIDAI shows the QR/digital signature as verified.</li>
+              <li>Enter the last 4 and name exactly as shown; StayQR blocks known mismatches before saving.</li>
+            </ol>
             <label className="guest-verification-document-select">Saved Aadhaar document
               <select value={secureQr.documentId} onChange={(event) => selectSecureQrDocument(event.target.value)} disabled={!aadhaarConsent || busy === "secure_qr"}>
-                <option value="">Select the document verified by UIDAI Reader</option>
+                <option value="">Select the exact document verified by UIDAI Reader</option>
                 {aadhaarDocuments.map((item) => <option key={item.id} value={item.id}>{documentLabel(item)}</option>)}
               </select>
             </label>
-            <label className="guest-secure-qr-confirm"><input type="checkbox" checked={secureQr.readerVerified} disabled={!aadhaarConsent || busy === "secure_qr"} onChange={(event) => setSecureQr((current) => ({ ...current, readerVerified: event.target.checked }))} /><span>Official UIDAI Secure QR Reader shows <b>verified</b> for this exact document.</span></label>
+            <label className="guest-secure-qr-confirm"><input type="checkbox" checked={secureQr.readerVerified} disabled={!aadhaarConsent || busy === "secure_qr"} onChange={(event) => setSecureQr((current) => ({ ...current, readerVerified: event.target.checked }))} /><span>I confirm the <b>official UIDAI Secure QR Reader</b> displayed a digitally verified result for this exact saved document.</span></label>
             <div className="guest-secure-qr-grid">
-              <label>Reference last 4<input inputMode="numeric" maxLength="4" value={secureQr.referenceLast4} onChange={(event) => setSecureQr((current) => ({ ...current, referenceLast4: event.target.value.replace(/\D/g, "").slice(0, 4) }))} placeholder="Optional" /></label>
-              <label>Name shown by reader<input value={secureQr.name} onChange={(event) => setSecureQr((current) => ({ ...current, name: event.target.value }))} placeholder="Optional" /></label>
+              <label>Aadhaar last 4 shown by reader *<input inputMode="numeric" maxLength="4" value={secureQr.referenceLast4} onChange={(event) => setSecureQr((current) => ({ ...current, referenceLast4: event.target.value.replace(/\D/g, "").slice(0, 4) }))} placeholder="Required" /></label>
+              <label>Name shown by reader *<input value={secureQr.name} onChange={(event) => setSecureQr((current) => ({ ...current, name: event.target.value }))} placeholder="Required" /></label>
               <label>DOB shown by reader<input type="date" value={secureQr.dob} onChange={(event) => setSecureQr((current) => ({ ...current, dob: event.target.value }))} /></label>
               <label>Gender shown by reader<select value={secureQr.gender} onChange={(event) => setSecureQr((current) => ({ ...current, gender: event.target.value }))}><option value="">Not recorded</option><option value="male">Male</option><option value="female">Female</option><option value="other">Transgender / other</option></select></label>
               <label>Address shown by reader<input value={secureQr.addressLine1} onChange={(event) => setSecureQr((current) => ({ ...current, addressLine1: event.target.value }))} placeholder="Optional" /></label>
@@ -330,7 +376,9 @@ export default function GuestIdentityCompliance({
               <label>State<input value={secureQr.stateRegion} onChange={(event) => setSecureQr((current) => ({ ...current, stateRegion: event.target.value }))} placeholder="Optional" /></label>
               <label>PIN code<input inputMode="numeric" maxLength="6" value={secureQr.postalCode} onChange={(event) => setSecureQr((current) => ({ ...current, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) }))} placeholder="Optional" /></label>
             </div>
-            <button type="submit" disabled={!aadhaarConsent || !secureQr.documentId || !secureQr.readerVerified || busy === "secure_qr"}>{busy === "secure_qr" ? "Recording evidence…" : "Record verified Secure QR"}</button>
+            {secureQr.documentId && secureQrMismatches.length > 0 && <div className="guest-xml-inline-notice error" role="alert"><strong>Verification blocked.</strong> {secureQrMismatches.join(" ")}</div>}
+            {secureQr.documentId && secureQrMismatches.length === 0 && secureQr.readerVerified && <div className="guest-xml-inline-notice info">Reader evidence is ready. Last 4 and name are required before StayQR can mark the document verified.</div>}
+            <button type="submit" disabled={!secureQrReady || busy === "secure_qr"}>{busy === "secure_qr" ? "Recording verified evidence…" : "Mark Aadhaar verified from UIDAI Reader"}</button>
           </form>
         </div>
       </details>

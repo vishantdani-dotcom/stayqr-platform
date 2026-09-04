@@ -347,3 +347,10 @@
 
 .guest-verification-document-select { display: grid; gap: 0.45rem; }
 .guest-verification-document-select select { width: 100%; }
+
+/* Secure QR assisted verification REV2 */
+.guest-secure-qr-primary { border-color: rgba(212,175,55,.34); background: linear-gradient(180deg, rgba(212,175,55,.035), #0e0e0e 34%); }
+.guest-uidai-official-link { display:inline-flex; align-items:center; width:max-content; max-width:100%; padding:8px 10px; border:1px solid rgba(212,175,55,.32); border-radius:8px; color:#e4c85e; text-decoration:none; font-size:10px; font-weight:850; }
+.guest-uidai-official-link:hover { border-color:rgba(212,175,55,.62); }
+.guest-secure-qr-steps { margin:0; padding-left:20px; color:#aaa; font-size:10px; line-height:1.55; }
+.guest-secure-qr-steps li + li { margin-top:3px; }

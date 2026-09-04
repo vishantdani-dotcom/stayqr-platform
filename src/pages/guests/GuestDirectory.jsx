@@ -8,7 +8,10 @@ import {
   exportGuestDirectory360,
   getGuest360Directory,
   prepareManualWhatsAppContact,
+  recordGuestDocumentExtraction,
+  applyGuestDocumentIdentityFields,
 } from "../../lib/guestCompliance";
+import { analyzeIdentityDocument } from "../../lib/idDocumentIntelligence";
 import "./GuestDirectory.css";
 
 const EMPTY_PROFILE = {
@@ -101,6 +104,9 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
   const [kycDocumentGroupId, setKycDocumentGroupId] = useState(createUuid);
   const [kycFileInputKey, setKycFileInputKey] = useState(0);
   const [kycUploading, setKycUploading] = useState(false);
+  const [kycAnalyzing, setKycAnalyzing] = useState(false);
+  const [kycAnalysis, setKycAnalysis] = useState(null);
+  const [applyingDocumentId, setApplyingDocumentId] = useState(null);
   const [openingDocumentId, setOpeningDocumentId] = useState(null);
   const [reviewingDocumentId, setReviewingDocumentId] = useState(null);
   const [deletingDocumentId, setDeletingDocumentId] = useState(null);
@@ -637,6 +643,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     });
     setKycDocumentId(createUuid());
     setKycRequestId(createUuid());
+    setKycAnalysis(null);
     if (!preserveGroup) setKycDocumentGroupId(createUuid());
     setKycFileInputKey((value) => value + 1);
   }
@@ -692,6 +699,58 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
       onNotice?.("error", error.message || "Unable to save guest preference.");
     } finally {
       setSavingPreference(false);
+    }
+  }
+
+  async function analyzeKycFile(file, documentType = kycForm.documentType) {
+    setKycAnalysis(null);
+    if (!file) return null;
+    setKycAnalyzing(true);
+    try {
+      const analysis = await analyzeIdentityDocument(file, documentType);
+      setKycAnalysis(analysis);
+      if (analysis?.documentNumberMasked) {
+        setKycForm((current) => ({
+          ...current,
+          documentNumberMasked: analysis.documentNumberMasked,
+          issueCountry:
+            analysis?.extractedFields?.issue_country ||
+            analysis?.extractedFields?.nationality ||
+            current.issueCountry,
+        }));
+      }
+      return analysis;
+    } catch (error) {
+      console.error("ID extraction error:", error);
+      const fallback = {
+        status: "limited",
+        method: "manual",
+        extractedFields: {},
+        secureQrDetected: false,
+        message: error.message || "Automatic extraction unavailable. Continue with secure upload and authorised review.",
+      };
+      setKycAnalysis(fallback);
+      return fallback;
+    } finally {
+      setKycAnalyzing(false);
+    }
+  }
+
+  async function applyExtractedIdentity(documentRecord) {
+    if (!documentRecord?.id || !kycPermissions.canReview) return;
+    setApplyingDocumentId(documentRecord.id);
+    try {
+      await applyGuestDocumentIdentityFields({
+        hotelId: currentHotel.id,
+        documentId: documentRecord.id,
+      });
+      onNotice?.("success", "Verified ID details applied safely to Guest 360.");
+      await Promise.all([openProfile(selectedGuest), loadDirectory()]);
+    } catch (error) {
+      console.error("Apply verified identity fields error:", error);
+      onNotice?.("error", error.message || "Unable to apply verified ID details.");
+    } finally {
+      setApplyingDocumentId(null);
     }
   }
 
@@ -792,6 +851,15 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
 
       if (error) throw error;
 
+      const safeAnalysis = kycAnalysis || await analyzeKycFile(file, kycForm.documentType);
+      if (safeAnalysis) {
+        await recordGuestDocumentExtraction({
+          hotelId: currentHotel.id,
+          documentId: data?.document?.id || kycDocumentId,
+          analysis: safeAnalysis,
+        });
+      }
+
       onNotice?.(
         "success",
         data?.idempotent
@@ -852,6 +920,14 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
 
   async function reviewGuestDocument(documentRecord, action) {
     if (!kycPermissions.canReview) return;
+
+    if (documentRecord?.document_type === "aadhaar" && action === "verify") {
+      onNotice?.(
+        "error",
+        "Aadhaar cannot be marked verified from OCR or visual review alone. Use UIDAI Secure QR or signed offline XML verification."
+      );
+      return;
+    }
 
     let rejectionReason = null;
 
@@ -1431,6 +1507,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                   currentHotel={currentHotel}
                   guest={selectedGuest}
                   sessions={profile.sessions}
+                  documents={profile.documents}
                   canManage={kycPermissions.canUpload}
                   onNotice={onNotice}
                   onChanged={async () => {
@@ -1470,12 +1547,11 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                               <span>Document type</span>
                               <select
                                 value={kycForm.documentType}
-                                onChange={(event) =>
-                                  setKycForm((current) => ({
-                                    ...current,
-                                    documentType: event.target.value,
-                                  }))
-                                }
+                                onChange={(event) => {
+                                  const nextType = event.target.value;
+                                  setKycForm((current) => ({ ...current, documentType: nextType }));
+                                  if (kycForm.file) void analyzeKycFile(kycForm.file, nextType);
+                                }}
                               >
                                 <option value="aadhaar">Aadhaar</option>
                                 <option value="passport">Passport</option>
@@ -1644,6 +1720,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                 setKycDocumentId(createUuid());
                                 setKycRequestId(createUuid());
                                 setKycFileInputKey((value) => value + 1);
+                                void analyzeKycFile(capture.file, kycForm.documentType);
                               }}
                             />
                             <small>High-resolution still capture where supported, with native phone-camera fallback, crop/rotate and quality checks.</small>
@@ -1669,6 +1746,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                 }));
                                 setKycDocumentId(createUuid());
                                 setKycRequestId(createUuid());
+                                void analyzeKycFile(nextFile, kycForm.documentType);
                               }}
                             />
                             <small>JPEG, PNG or PDF · maximum 15 MB</small>
@@ -1690,6 +1768,41 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                             </div>
                           )}
                         </div>
+
+                        {(kycAnalyzing || kycAnalysis) && (
+                          <div className="guest-id-intelligence">
+                            <div className="guest-id-intelligence-head">
+                              <div>
+                                <strong>Safe ID extraction</strong>
+                                <small>Raw OCR text and QR payload are never stored.</small>
+                              </div>
+                              <span className={`guest-chip ${kycAnalysis?.status === "extracted" ? "verified" : "neutral"}`}>
+                                {kycAnalyzing ? "Analysing…" : titleCase(kycAnalysis?.status || "limited")}
+                              </span>
+                            </div>
+                            {!kycAnalyzing && kycAnalysis && (
+                              <>
+                                <div className="guest-id-intelligence-fields">
+                                  <span>Method <b>{titleCase(kycAnalysis.method || "manual")}</b></span>
+                                  {kycForm.documentType === "aadhaar" && (
+                                    <span>Secure QR <b>{kycAnalysis.secureQrDetected ? "Detected" : "Not detected"}</b></span>
+                                  )}
+                                  {Object.entries(kycAnalysis.extractedFields || {}).slice(0, 8).map(([key, value]) =>
+                                    value ? <span key={key}>{titleCase(key)} <b>{String(value)}</b></span> : null
+                                  )}
+                                </div>
+                                <p className="guest-id-intelligence-warning">
+                                  {kycForm.documentType === "aadhaar"
+                                    ? "OCR or QR detection alone does not verify Aadhaar. Verified status requires UIDAI-signed offline evidence linked to this exact saved document."
+                                    : "Extracted details are suggestions until an authorised reviewer verifies the saved document."}
+                                </p>
+                                {(kycAnalysis.warnings || []).map((warning) => (
+                                  <p className="guest-id-intelligence-warning" key={warning}>{warning}</p>
+                                ))}
+                              </>
+                            )}
+                          </div>
+                        )}
                       </section>
 
                       <details className="guest-kyc-technical">
@@ -1742,7 +1855,8 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                         const busy =
                           openingDocumentId === documentRecord.id ||
                           reviewingDocumentId === documentRecord.id ||
-                          deletingDocumentId === documentRecord.id;
+                          deletingDocumentId === documentRecord.id ||
+                          applyingDocumentId === documentRecord.id;
 
                         return (
                           <article className="guest-document-card-clean" key={documentRecord.id}>
@@ -1774,6 +1888,10 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                 <strong>{formatDateOnly(documentRecord.retention_until)}</strong>
                               </div>
                             </div>
+
+                            {(documentRecord.extraction_status || documentRecord.extraction_method) && (
+                              <div className="guest-document-extracted-fields"><strong>Safe extraction</strong><span>{titleCase(documentRecord.extraction_status || "not started")} · {titleCase(documentRecord.extraction_method || "manual")}{documentRecord.secure_qr_detected ? " · Secure QR detected" : ""}</span>{Object.entries(documentRecord.extracted_fields || {}).slice(0, 6).map(([key, value]) => value ? <small key={key}>{titleCase(key)}: {String(value)}</small> : null)}</div>
+                            )}
 
                             {documentRecord.rejection_reason && (
                               <div className="guest-document-rejection">
@@ -1823,7 +1941,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
 
                               {kycPermissions.canReview && (
                                 <>
-                                  {documentRecord.verification_status !== "verified" && (
+                                  {documentRecord.document_type !== "aadhaar" && documentRecord.verification_status !== "verified" && (
                                     <button
                                       type="button"
                                       disabled={busy}
@@ -1866,6 +1984,17 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                                     </button>
                                   )}
                                 </>
+                              )}
+
+                              {kycPermissions.canReview && documentRecord.verification_status === "verified" && documentRecord.extraction_status === "extracted" && (
+                                <button
+                                  type="button"
+                                  className="secondary"
+                                  disabled={busy || applyingDocumentId === documentRecord.id}
+                                  onClick={() => applyExtractedIdentity(documentRecord)}
+                                >
+                                  {applyingDocumentId === documentRecord.id ? "Applying…" : "Apply verified details"}
+                                </button>
                               )}
 
                               {kycPermissions.canDelete && (

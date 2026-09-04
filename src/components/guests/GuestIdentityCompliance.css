@@ -344,3 +344,6 @@
     font-size: 11px;
   }
 }
+
+.guest-verification-document-select { display: grid; gap: 0.45rem; }
+.guest-verification-document-select select { width: 100%; }

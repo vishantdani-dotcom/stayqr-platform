@@ -141,6 +141,35 @@ export async function createGuestWhatsAppCampaign({
   return data;
 }
 
+export async function recordGuestDocumentExtraction({ hotelId, documentId, analysis }) {
+  const { data, error } = await supabase.rpc("record_guest_document_extraction", {
+    target_hotel_id: hotelId,
+    target_document_id: documentId,
+    extraction_payload: {
+      status: analysis?.status || "limited",
+      method: analysis?.method || analysis?.engine || "manual",
+      confidence: analysis?.confidence ?? null,
+      extracted_fields: analysis?.extractedFields || analysis?.fields || {},
+      secure_qr_detected: Boolean(analysis?.secureQrDetected),
+      secure_qr_payload_sha256: analysis?.secureQrPayloadSha256 || null,
+      document_number_masked: analysis?.documentNumberMasked || analysis?.fields?.document_number_masked || null,
+      raw_ocr_text_stored: false,
+      raw_qr_payload_stored: false,
+    },
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function applyGuestDocumentIdentityFields({ hotelId, documentId }) {
+  const { data, error } = await supabase.rpc("apply_guest_document_identity_fields", {
+    target_hotel_id: hotelId,
+    target_document_id: documentId,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function auditGuestDocumentAccess({
   hotelId,
   documentId,

@@ -42,7 +42,12 @@ Deno.serve(async (request) => {
     const expected = await hmacHex(appSecret, rawBody);
     if (!received || !constantTimeEqual(received, expected)) return json(401, { ok: false, error: 'Invalid Meta webhook signature.' });
 
-    const payload = JSON.parse(rawBody);
+    let payload: Record<string, unknown>;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return json(400, { ok: false, error: 'Invalid webhook payload.' });
+    }
     const statuses: Array<Record<string, unknown>> = [];
     for (const entry of Array.isArray(payload?.entry) ? payload.entry : []) {
       for (const change of Array.isArray(entry?.changes) ? entry.changes : []) {
@@ -59,8 +64,11 @@ Deno.serve(async (request) => {
         .from('guest_communication_recipients')
         .select('id,hotel_id,guest_id,campaign_id,status,provider_message_id')
         .eq('provider_message_id', providerMessageId).maybeSingle();
-      if (error || !recipient) continue;
-      if (incoming !== 'failed' && statusRank(incoming) < statusRank(recipient.status)) continue;
+      if (error) throw new Error('Webhook recipient lookup persistence failed.');
+      if (!recipient) continue;
+      const currentRank = statusRank(String(recipient.status || '').toLowerCase());
+      if (incoming === 'failed' && currentRank >= statusRank('sent')) continue;
+      if (incoming !== 'failed' && statusRank(incoming) < currentRank) continue;
 
       const timestamp = statusPayload.timestamp ? new Date(Number(statusPayload.timestamp) * 1000).toISOString() : new Date().toISOString();
       const update: Record<string, unknown> = { status: incoming };
@@ -73,18 +81,21 @@ Deno.serve(async (request) => {
         update.error_code = String(firstError?.code || 'provider_failed').slice(0, 80);
         update.error_message = String(firstError?.title || firstError?.message || 'Meta reported message failure.').slice(0, 500);
       }
-      await admin.from('guest_communication_recipients').update(update).eq('id', recipient.id);
-      await admin.from('guest_communication_events').upsert({
+      const { error: updateError } = await admin.from('guest_communication_recipients').update(update).eq('id', recipient.id);
+      if (updateError) throw new Error('Webhook recipient status persistence failed.');
+
+      const { error: eventError } = await admin.from('guest_communication_events').upsert({
         hotel_id: recipient.hotel_id, guest_id: recipient.guest_id, campaign_id: recipient.campaign_id,
         recipient_id: recipient.id, channel: 'whatsapp', event_type: incoming,
         provider_message_id: providerMessageId,
         metadata: incoming === 'failed' ? { provider_failure: true } : {},
       }, { onConflict: 'recipient_id,event_type', ignoreDuplicates: true });
+      if (eventError) throw new Error('Webhook event persistence failed.');
       processed += 1;
     }
     return json(200, { ok: true, processed });
   } catch (error) {
     console.error('whatsapp-status-webhook error:', error instanceof Error ? error.message : String(error));
-    return json(400, { ok: false, error: 'Webhook processing failed.' });
+    return json(503, { ok: false, error: 'Webhook processing failed. Retry later.' });
   }
 });

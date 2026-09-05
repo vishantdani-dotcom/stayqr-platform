@@ -1,4 +1,4 @@
-﻿const AADHAAR_REGEX = /\b(\d{4})[\s.-]{0,3}(\d{4})[\s.-]{0,3}(\d{4})\b/g;
+const AADHAAR_REGEX = /\b(\d{4})[\s.-]{0,3}(\d{4})[\s.-]{0,3}(\d{4})\b/g;
 const DATE_REGEX = /\b([0-3]?\d)\s*[/.-]\s*([01]?\d)\s*[/.-]\s*((?:19|20)\d{2})\b/;
 const PAN_REGEX = /\b[A-Z]{5}\d{4}[A-Z]\b/i;
 const PASSPORT_REGEX = /\b[A-Z][0-9]{7}\b/i;
@@ -30,14 +30,14 @@ function maskAadhaar(value) {
 function maskPan(value) {
   const normalized = String(value || "").toUpperCase().replace(/\s+/g, "");
   return /^[A-Z]{5}\d{4}[A-Z]$/.test(normalized)
-    ? `${normalized.slice(0, 5)}â€¢â€¢â€¢â€¢${normalized.slice(-1)}`
+    ? `${normalized.slice(0, 5)}••••${normalized.slice(-1)}`
     : "";
 }
 
 function maskGeneric(value) {
   const normalized = normalizeSpace(value).replace(/\s+/g, "");
   if (normalized.length < 4) return normalized;
-  return `${"â€¢".repeat(Math.min(8, Math.max(4, normalized.length - 4)))}${normalized.slice(-4)}`;
+  return `${"•".repeat(Math.min(8, Math.max(4, normalized.length - 4)))}${normalized.slice(-4)}`;
 }
 
 export function maskSensitiveNumbers(text) {
@@ -159,17 +159,26 @@ async function detectTextWithBrowser(bitmap) {
 
 async function detectTextWithTesseract(file, bitmap, onProgress) {
   if (!file || !String(file.type || "").startsWith("image/")) {
-    return { engine: "tesseract_browser", text: "", supported: false };
+    return { engine: "tesseract_browser", text: "", supported: false, errorMessage: "Image OCR is unavailable for this file type." };
   }
 
   let worker;
+  let workerError = "";
   try {
     const { createWorker } = await import("tesseract.js");
     worker = await createWorker("eng", 1, {
+      workerPath: "/ocr/worker.min.js",
+      corePath: "/ocr/core",
+      langPath: "/ocr/lang",
+      workerBlobURL: false,
       logger: (event) => {
         if (event?.status === "recognizing text" && Number.isFinite(event.progress)) {
           onProgress?.(Math.round(event.progress * 100));
         }
+      },
+      errorHandler: (error) => {
+        workerError = error instanceof Error ? error.message : String(error || "OCR worker error");
+        console.error("StayQR OCR worker error:", error);
       },
     });
 
@@ -204,8 +213,9 @@ async function detectTextWithTesseract(file, bitmap, onProgress) {
       score: bestScore,
     };
   } catch (error) {
-    console.warn("Browser OCR fallback unavailable:", error);
-    return { engine: "tesseract_browser", text: "", supported: false, error };
+    const errorMessage = workerError || (error instanceof Error ? error.message : String(error || "OCR runtime unavailable"));
+    console.error("StayQR browser OCR unavailable:", error);
+    return { engine: "tesseract_browser", text: "", supported: false, error, errorMessage };
   } finally {
     try { await worker?.terminate?.(); } catch { /* best effort */ }
   }
@@ -375,7 +385,7 @@ function extractMaskedDocumentNumber(text, documentType) {
 }
 
 function extractDateOfBirth(lines, text) {
-  const labelPattern = /\b(?:DOB|DATE OF BIRTH|BIRTH DATE|D\.O\.B\.?|à¤œà¤¨à¥à¤®(?:\s+à¤¤à¤¿à¤¥à¤¿)?)\b/i;
+  const labelPattern = /\b(?:DOB|DATE OF BIRTH|BIRTH DATE|D\.O\.B\.?|जन्म(?:\s+तिथि)?)\b/i;
   for (let index = 0; index < lines.length; index += 1) {
     if (!labelPattern.test(lines[index])) continue;
     const sameLine = lines[index].match(DATE_REGEX);
@@ -452,10 +462,13 @@ export async function analyzeIdentityDocument(file, requestedDocumentType = "aut
       { fileName: file.name }
     );
     const hasText = Boolean(rawText.trim());
-    const hasExtractedIdentity = Object.keys(extractedFields).length > 0 || Boolean(documentNumberMasked);
+    const meaningfulFieldKeys = ["full_name", "date_of_birth", "gender", "address_line1", "postal_code"];
+    const meaningfulFieldCount = meaningfulFieldKeys.filter((key) => Boolean(extractedFields[key])).length;
+    const hasExtractedIdentity = meaningfulFieldCount > 0 || Boolean(documentNumberMasked);
     const status = hasExtractedIdentity ? "extracted" : "limited";
     const warnings = [];
-    if (!hasText) warnings.push("No readable text was detected. Retake the photo with better focus and lighting, or enter the fields manually.");
+    if (!hasText && textResult.errorMessage) warnings.push(`OCR engine could not start: ${textResult.errorMessage}. Hard-refresh the page and try again.`);
+    else if (!hasText) warnings.push("No readable text was detected. Retake the photo with better focus and lighting, or enter the fields manually.");
     else if (!hasExtractedIdentity) warnings.push("Text was detected, but StayQR could not confidently map the ID fields. Retake a straighter, sharper photo or enter the fields manually.");
     if (documentType === "aadhaar" && qrResult.detected) warnings.push("Aadhaar QR detected. This simplified check-in uses it only as a scan signal and does not claim UIDAI verification.");
 
@@ -463,6 +476,7 @@ export async function analyzeIdentityDocument(file, requestedDocumentType = "aut
       status,
       method: hasText ? textResult.engine : qrResult.detected ? "barcode_detector" : "manual",
       confidence: textResult.confidence ?? null,
+      ocrRuntimeReady: Boolean(textResult.supported),
       documentType,
       extractedFields,
       documentNumberMasked,
@@ -478,4 +492,3 @@ export async function analyzeIdentityDocument(file, requestedDocumentType = "aut
     bitmap?.close?.();
   }
 }
-

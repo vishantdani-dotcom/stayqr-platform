@@ -30,7 +30,8 @@ export default function SimpleGuestIdCapture({
 
   const analysis = value?.analysis || null;
   const extracted = analysis?.extractedFields || {};
-  const hasFields = Object.keys(extracted).length > 0 || Boolean(analysis?.documentNumberMasked);
+  const meaningfulKeys = ["full_name", "date_of_birth", "gender", "address_line1", "postal_code"];
+  const hasFields = meaningfulKeys.some((key) => Boolean(extracted[key])) || Boolean(analysis?.documentNumberMasked);
   const progressLabel = useMemo(() => {
     if (!busy) return "";
     if (progress > 0) return `Reading ID… ${Math.round(progress)}%`;

@@ -55,13 +55,16 @@
     "validate:v1.1-b": "node scripts/validate-v1-1-batchB.mjs && npm run validate:v1.1-a",
     "validate:v1.1-c": "node scripts/validate-v1-1-batchC.mjs && npm run validate:v1.1-b",
     "validate:pilot-manual-billing": "node scripts/validate-pilot-manual-billing.mjs",
-    "validate:commercial-ready": "node scripts/validate-commercial-ready.mjs && npm run validate:pilot-manual-billing && npm run lint && npm run build"
+    "validate:commercial-ready": "node scripts/validate-commercial-ready.mjs && npm run validate:pilot-manual-billing && npm run lint && npm run build",
+    "prebuild": "node scripts/prepare-ocr-assets.mjs",
+    "predev": "node scripts/prepare-ocr-assets.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@supabase/supabase-js": "^2.106.2",
+    "@tesseract.js-data/eng": "1.0.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "react": "^19.2.6",

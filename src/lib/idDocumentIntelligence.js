@@ -1,3 +1,8 @@
+let sharedTesseractWorker = null;
+let sharedTesseractWorkerPromise = null;
+let activeOcrProgressListener = null;
+let unloadHandlerInstalled = false;
+
 const AADHAAR_REGEX = /\b(\d{4})[\s.-]{0,3}(\d{4})[\s.-]{0,3}(\d{4})\b/g;
 const DATE_REGEX = /\b([0-3]?\d)\s*[/.-]\s*([01]?\d)\s*[/.-]\s*((?:19|20)\d{2})\b/;
 const PAN_REGEX = /\b[A-Z]{5}\d{4}[A-Z]\b/i;
@@ -101,8 +106,8 @@ function prepareOcrCanvas(bitmap) {
   const sourceHeight = Number(bitmap.height || bitmap.naturalHeight || 0);
   if (!sourceWidth || !sourceHeight) return bitmap;
 
-  const minLongEdge = 1600;
-  const maxLongEdge = 2200;
+  const minLongEdge = 1200;
+  const maxLongEdge = 1600;
   const longEdge = Math.max(sourceWidth, sourceHeight);
   const scale = longEdge < minLongEdge
     ? Math.min(3, minLongEdge / longEdge)
@@ -157,32 +162,76 @@ async function detectTextWithBrowser(bitmap) {
   }
 }
 
+async function createSharedTesseractWorker() {
+  const { createWorker } = await import("tesseract.js");
+  const worker = await createWorker("eng", 1, {
+    workerPath: "/ocr/worker.min.js",
+    corePath: "/ocr/core",
+    langPath: "/ocr/lang",
+    workerBlobURL: false,
+    logger: (event) => {
+      if (event?.status === "recognizing text" && Number.isFinite(event.progress)) {
+        activeOcrProgressListener?.(Math.round(event.progress * 100));
+      }
+    },
+    errorHandler: (error) => {
+      console.error("StayQR OCR worker error:", error);
+    },
+  });
+
+  sharedTesseractWorker = worker;
+
+  if (typeof window !== "undefined" && !unloadHandlerInstalled) {
+    unloadHandlerInstalled = true;
+    window.addEventListener("beforeunload", () => {
+      try { sharedTesseractWorker?.terminate?.(); } catch { /* best effort */ }
+      sharedTesseractWorker = null;
+      sharedTesseractWorkerPromise = null;
+    }, { once: true });
+  }
+
+  return worker;
+}
+
+async function getSharedTesseractWorker() {
+  if (sharedTesseractWorker) return sharedTesseractWorker;
+  if (!sharedTesseractWorkerPromise) {
+    sharedTesseractWorkerPromise = createSharedTesseractWorker().catch((error) => {
+      sharedTesseractWorker = null;
+      sharedTesseractWorkerPromise = null;
+      throw error;
+    });
+  }
+  return sharedTesseractWorkerPromise;
+}
+
+async function resetSharedTesseractWorker() {
+  const worker = sharedTesseractWorker;
+  sharedTesseractWorker = null;
+  sharedTesseractWorkerPromise = null;
+  try { await worker?.terminate?.(); } catch { /* best effort */ }
+}
+
+export function prewarmIdentityOcrRuntime() {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  return getSharedTesseractWorker()
+    .then(() => true)
+    .catch((error) => {
+      console.warn("StayQR OCR prewarm unavailable:", error);
+      return false;
+    });
+}
+
 async function detectTextWithTesseract(file, bitmap, onProgress) {
   if (!file || !String(file.type || "").startsWith("image/")) {
     return { engine: "tesseract_browser", text: "", supported: false, errorMessage: "Image OCR is unavailable for this file type." };
   }
 
-  let worker;
-  let workerError = "";
   try {
-    const { createWorker } = await import("tesseract.js");
-    worker = await createWorker("eng", 1, {
-      workerPath: "/ocr/worker.min.js",
-      corePath: "/ocr/core",
-      langPath: "/ocr/lang",
-      workerBlobURL: false,
-      logger: (event) => {
-        if (event?.status === "recognizing text" && Number.isFinite(event.progress)) {
-          onProgress?.(Math.round(event.progress * 100));
-        }
-      },
-      errorHandler: (error) => {
-        workerError = error instanceof Error ? error.message : String(error || "OCR worker error");
-        console.error("StayQR OCR worker error:", error);
-      },
-    });
-
+    activeOcrProgressListener = onProgress || null;
+    const worker = await getSharedTesseractWorker();
     const source = prepareOcrCanvas(bitmap) || file;
+
     await worker.setParameters?.({
       tessedit_pageseg_mode: "6",
       preserve_interword_spaces: "1",
@@ -193,7 +242,9 @@ async function detectTextWithTesseract(file, bitmap, onProgress) {
     let bestConfidence = Number.isFinite(first?.data?.confidence) ? Number(first.data.confidence) : null;
     let bestScore = identityTextScore(bestText);
 
-    if (bestScore < 6) {
+    // Most hotel ID cards are handled in one pass. A second sparse-text pass is
+    // reserved for genuinely weak reads so normal check-in is not delayed.
+    if (bestScore < 4 && (bestConfidence === null || bestConfidence < 45)) {
       await worker.setParameters?.({ tessedit_pageseg_mode: "11" });
       const second = await worker.recognize(source);
       const secondText = String(second?.data?.text || "");
@@ -213,11 +264,12 @@ async function detectTextWithTesseract(file, bitmap, onProgress) {
       score: bestScore,
     };
   } catch (error) {
-    const errorMessage = workerError || (error instanceof Error ? error.message : String(error || "OCR runtime unavailable"));
+    const errorMessage = error instanceof Error ? error.message : String(error || "OCR runtime unavailable");
     console.error("StayQR browser OCR unavailable:", error);
+    await resetSharedTesseractWorker();
     return { engine: "tesseract_browser", text: "", supported: false, error, errorMessage };
   } finally {
-    try { await worker?.terminate?.(); } catch { /* best effort */ }
+    activeOcrProgressListener = null;
   }
 }
 

@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DocumentScanner from "./DocumentScanner";
-import { analyzeIdentityDocument } from "../../lib/idDocumentIntelligence";
+import { analyzeIdentityDocument, prewarmIdentityOcrRuntime } from "../../lib/idDocumentIntelligence";
 import "./SimpleGuestIdCapture.css";
 
 const ACCEPT = ".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf";
@@ -27,6 +27,28 @@ export default function SimpleGuestIdCapture({
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    let idleId = null;
+    let timerId = null;
+
+    const warm = () => {
+      if (!cancelled) void prewarmIdentityOcrRuntime();
+    };
+
+    if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(warm, { timeout: 1200 });
+    } else {
+      timerId = window.setTimeout(warm, 150);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId !== null && typeof window?.cancelIdleCallback === "function") window.cancelIdleCallback(idleId);
+      if (timerId !== null) window.clearTimeout(timerId);
+    };
+  }, []);
 
   const analysis = value?.analysis || null;
   const extracted = analysis?.extractedFields || {};

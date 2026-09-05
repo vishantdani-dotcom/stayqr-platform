@@ -622,6 +622,7 @@ export default function App() {
           <Reservations
             initialReservationId={navigationRequest?.reservationId || null}
             navigationRequestId={navigationRequest?.requestId || null}
+            onNavigate={handleNavigate}
           />
         )
       case 'calendar':
@@ -703,6 +704,7 @@ export default function App() {
             initialTab={navigationRequest?.initialTab || 'notifications'}
             initialAction={navigationRequest?.initialAction || null}
             navigationRequestId={navigationRequest?.requestId || null}
+            onNavigate={handleNavigate}
           />
         )
       case 'settings':

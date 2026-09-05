@@ -26,6 +26,12 @@ import {
   setOperationalIncidentStatus,
 } from '../../lib/day18Monitoring'
 import { createSupportTicket } from '../../lib/commercialControl'
+import {
+  getNotificationCategoryLabel,
+  getNotificationDestination,
+  getNotificationTone,
+  timeAgo,
+} from '../../lib/notificationPresentation'
 import './OperationsCenter.css'
 
 const TABS = [
@@ -87,6 +93,7 @@ export default function OperationsCenter({
   initialTab = 'notifications',
   initialAction = null,
   navigationRequestId = null,
+  onNavigate,
 }) {
   const hotelId = hotel?.id
   const safeInitialTab = TABS.some(([id]) => id === initialTab) ? initialTab : 'notifications'
@@ -292,6 +299,30 @@ export default function OperationsCenter({
     }
   }
 
+
+  async function handleInboxItemClick(item) {
+    if (!item?.id || saving) return
+    setSaving(item.id)
+    setError('')
+    try {
+      if (item.status === 'unread') {
+        await markInboxNotificationRead(item.id)
+      }
+
+      const destination = getNotificationDestination(item)
+      if (onNavigate) {
+        onNavigate(destination.section, destination.detail)
+      } else {
+        setInbox(await getNotificationInbox(hotelId, 100))
+      }
+    } catch (err) {
+      console.error(err)
+      setError(err?.message || 'Could not open notification.')
+    } finally {
+      setSaving('')
+    }
+  }
+
   async function submitSupportTicket(event) {
     event.preventDefault()
 
@@ -425,8 +456,11 @@ export default function OperationsCenter({
 
       {!loading && tab === 'notifications' && (
         <Panel title="Notification Centre" subtitle="Realtime recipient-level inbox from the trusted notification outbox.">
-          <div className="d17-toolbar">
-            <span>{inbox.unread_count || 0} unread</span>
+          <div className="d17-toolbar d17-notification-toolbar">
+            <div>
+              <strong>{inbox.unread_count || 0} unread</strong>
+              <span>Recent operational activity for this property</span>
+            </div>
             <button
               type="button"
               disabled={!inbox.unread_count || saving === 'all-read'}
@@ -436,28 +470,28 @@ export default function OperationsCenter({
                 'All notifications marked as read.'
               )}
             >
-              Mark all read
+              Mark all as read
             </button>
           </div>
           <div className="d17-feed">
-            {inbox.items.length === 0 ? <Empty text="No notifications yet." /> : inbox.items.map((item) => (
+            {inbox.items.length === 0 ? <Empty text="You’re all caught up. New hotel activity will appear here." /> : inbox.items.map((item) => (
               <button
                 type="button"
-                className={`d17-notification ${item.status} severity-${item.severity}`}
+                className={`d17-notification ${item.status} severity-${getNotificationTone(item)}`}
                 key={item.id}
-                onClick={() => item.status === 'unread' && runAction(
-                  item.id,
-                  () => markInboxNotificationRead(item.id),
-                  'Notification marked as read.'
-                )}
+                onClick={() => handleInboxItemClick(item)}
+                disabled={saving === item.id}
               >
-                <span className="d17-dot" />
+                <span className={`d17-dot ${item.status}`} aria-hidden="true" />
                 <span className="d17-notification-copy">
-                  <strong>{item.title}</strong>
+                  <span className="d17-notification-heading">
+                    <strong>{item.title}</strong>
+                    {item.status === 'unread' && <span className="d17-new-badge">New</span>}
+                  </span>
                   <span>{item.message}</span>
-                  <small>{item.event_key} · {formatDate(item.created_at)}</small>
+                  <small>{getNotificationCategoryLabel(item)} · {timeAgo(item.created_at)}</small>
                 </span>
-                <span className="d17-pill">{item.severity}</span>
+                <span className={`d17-pill severity-${getNotificationTone(item)}`}>{item.severity || 'info'}</span>
               </button>
             ))}
           </div>

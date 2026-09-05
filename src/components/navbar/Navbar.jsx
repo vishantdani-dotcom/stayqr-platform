@@ -12,6 +12,13 @@ import {
   markInboxNotificationRead,
   subscribeToNotificationInbox,
 } from '../../lib/day17Operations'
+import {
+  getNotificationCategory,
+  getNotificationCategoryLabel,
+  getNotificationDestination,
+  getNotificationTone,
+  timeAgo,
+} from '../../lib/notificationPresentation'
 import './Navbar.css'
 
 export default function Navbar({
@@ -31,6 +38,8 @@ export default function Navbar({
   const [notifOpen, setNotifOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
+  const [notifBusy, setNotifBusy] = useState(false)
+  const [notifError, setNotifError] = useState('')
   const userMenuRef = useRef(null)
   const notificationRef = useRef(null)
   const notificationRequestRef = useRef(0)
@@ -49,6 +58,7 @@ export default function Navbar({
   useEffect(() => {
     notificationRequestRef.current += 1
     setNotifications([])
+    setNotifError('')
     setNotifOpen(false)
 
     if (!hotelId) return undefined
@@ -102,33 +112,73 @@ export default function Navbar({
 
     const requestId = notificationRequestRef.current + 1
     notificationRequestRef.current = requestId
-    const data = await getNotificationInbox(id, 30)
 
-    if (
-      notificationRequestRef.current !== requestId ||
-      activeHotelIdRef.current !== id
-    ) {
-      return
+    try {
+      const data = await getNotificationInbox(id, 30)
+
+      if (
+        notificationRequestRef.current !== requestId ||
+        activeHotelIdRef.current !== id
+      ) {
+        return
+      }
+
+      setNotifications(data?.items || [])
+      setNotifError('')
+    } catch (error) {
+      if (notificationRequestRef.current === requestId) {
+        console.error('Notification inbox load failed:', error)
+        setNotifError('Notifications could not be refreshed. Try again.')
+      }
     }
-
-    setNotifications(data?.items || [])
   }
 
   function handleOpenNotifications() {
     setUserMenuOpen(false)
-    setNotifOpen((prev) => !prev)
+    setNotifOpen((prev) => {
+      const next = !prev
+      if (next && hotelId) loadNotifications(hotelId)
+      return next
+    })
   }
 
   async function handleMarkAllRead() {
-    if (!hotelId) return
-    await markInboxAllRead(hotelId)
-    await loadNotifications(hotelId)
+    if (!hotelId || notifBusy) return
+    setNotifBusy(true)
+    setNotifError('')
+    try {
+      await markInboxAllRead(hotelId)
+      await loadNotifications(hotelId)
+    } catch (error) {
+      console.error('Mark all notifications read failed:', error)
+      setNotifError('Could not mark notifications as read.')
+    } finally {
+      setNotifBusy(false)
+    }
   }
 
   async function handleNotificationClick(notification) {
-    if (!notification?.id || notification.status === 'read') return
-    await markInboxNotificationRead(notification.id)
-    await loadNotifications(hotelId)
+    if (!notification?.id || notifBusy) return
+    setNotifBusy(true)
+    setNotifError('')
+
+    try {
+      if (notification.status === 'unread') {
+        await markInboxNotificationRead(notification.id)
+      }
+
+      const destination = getNotificationDestination(notification)
+      setNotifOpen(false)
+      if (onNavigate) {
+        onNavigate(destination.section, destination.detail)
+      }
+      await loadNotifications(hotelId)
+    } catch (error) {
+      console.error('Notification action failed:', error)
+      setNotifError('Could not open this notification. Try again.')
+    } finally {
+      setNotifBusy(false)
+    }
   }
 
   const handleLogout = async () => {
@@ -248,16 +298,23 @@ export default function Navbar({
 
                 <div className="notif-header-actions">
                   <span className="notif-count">
-                    {unreadCount > 0 ? `${unreadCount} unread` : 'All read'}
+                    {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
                   </span>
 
                   {unreadCount > 0 && (
-                    <button className="notif-mark-read" onClick={handleMarkAllRead} type="button">
-                      Mark all read
+                    <button className="notif-mark-read" onClick={handleMarkAllRead} type="button" disabled={notifBusy}>
+                      Mark all as read
                     </button>
                   )}
                 </div>
               </div>
+
+              {notifError && (
+                <div className="notif-inline-error" role="status">
+                  <span>{notifError}</span>
+                  <button type="button" onClick={() => hotelId && loadNotifications(hotelId)}>Retry</button>
+                </div>
+              )}
 
               <div className="notif-list" aria-live="polite">
                 {notifications.length === 0 ? (
@@ -267,7 +324,7 @@ export default function Navbar({
                     <span>New hotel activity will appear here.</span>
                   </div>
                 ) : (
-                  notifications.map((notification) => (
+                  notifications.slice(0, 10).map((notification) => (
                     <button
                       key={notification.id}
                       className={`notif-item ${notification.status === 'read' ? 'read' : 'unread'}`}
@@ -275,15 +332,17 @@ export default function Navbar({
                       type="button"
                     >
                       <span className={`notif-item-icon ${getNotificationTone(notification)}`} aria-hidden="true">
-                        {getNotificationIcon(notification.source_type || notification.event_key || 'general')}
+                        <NotificationTypeIcon category={getNotificationCategory(notification)} />
                       </span>
 
                       <span className="notif-item-body">
                         <span className="notif-item-title">{notification.title}</span>
                         <span className="notif-item-message">{notification.message}</span>
                         <span className="notif-item-meta">
+                          <span>{getNotificationCategoryLabel(notification)}</span>
+                          <span aria-hidden="true">•</span>
                           <span>{timeAgo(notification.created_at)}</span>
-                          {notification.status === 'unread' && <span>New</span>}
+                          {notification.status === 'unread' && <span className="notif-new-label">New</span>}
                         </span>
                       </span>
 
@@ -303,8 +362,8 @@ export default function Navbar({
                       onNavigate('operationscenter')
                     }}
                   >
-                    Open notification centre
-                    <span aria-hidden="true">ΓåÆ</span>
+                    <span>View all notifications</span>
+                    <ChevronRightIcon />
                   </button>
                 </div>
               )}
@@ -394,53 +453,86 @@ export default function Navbar({
   )
 }
 
-function getNotificationIcon(type) {
-  const normalizedType = String(type || '').toLowerCase()
-  const icons = {
-    service_status: '≡ƒ¢Ä∩╕Å',
-    service_request: '≡ƒ¢Ä∩╕Å',
-    checkout: '≡ƒÜ¬',
-    food_order: '≡ƒì╜∩╕Å',
-    payment: '≡ƒÆ│',
-    housekeeping: '≡ƒº╣',
-    review: 'Γ¡É',
-    general: '≡ƒöö',
-  }
-
-  const matchedType = Object.keys(icons).find((key) => normalizedType.includes(key))
-  return icons[matchedType] || '≡ƒöö'
-}
-
-function getNotificationTone(notification) {
-  const severity = String(notification?.severity || '').toLowerCase()
-  const eventKey = String(notification?.event_key || '').toLowerCase()
-
-  if (severity === 'critical' || severity === 'error') return 'critical'
-  if (severity === 'warning' || severity === 'warn') return 'warning'
-  if (severity === 'success' || eventKey.includes('completed') || eventKey.includes('paid')) return 'success'
-  return 'info'
-}
-
-function timeAgo(dateValue) {
-  if (!dateValue) return ''
-
-  const diffMs = Date.now() - new Date(dateValue).getTime()
-  const diffSec = Math.floor(diffMs / 1000)
-  const diffMin = Math.floor(diffSec / 60)
-  const diffHr = Math.floor(diffMin / 60)
-  const diffDay = Math.floor(diffHr / 24)
-
-  if (diffSec < 30) return 'Just now'
-  if (diffMin < 1) return `${diffSec} sec ago`
-  if (diffMin < 60) return `${diffMin} min ago`
-  if (diffHr < 24) return `${diffHr} hr ago`
-  return `${diffDay} day ago`
-}
-
 function formatRole(role) {
   return String(role || 'Staff')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+
+function NotificationTypeIcon({ category }) {
+  const common = {
+    width: 18,
+    height: 18,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.9,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+  }
+
+  const paths = {
+    payment: (<>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M7 15h3" />
+    </>),
+    food: (<>
+      <path d="M4 3v7a3 3 0 0 0 3 3V3" />
+      <path d="M7 13v8" />
+      <path d="M15 3v18" />
+      <path d="M15 3c3 1 5 3.5 5 7h-5" />
+    </>),
+    service: (<>
+      <path d="M12 3a6 6 0 0 0-6 6c0 5-2 5-2 7h16c0-2-2-2-2-7a6 6 0 0 0-6-6Z" />
+      <path d="M10 20h4" />
+    </>),
+    housekeeping: (<>
+      <path d="m3 21 6-6" />
+      <path d="m14 4 6 6" />
+      <path d="M15 5 5 15l4 4L19 9Z" />
+    </>),
+    maintenance: (<>
+      <path d="M14.7 6.3a4 4 0 0 0-5 5L3 18l3 3 6.7-6.7a4 4 0 0 0 5-5l-2.4 2.4-3-3 2.4-2.4Z" />
+    </>),
+    reservation: (<>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M16 3v4M8 3v4M3 11h18" />
+      <path d="m9 16 2 2 4-4" />
+    </>),
+    guest: (<>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </>),
+    invoice: (<>
+      <path d="M6 2h9l4 4v16H6Z" />
+      <path d="M14 2v5h5M9 13h6M9 17h6" />
+    </>),
+    room: (<>
+      <path d="M3 21V9l9-6 9 6v12" />
+      <path d="M9 21v-7h6v7" />
+    </>),
+    support: (<>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9a2.7 2.7 0 0 1 5.2 1c0 2-2.7 2.2-2.7 4" />
+      <path d="M12 18h.01" />
+    </>),
+    general: (<>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+      <path d="M10 21h4" />
+    </>),
+  }
+
+  return <svg {...common} aria-hidden="true">{paths[category] || paths.general}</svg>
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  )
 }
 
 function MenuIcon() {

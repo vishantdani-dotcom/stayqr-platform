@@ -58,9 +58,20 @@ const createCompanion = () => ({
   email: "",
   id_type: "",
   id_number: "",
+  date_of_birth: "",
+  gender: "",
+  nationality: "Indian",
+  country_of_residence: "India",
+  address_line1: "",
+  city: "",
+  state_region: "",
+  postal_code: "",
   relationship: "",
   guest_category: "adult",
   form_c_required: false,
+  id_capture: null,
+  id_document_id: createUuid(),
+  id_request_id: createUuid(),
 });
 
 function createRequestId() {
@@ -399,6 +410,44 @@ export default function CheckIn() {
     );
   };
 
+  const updateCompanionCapture = (clientId, capture) => {
+    setCompanions((current) =>
+      current.map((item) =>
+        item.client_id === clientId ? { ...item, id_capture: capture } : item
+      )
+    );
+  };
+
+  const handleCompanionIdExtracted = (clientId, analysis) => {
+    if (!analysis) return;
+    const fields = analysis.extractedFields || {};
+
+    setCompanions((current) =>
+      current.map((item) => {
+        if (item.client_id !== clientId) return item;
+
+        return {
+          ...item,
+          full_name: fields.full_name || item.full_name,
+          id_type:
+            analysis.documentType && analysis.documentType !== "other"
+              ? analysis.documentType
+              : item.id_type,
+          id_number: analysis.documentNumberMasked || item.id_number,
+          date_of_birth: fields.date_of_birth || item.date_of_birth,
+          gender: fields.gender || item.gender,
+          nationality: fields.nationality || item.nationality,
+          country_of_residence:
+            fields.country_of_residence || item.country_of_residence,
+          address_line1: fields.address_line1 || item.address_line1,
+          city: fields.city || item.city,
+          state_region: fields.state_region || item.state_region,
+          postal_code: fields.postal_code || item.postal_code,
+        };
+      })
+    );
+  };
+
   const updateStayDetail = (field, value) => {
     setStayDetails((current) => ({ ...current, [field]: value }));
   };
@@ -507,58 +556,77 @@ export default function CheckIn() {
     }
   };
 
-  const saveCapturedIdAfterCheckin = async (checkinResult) => {
-    const file = idCapture?.file;
-    if (!file || !currentHotel?.id || !checkinResult?.guest_id) return null;
-    if (!ALLOWED_ID_MIME_TYPES.has(file.type)) throw new Error("Only JPG, PNG and PDF ID files are supported in quick check-in.");
-    if (file.size <= 0 || file.size > MAX_ID_FILE_SIZE) throw new Error("ID image must be between 1 byte and 15 MB.");
+  const saveCapturedIdForGuest = async ({
+    capture,
+    guestId,
+    guestSessionId,
+    documentId,
+    documentRequestId,
+    fallbackGuest,
+  }) => {
+    const file = capture?.file;
+    if (!file || !currentHotel?.id || !guestId) return null;
+    if (!ALLOWED_ID_MIME_TYPES.has(file.type)) {
+      throw new Error("Only JPG, PNG and PDF ID files are supported in quick check-in.");
+    }
+    if (file.size <= 0 || file.size > MAX_ID_FILE_SIZE) {
+      throw new Error("ID image must be between 1 byte and 15 MB.");
+    }
 
     const safeName = sanitizeStorageFileName(file.name);
-    const storagePath = `${currentHotel.id}/${checkinResult.guest_id}/${idDocumentId}/${safeName}`;
+    const storagePath = `${currentHotel.id}/${guestId}/${documentId}/${safeName}`;
     const { error: storageError } = await supabase.storage
       .from(GUEST_DOCUMENT_BUCKET)
       .upload(storagePath, file, { contentType: file.type, upsert: false });
-    if (storageError && !isExistingStorageObjectError(storageError)) throw storageError;
+    if (storageError && !isExistingStorageObjectError(storageError)) {
+      throw storageError;
+    }
 
-    const analysis = idCapture.analysis || null;
-    const documentType = analysis?.documentType && analysis.documentType !== "other"
-      ? analysis.documentType
-      : guest.id_type || "other";
+    const analysis = capture.analysis || null;
+    const documentType =
+      analysis?.documentType && analysis.documentType !== "other"
+        ? analysis.documentType
+        : fallbackGuest?.id_type || "other";
 
-    const { data: registration, error: registrationError } = await supabase.rpc("register_guest_document", {
-      target_hotel_id: currentHotel.id,
-      payload: {
-        document_id: idDocumentId,
-        request_id: idRequestId,
-        guest_id: checkinResult.guest_id,
-        guest_session_id: checkinResult.guest_session_id || null,
-        document_type: documentType,
-        storage_bucket: GUEST_DOCUMENT_BUCKET,
-        storage_path: storagePath,
-        original_file_name: file.name,
-        mime_type: file.type,
-        file_size_bytes: file.size,
-        document_number_masked: analysis?.documentNumberMasked || guest.id_number || null,
-        issue_country: "India",
-        capture_source: idCapture.captureSource === "camera" ? "camera" : "upload",
-        document_side: "single",
-        quality_status: idCapture.qualityStatus || "not_assessed",
-        quality_score: idCapture.qualityScore ?? null,
-        quality_flags: idCapture.qualityFlags || [],
-        retention_until: addDaysIso(365),
-        retention_basis: "hotel_policy",
-        metadata: {
-          workflow: "simple_front_desk_id_capture_rev1",
-          raw_ocr_text_stored: false,
-          raw_qr_payload_stored: false,
-          government_verification_claimed: false,
+    const { data: registration, error: registrationError } = await supabase.rpc(
+      "register_guest_document",
+      {
+        target_hotel_id: currentHotel.id,
+        payload: {
+          document_id: documentId,
+          request_id: documentRequestId,
+          guest_id: guestId,
+          guest_session_id: guestSessionId || null,
+          document_type: documentType,
+          storage_bucket: GUEST_DOCUMENT_BUCKET,
+          storage_path: storagePath,
+          original_file_name: file.name,
+          mime_type: file.type,
+          file_size_bytes: file.size,
+          document_number_masked:
+            analysis?.documentNumberMasked || fallbackGuest?.id_number || null,
+          issue_country: "India",
+          capture_source:
+            capture.captureSource === "camera" ? "camera" : "upload",
+          document_side: "single",
+          quality_status: capture.qualityStatus || "not_assessed",
+          quality_score: capture.qualityScore ?? null,
+          quality_flags: capture.qualityFlags || [],
+          retention_until: addDaysIso(365),
+          retention_basis: "hotel_policy",
+          metadata: {
+            workflow: "simple_front_desk_multi_occupant_rev6",
+            raw_ocr_text_stored: false,
+            raw_qr_payload_stored: false,
+            government_verification_claimed: false,
+          },
         },
-      },
-    });
+      }
+    );
     if (registrationError) throw registrationError;
 
     const savedDocument = registration?.document || registration;
-    const savedDocumentId = savedDocument?.id || idDocumentId;
+    const savedDocumentId = savedDocument?.id || documentId;
     if (analysis) {
       await recordGuestDocumentExtraction({
         hotelId: currentHotel.id,
@@ -567,6 +635,66 @@ export default function CheckIn() {
       });
     }
     return savedDocumentId;
+  };
+
+  const saveCapturedIdsAfterCheckin = async (checkinResult) => {
+    const warnings = [];
+
+    if (idCapture?.file) {
+      try {
+        await saveCapturedIdForGuest({
+          capture: idCapture,
+          guestId: checkinResult?.guest_id,
+          guestSessionId: checkinResult?.guest_session_id,
+          documentId: idDocumentId,
+          documentRequestId: idRequestId,
+          fallbackGuest: guest,
+        });
+      } catch (documentError) {
+        console.error("Primary guest ID save error:", documentError);
+        warnings.push(
+          documentError.message ||
+            "Primary guest checked in, but the ID image could not be saved."
+        );
+      }
+    }
+
+    const resultCompanions = Array.isArray(checkinResult?.companions)
+      ? checkinResult.companions
+      : [];
+
+    for (const companion of companions) {
+      if (!companion.id_capture?.file) continue;
+
+      const resultCompanion = resultCompanions.find(
+        (item) => item?.client_id === companion.client_id
+      );
+
+      if (!resultCompanion?.guest_id) {
+        warnings.push(
+          `${companion.full_name || "Companion"} was checked in, but StayQR could not link the captured ID to the companion profile.`
+        );
+        continue;
+      }
+
+      try {
+        await saveCapturedIdForGuest({
+          capture: companion.id_capture,
+          guestId: resultCompanion.guest_id,
+          guestSessionId: checkinResult?.guest_session_id,
+          documentId: companion.id_document_id,
+          documentRequestId: companion.id_request_id,
+          fallbackGuest: companion,
+        });
+      } catch (documentError) {
+        console.error("Companion ID save error:", documentError);
+        warnings.push(
+          `${companion.full_name || "Companion"} was checked in, but the ID image could not be saved.`
+        );
+      }
+    }
+
+    return warnings;
   };
 
   const handleCheckIn = async () => {
@@ -588,11 +716,20 @@ export default function CheckIn() {
 
       const companionPayload = companions.map((item) =>
         compactObject({
+          client_id: item.client_id,
           full_name: item.full_name.trim(),
           phone: item.phone.trim(),
           email: item.email.trim(),
           id_type: item.id_type.trim(),
           id_number: item.id_number.trim(),
+          date_of_birth: item.date_of_birth,
+          gender: item.gender,
+          nationality: item.nationality,
+          country_of_residence: item.country_of_residence,
+          address_line1: item.address_line1,
+          city: item.city,
+          state_region: item.state_region,
+          postal_code: item.postal_code,
           relationship: item.relationship.trim(),
           guest_category: item.guest_category,
           form_c_required: item.form_c_required,
@@ -627,22 +764,15 @@ export default function CheckIn() {
 
       if (rpcError) throw rpcError;
 
-      let documentWarning = "";
-      if (idCapture?.file) {
-        try {
-          await saveCapturedIdAfterCheckin(data);
-        } catch (documentError) {
-          console.error("Quick check-in ID save error:", documentError);
-          documentWarning = documentError.message || "The guest was checked in, but the ID image could not be saved.";
-          setIdSaveWarning(documentWarning);
-        }
-      }
+      const documentWarnings = await saveCapturedIdsAfterCheckin(data);
+      const documentWarning = documentWarnings.join(" ");
+      setIdSaveWarning(documentWarning);
 
       setResult(data);
       setMessage(
         data?.idempotent
           ? "This request was already completed earlier. The existing result was returned safely."
-          : `Guest checked in to Room ${data?.room_number || selectedRoom?.room_number || ""}.${documentWarning ? " Check the ID save warning below." : ""}`
+          : `${occupancy.total} guest${occupancy.total === 1 ? "" : "s"} checked in to Room ${data?.room_number || selectedRoom?.room_number || ""}.${documentWarning ? " Check the ID save warning below." : ""}`
       );
 
       await fetchAvailableRooms(currentHotel.id);
@@ -699,8 +829,12 @@ export default function CheckIn() {
             <div>
               <p>Check-in complete</p>
               <h2>{guest.full_name || "Guest"} · Room {result.room_number}</h2>
-              <span>The guest profile, stay and room inventory were saved together.</span>
-              {idCapture?.file && !idSaveWarning && <small>ID document saved privately with the guest profile.</small>}
+              <span>
+                {occupancy.total} guest{occupancy.total === 1 ? "" : "s"} linked to the same room stay.
+              </span>
+              {(idCapture?.file || companions.some((item) => item.id_capture?.file)) && !idSaveWarning && (
+                <small>Captured ID documents were saved privately to the correct guest profiles.</small>
+              )}
               {idSaveWarning && <div className="checkin-alert checkin-alert--warning">{idSaveWarning}</div>}
             </div>
             <button type="button" onClick={resetForm}>Check in another guest</button>
@@ -775,11 +909,117 @@ export default function CheckIn() {
               </section>
             )}
 
+            <section className="simple-checkin-card simple-occupants-card">
+              <div className="simple-section-title">
+                <span>4</span>
+                <div>
+                  <h2>Guests staying in this room</h2>
+                  <p>Add every person staying in the room. Adults can scan an ID; children can be added with basic details.</p>
+                </div>
+                <div className="simple-occupancy-summary">
+                  <strong>{occupancy.adults} adult{occupancy.adults === 1 ? "" : "s"}</strong>
+                  <span>{occupancy.children} child{occupancy.children === 1 ? "" : "ren"}</span>
+                  <em>{occupancy.total} total</em>
+                </div>
+              </div>
+
+              <div className="simple-primary-occupant">
+                <div className="simple-occupant-number">1</div>
+                <div>
+                  <span>Primary guest</span>
+                  <strong>{guest.full_name || "Enter primary guest name above"}</strong>
+                  <small>{idCapture?.file ? "ID captured" : "ID optional / not captured yet"}</small>
+                </div>
+                <span className="simple-occupant-chip">Adult</span>
+              </div>
+
+              <div className="simple-occupant-list">
+                {companions.map((companion, index) => (
+                  <article className="simple-occupant-card" key={companion.client_id}>
+                    <header className="simple-occupant-head">
+                      <div>
+                        <span className="simple-occupant-number">{index + 2}</span>
+                        <div>
+                          <strong>Guest {index + 2}</strong>
+                          <small>{companion.guest_category === "adult" ? "Accompanying adult" : companion.guest_category === "infant" ? "Infant" : "Child"}</small>
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => removeCompanion(companion.client_id)}>Remove</button>
+                    </header>
+
+                    <div className="simple-occupant-fields">
+                      <label>
+                        <span>Full name *</span>
+                        <input
+                          value={companion.full_name}
+                          onChange={(event) => updateCompanion(companion.client_id, "full_name", event.target.value)}
+                          placeholder="Guest full name"
+                        />
+                      </label>
+                      <label>
+                        <span>Category</span>
+                        <select
+                          value={companion.guest_category}
+                          onChange={(event) => updateCompanion(companion.client_id, "guest_category", event.target.value)}
+                        >
+                          <option value="adult">Adult</option>
+                          <option value="child">Child</option>
+                          <option value="infant">Infant</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Relationship</span>
+                        <input
+                          value={companion.relationship}
+                          onChange={(event) => updateCompanion(companion.client_id, "relationship", event.target.value)}
+                          placeholder="Spouse, child, parent…"
+                        />
+                      </label>
+                      <label>
+                        <span>Date of birth</span>
+                        <input
+                          type="date"
+                          value={companion.date_of_birth}
+                          onChange={(event) => updateCompanion(companion.client_id, "date_of_birth", event.target.value)}
+                        />
+                      </label>
+                    </div>
+
+                    <SimpleGuestIdCapture
+                      compact
+                      hotelId={currentHotel?.id || null}
+                      value={companion.id_capture}
+                      onChange={(capture) => updateCompanionCapture(companion.client_id, capture)}
+                      onExtracted={(analysis) => handleCompanionIdExtracted(companion.client_id, analysis)}
+                      disabled={loading}
+                    />
+
+                    <details className="simple-companion-review">
+                      <summary>Contact & extracted details</summary>
+                      <div className="simple-occupant-fields review">
+                        <label><span>Phone</span><input value={companion.phone} onChange={(event) => updateCompanion(companion.client_id, "phone", event.target.value)} /></label>
+                        <label><span>Email</span><input type="email" value={companion.email} onChange={(event) => updateCompanion(companion.client_id, "email", event.target.value)} /></label>
+                        <label><span>ID type</span><select value={companion.id_type} onChange={(event) => updateCompanion(companion.client_id, "id_type", event.target.value)}><option value="">Select ID</option><option value="aadhaar">Aadhaar</option><option value="passport">Passport</option><option value="pan">PAN</option><option value="driving_licence">Driving licence</option><option value="voter_id">Voter ID</option><option value="other">Other</option></select></label>
+                        <label><span>ID number</span><input value={companion.id_number} onChange={(event) => updateCompanion(companion.client_id, "id_number", event.target.value)} placeholder="Masked / extracted ID" /></label>
+                        <label><span>Gender</span><select value={companion.gender} onChange={(event) => updateCompanion(companion.client_id, "gender", event.target.value)}><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="non_binary">Non-binary</option><option value="other">Other</option><option value="prefer_not_to_say">Prefer not to say</option></select></label>
+                        <label><span>Nationality</span><input value={companion.nationality} onChange={(event) => updateCompanion(companion.client_id, "nationality", event.target.value)} /></label>
+                        <label className="wide"><span>Address</span><input value={companion.address_line1} onChange={(event) => updateCompanion(companion.client_id, "address_line1", event.target.value)} /></label>
+                      </div>
+                    </details>
+                  </article>
+                ))}
+              </div>
+
+              <button type="button" className="simple-add-occupant" onClick={addCompanion}>
+                + Add another guest
+              </button>
+            </section>
+
             <section className="simple-more-wrap">
               <button type="button" className="simple-more-toggle" onClick={() => setShowMoreOptions((current) => !current)}>
                 <span>{showMoreOptions ? "−" : "+"}</span>
                 {showMoreOptions ? "Hide extra check-in options" : "More check-in options"}
-                <small>Charge, language, companions, travel and foreign guest details</small>
+                <small>Charge, language, travel and foreign guest details</small>
               </button>
 
               {showMoreOptions && (
@@ -794,25 +1034,6 @@ export default function CheckIn() {
                     <label className="wide"><span>Address line 2</span><input value={guest.address_line2} onChange={(event) => updateGuest("address_line2", event.target.value)} /></label>
                     <label className="wide"><span>Front desk note</span><input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Optional note" /></label>
                   </div>
-
-                  <div className="simple-advanced-divider">
-                    <div><strong>Companions</strong><span>{occupancy.total} total guest{occupancy.total === 1 ? "" : "s"}</span></div>
-                    <button type="button" onClick={addCompanion}>+ Add companion</button>
-                  </div>
-                  {companions.map((companion, index) => (
-                    <div className="simple-companion-card" key={companion.client_id}>
-                      <div className="simple-companion-head"><strong>Companion {index + 1}</strong><button type="button" onClick={() => removeCompanion(companion.client_id)}>Remove</button></div>
-                      <div className="simple-more-grid">
-                        <label><span>Full name *</span><input value={companion.full_name} onChange={(event) => updateCompanion(companion.client_id, "full_name", event.target.value)} /></label>
-                        <label><span>Phone</span><input value={companion.phone} onChange={(event) => updateCompanion(companion.client_id, "phone", event.target.value)} /></label>
-                        <label><span>Category</span><select value={companion.guest_category} onChange={(event) => updateCompanion(companion.client_id, "guest_category", event.target.value)}><option value="adult">Adult</option><option value="child">Child</option><option value="infant">Infant</option></select></label>
-                        <label><span>Relationship</span><input value={companion.relationship} onChange={(event) => updateCompanion(companion.client_id, "relationship", event.target.value)} /></label>
-                        <label><span>ID type</span><select value={companion.id_type} onChange={(event) => updateCompanion(companion.client_id, "id_type", event.target.value)}><option value="">Select ID</option><option value="aadhaar">Aadhaar</option><option value="passport">Passport</option><option value="driving_licence">Driving licence</option><option value="voter_id">Voter ID</option><option value="other">Other</option></select></label>
-                        <label><span>ID number</span><input value={companion.id_number} onChange={(event) => updateCompanion(companion.client_id, "id_number", event.target.value)} /></label>
-                      </div>
-                      <label className="simple-inline-check"><input type="checkbox" checked={companion.form_c_required} onChange={(event) => updateCompanion(companion.client_id, "form_c_required", event.target.checked)} /><span>Form C required for this companion</span></label>
-                    </div>
-                  ))}
 
                   <details className="simple-nested-options">
                     <summary>Travel & timing</summary>

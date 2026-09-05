@@ -410,32 +410,92 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     resetKycDraft(guest);
 
     try {
-      const { data: guestSessions, error: sessionError } = await supabase
-        .from("guest_sessions")
-        .select(`
+      const sessionSelect = `
+        id,
+        hotel_id,
+        guest_id,
+        room_id,
+        reservation_id,
+        status,
+        checkin_time,
+        checkout_time,
+        extended_until,
+        created_at,
+        rooms (
           id,
-          hotel_id,
-          guest_id,
-          room_id,
-          reservation_id,
-          status,
-          checkin_time,
-          checkout_time,
-          extended_until,
-          created_at,
-          rooms (
-            id,
-            room_number,
-            room_type
-          )
-        `)
-        .eq("hotel_id", currentHotel.id)
-        .eq("guest_id", guest.id)
-        .order("checkin_time", { ascending: false });
+          room_number,
+          room_type
+        )
+      `;
 
-      if (sessionError) throw sessionError;
+      const [primarySessionResult, companionMembershipResult] = await Promise.all([
+        supabase
+          .from("guest_sessions")
+          .select(sessionSelect)
+          .eq("hotel_id", currentHotel.id)
+          .eq("guest_id", guest.id)
+          .order("checkin_time", { ascending: false }),
+        supabase
+          .from("guest_companions")
+          .select("guest_session_id, primary_guest_id, relationship, guest_category")
+          .eq("hotel_id", currentHotel.id)
+          .eq("guest_id", guest.id)
+          .order("created_at", { ascending: false }),
+      ]);
 
-      const sessionIds = (guestSessions || []).map((session) => session.id);
+      if (primarySessionResult.error) throw primarySessionResult.error;
+      if (companionMembershipResult.error) throw companionMembershipResult.error;
+
+      const companionMemberships = companionMembershipResult.data || [];
+      const companionSessionIds = [
+        ...new Set(companionMemberships.map((item) => item.guest_session_id).filter(Boolean)),
+      ];
+
+      let companionSessions = [];
+      if (companionSessionIds.length > 0) {
+        const { data, error: companionSessionError } = await supabase
+          .from("guest_sessions")
+          .select(sessionSelect)
+          .eq("hotel_id", currentHotel.id)
+          .in("id", companionSessionIds)
+          .order("checkin_time", { ascending: false });
+
+        if (companionSessionError) throw companionSessionError;
+        companionSessions = data || [];
+      }
+
+      const companionRoleBySession = new Map(
+        companionMemberships.map((item) => [item.guest_session_id, item])
+      );
+
+      const sessionsById = new Map();
+      for (const session of primarySessionResult.data || []) {
+        sessionsById.set(session.id, {
+          ...session,
+          stay_role: "primary",
+          stay_relationship: null,
+          stay_guest_category: "adult",
+        });
+      }
+      for (const session of companionSessions) {
+        const membership = companionRoleBySession.get(session.id);
+        if (!sessionsById.has(session.id)) {
+          sessionsById.set(session.id, {
+            ...session,
+            stay_role: "companion",
+            stay_relationship: membership?.relationship || null,
+            stay_guest_category: membership?.guest_category || "adult",
+          });
+        }
+      }
+
+      const guestSessions = [...sessionsById.values()].sort(
+        (left, right) =>
+          new Date(right.checkin_time || right.created_at || 0).getTime() -
+          new Date(left.checkin_time || left.created_at || 0).getTime()
+      );
+
+      const sessionIds = guestSessions.map((session) => session.id);
 
       const [noteResult, preferenceResult, documentResult] = await Promise.all([
         supabase
@@ -1411,7 +1471,18 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                               <h4>Stay history</h4>
                               {profile.sessions.length === 0 ? <p className="guest-muted">No stay history recorded.</p> : (
                                 <div className="simple-stay-list">
-                                  {profile.sessions.map((session) => <article key={session.id}><strong>Room {session.rooms?.room_number || "—"}</strong><span>{formatDateTime(session.checkin_time)} → {formatDateTime(session.extended_until || session.checkout_time)}</span><em>{titleCase(session.status)}</em></article>)}
+                                  {profile.sessions.map((session) => (
+                                    <article key={session.id}>
+                                      <strong>Room {session.rooms?.room_number || "—"}</strong>
+                                      <span>
+                                        {formatDateTime(session.checkin_time)} → {formatDateTime(session.extended_until || session.checkout_time)}
+                                        {session.stay_role === "companion"
+                                          ? ` · Companion${session.stay_relationship ? ` (${session.stay_relationship})` : ""}`
+                                          : " · Primary guest"}
+                                      </span>
+                                      <em>{titleCase(session.status)}</em>
+                                    </article>
+                                  ))}
                                 </div>
                               )}
                             </section>
@@ -1499,6 +1570,14 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                               <Detail label="Check-in" value={formatDateTime(session.checkin_time)} />
                               <Detail label="Checkout" value={formatDateTime(session.extended_until || session.checkout_time)} />
                               <Detail label="Room charge" value={`₹${formatMoney(roomCharges)}`} />
+                              <Detail
+                                label="Stay role"
+                                value={
+                                  session.stay_role === "companion"
+                                    ? `Companion${session.stay_relationship ? ` · ${session.stay_relationship}` : ""}`
+                                    : "Primary guest"
+                                }
+                              />
                               <Detail label="Companions" value={String(companions.length)} />
                               <Detail label="Purpose" value={details?.purpose_of_visit} />
                               <Detail label="Route" value={formatRoute(details)} />

@@ -1388,6 +1388,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                           <section className="simple-profile-scan" id="simple-profile-id-capture">
                             <SimpleGuestIdCapture
                               compact
+                              hotelId={currentHotel?.id || null}
                               value={simpleProfileCapture}
                               onChange={handleSimpleProfileCapture}
                               disabled={kycUploading}

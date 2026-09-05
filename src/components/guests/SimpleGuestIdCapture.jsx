@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import DocumentScanner from "./DocumentScanner";
-import { analyzeIdentityDocument, prewarmIdentityOcrRuntime } from "../../lib/idDocumentIntelligence";
+import { analyzeIdentityDocument } from "../../lib/idDocumentIntelligence";
 import "./SimpleGuestIdCapture.css";
 
 const ACCEPT = ".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf";
@@ -18,6 +18,7 @@ function labelForType(value) {
 
 export default function SimpleGuestIdCapture({
   disabled = false,
+  hotelId = null,
   value = null,
   onChange,
   onExtracted,
@@ -27,28 +28,6 @@ export default function SimpleGuestIdCapture({
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    let idleId = null;
-    let timerId = null;
-
-    const warm = () => {
-      if (!cancelled) void prewarmIdentityOcrRuntime();
-    };
-
-    if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
-      idleId = window.requestIdleCallback(warm, { timeout: 1200 });
-    } else {
-      timerId = window.setTimeout(warm, 150);
-    }
-
-    return () => {
-      cancelled = true;
-      if (idleId !== null && typeof window?.cancelIdleCallback === "function") window.cancelIdleCallback(idleId);
-      if (timerId !== null) window.clearTimeout(timerId);
-    };
-  }, []);
 
   const analysis = value?.analysis || null;
   const extracted = analysis?.extractedFields || {};
@@ -67,6 +46,7 @@ export default function SimpleGuestIdCapture({
     setError("");
     try {
       const nextAnalysis = await analyzeIdentityDocument(file, "auto", {
+        hotelId,
         onProgress: (next) => setProgress(Math.max(0, Math.min(100, Number(next) || 0))),
       });
       const nextValue = {
@@ -155,7 +135,7 @@ export default function SimpleGuestIdCapture({
         <div className="simple-id-progress" role="status">
           <div><span style={{ width: `${Math.max(8, progress)}%` }} /></div>
           <strong>{progressLabel}</strong>
-          <small>The image is processed in the browser. Raw OCR text is not saved.</small>
+          <small>Secure OCR is reading the ID. StayQR does not save raw OCR text.</small>
         </div>
       )}
 

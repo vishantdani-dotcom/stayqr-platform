@@ -749,6 +749,7 @@ export default function CheckIn() {
             </section>
 
             <SimpleGuestIdCapture
+              hotelId={currentHotel?.id || null}
               value={idCapture}
               onChange={setIdCapture}
               onExtracted={handleIdExtracted}

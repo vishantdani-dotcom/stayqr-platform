@@ -1,14 +1,11 @@
-let sharedTesseractWorker = null;
-let sharedTesseractWorkerPromise = null;
-let activeOcrProgressListener = null;
-let unloadHandlerInstalled = false;
-
 const AADHAAR_REGEX = /\b(\d{4})[\s.-]{0,3}(\d{4})[\s.-]{0,3}(\d{4})\b/g;
 const DATE_REGEX = /\b([0-3]?\d)\s*[/.-]\s*([01]?\d)\s*[/.-]\s*((?:19|20)\d{2})\b/;
 const PAN_REGEX = /\b[A-Z]{5}\d{4}[A-Z]\b/i;
 const PASSPORT_REGEX = /\b[A-Z][0-9]{7}\b/i;
 const VOTER_REGEX = /\b[A-Z]{3}\d{7}\b/i;
 const DL_REGEX = /\b[A-Z]{2}[\s-]?\d{2}[\s-]?\d{4}[\s-]?\d{7}\b/i;
+const MAX_PROVIDER_IMAGE_BYTES = 5 * 1024 * 1024;
+const CLIENT_OCR_TIMEOUT_MS = 15000;
 
 function normalizeSpace(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -49,46 +46,6 @@ export function maskSensitiveNumbers(text) {
   return String(text || "").replace(AADHAAR_REGEX, (_match, _a, _b, c) => `XXXX XXXX ${c}`);
 }
 
-async function sha256Hex(value) {
-  const bytes = new TextEncoder().encode(String(value || ""));
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function imageBitmapFromFile(file) {
-  if (!file || !String(file.type || "").startsWith("image/")) return null;
-  if (typeof createImageBitmap === "function") return createImageBitmap(file);
-
-  const url = URL.createObjectURL(file);
-  try {
-    const image = new Image();
-    image.decoding = "async";
-    await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = () => reject(new Error("Unable to decode this document image."));
-      image.src = url;
-    });
-    return image;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-function identityTextScore(value) {
-  const text = String(value || "");
-  if (!text.trim()) return 0;
-
-  let score = Math.min(3, Math.floor(text.trim().length / 80));
-  if (/\b(?:AADHAAR|AADHAR|GOVERNMENT OF INDIA|UNIQUE IDENTIFICATION)\b/i.test(text)) score += 4;
-  if (/\b(?:DOB|DATE OF BIRTH|YOB)\b/i.test(text)) score += 2;
-  if (DATE_REGEX.test(text)) score += 2;
-  if (/\b(?:MALE|FEMALE)\b/i.test(text)) score += 1;
-  if ([...text.matchAll(AADHAAR_REGEX)].length) score += 4;
-  if (PAN_REGEX.test(text) || PASSPORT_REGEX.test(text) || VOTER_REGEX.test(text) || DL_REGEX.test(text)) score += 4;
-  if (text.split(/\r?\n/).some((line) => /^[A-Za-z][A-Za-z .'-]{3,55}$/.test(normalizeSpace(line)))) score += 1;
-  return score;
-}
-
 function filenameDocumentType(fileName) {
   const name = String(fileName || "").toLowerCase();
   if (/\b(?:aadhaar|aadhar|adhar)\b/.test(name)) return "aadhaar";
@@ -97,227 +54,6 @@ function filenameDocumentType(fileName) {
   if (/(?:driving|licen[cs]e|\bdl\b)/.test(name)) return "driving_licence";
   if (/(?:voter|epic)/.test(name)) return "voter_id";
   return "";
-}
-
-function prepareOcrCanvas(bitmap) {
-  if (!bitmap || typeof document === "undefined") return bitmap;
-
-  const sourceWidth = Number(bitmap.width || bitmap.naturalWidth || 0);
-  const sourceHeight = Number(bitmap.height || bitmap.naturalHeight || 0);
-  if (!sourceWidth || !sourceHeight) return bitmap;
-
-  const minLongEdge = 1200;
-  const maxLongEdge = 1600;
-  const longEdge = Math.max(sourceWidth, sourceHeight);
-  const scale = longEdge < minLongEdge
-    ? Math.min(3, minLongEdge / longEdge)
-    : longEdge > maxLongEdge
-      ? maxLongEdge / longEdge
-      : 1;
-
-  const width = Math.max(1, Math.round(sourceWidth * scale));
-  const height = Math.max(1, Math.round(sourceHeight * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) return bitmap;
-
-  context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = "high";
-  context.drawImage(bitmap, 0, 0, width, height);
-
-  try {
-    const image = context.getImageData(0, 0, width, height);
-    const data = image.data;
-    const contrast = 1.18;
-    for (let index = 0; index < data.length; index += 4) {
-      const gray = (data[index] * 0.299) + (data[index + 1] * 0.587) + (data[index + 2] * 0.114);
-      const adjusted = Math.max(0, Math.min(255, ((gray - 128) * contrast) + 128));
-      data[index] = adjusted;
-      data[index + 1] = adjusted;
-      data[index + 2] = adjusted;
-    }
-    context.putImageData(image, 0, 0);
-  } catch {
-    // Keep the scaled image if pixel access is unavailable.
-  }
-  return canvas;
-}
-
-async function detectTextWithBrowser(bitmap) {
-  if (!bitmap || typeof window === "undefined" || typeof window.TextDetector !== "function") {
-    return { engine: "browser_text_detector", text: "", supported: false };
-  }
-  try {
-    const detector = new window.TextDetector();
-    const blocks = await detector.detect(bitmap);
-    const text = (blocks || [])
-      .map((block) => block.rawValue || block.text || "")
-      .filter(Boolean)
-      .join("\n");
-    return { engine: "browser_text_detector", text, supported: true };
-  } catch {
-    return { engine: "browser_text_detector", text: "", supported: false };
-  }
-}
-
-async function createSharedTesseractWorker() {
-  const { createWorker } = await import("tesseract.js");
-  const worker = await createWorker("eng", 1, {
-    workerPath: "/ocr/worker.min.js",
-    corePath: "/ocr/core",
-    langPath: "/ocr/lang",
-    workerBlobURL: false,
-    logger: (event) => {
-      if (event?.status === "recognizing text" && Number.isFinite(event.progress)) {
-        activeOcrProgressListener?.(Math.round(event.progress * 100));
-      }
-    },
-    errorHandler: (error) => {
-      console.error("StayQR OCR worker error:", error);
-    },
-  });
-
-  sharedTesseractWorker = worker;
-
-  if (typeof window !== "undefined" && !unloadHandlerInstalled) {
-    unloadHandlerInstalled = true;
-    window.addEventListener("beforeunload", () => {
-      try { sharedTesseractWorker?.terminate?.(); } catch { /* best effort */ }
-      sharedTesseractWorker = null;
-      sharedTesseractWorkerPromise = null;
-    }, { once: true });
-  }
-
-  return worker;
-}
-
-async function getSharedTesseractWorker() {
-  if (sharedTesseractWorker) return sharedTesseractWorker;
-  if (!sharedTesseractWorkerPromise) {
-    sharedTesseractWorkerPromise = createSharedTesseractWorker().catch((error) => {
-      sharedTesseractWorker = null;
-      sharedTesseractWorkerPromise = null;
-      throw error;
-    });
-  }
-  return sharedTesseractWorkerPromise;
-}
-
-async function resetSharedTesseractWorker() {
-  const worker = sharedTesseractWorker;
-  sharedTesseractWorker = null;
-  sharedTesseractWorkerPromise = null;
-  try { await worker?.terminate?.(); } catch { /* best effort */ }
-}
-
-export function prewarmIdentityOcrRuntime() {
-  if (typeof window === "undefined") return Promise.resolve(false);
-  return getSharedTesseractWorker()
-    .then(() => true)
-    .catch((error) => {
-      console.warn("StayQR OCR prewarm unavailable:", error);
-      return false;
-    });
-}
-
-async function detectTextWithTesseract(file, bitmap, onProgress) {
-  if (!file || !String(file.type || "").startsWith("image/")) {
-    return { engine: "tesseract_browser", text: "", supported: false, errorMessage: "Image OCR is unavailable for this file type." };
-  }
-
-  try {
-    activeOcrProgressListener = onProgress || null;
-    const worker = await getSharedTesseractWorker();
-    const source = prepareOcrCanvas(bitmap) || file;
-
-    await worker.setParameters?.({
-      tessedit_pageseg_mode: "6",
-      preserve_interword_spaces: "1",
-    });
-
-    const first = await worker.recognize(source);
-    let bestText = String(first?.data?.text || "");
-    let bestConfidence = Number.isFinite(first?.data?.confidence) ? Number(first.data.confidence) : null;
-    let bestScore = identityTextScore(bestText);
-
-    // Most hotel ID cards are handled in one pass. A second sparse-text pass is
-    // reserved for genuinely weak reads so normal check-in is not delayed.
-    if (bestScore < 4 && (bestConfidence === null || bestConfidence < 45)) {
-      await worker.setParameters?.({ tessedit_pageseg_mode: "11" });
-      const second = await worker.recognize(source);
-      const secondText = String(second?.data?.text || "");
-      const secondScore = identityTextScore(secondText);
-      if (secondScore > bestScore) {
-        bestText = secondText;
-        bestScore = secondScore;
-        bestConfidence = Number.isFinite(second?.data?.confidence) ? Number(second.data.confidence) : bestConfidence;
-      }
-    }
-
-    return {
-      engine: "tesseract_browser",
-      text: bestText,
-      supported: true,
-      confidence: bestConfidence,
-      score: bestScore,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error || "OCR runtime unavailable");
-    console.error("StayQR browser OCR unavailable:", error);
-    await resetSharedTesseractWorker();
-    return { engine: "tesseract_browser", text: "", supported: false, error, errorMessage };
-  } finally {
-    activeOcrProgressListener = null;
-  }
-}
-
-async function detectText(bitmap, file, onProgress) {
-  const nativeResult = await detectTextWithBrowser(bitmap);
-  const nativeScore = identityTextScore(nativeResult.text);
-
-  if (nativeResult.supported && nativeScore >= 7) {
-    onProgress?.(100);
-    return { ...nativeResult, score: nativeScore };
-  }
-
-  const tesseractResult = await detectTextWithTesseract(file, bitmap, onProgress);
-  const tesseractScore = identityTextScore(tesseractResult.text);
-
-  if (tesseractResult.supported && tesseractScore >= nativeScore) {
-    return { ...tesseractResult, score: tesseractScore };
-  }
-
-  if (nativeResult.supported && String(nativeResult.text || "").trim()) {
-    onProgress?.(100);
-    return { ...nativeResult, score: nativeScore };
-  }
-
-  return tesseractResult;
-}
-
-async function detectQr(bitmap) {
-  if (!bitmap || typeof window === "undefined" || typeof window.BarcodeDetector !== "function") {
-    return { detected: false, supported: false, secureQrPayloadSha256: null };
-  }
-
-  try {
-    const formats = await window.BarcodeDetector.getSupportedFormats?.();
-    if (Array.isArray(formats) && !formats.includes("qr_code")) {
-      return { detected: false, supported: false, secureQrPayloadSha256: null };
-    }
-    const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-    const codes = await detector.detect(bitmap);
-    const rawValue = codes?.find((code) => String(code.rawValue || "").trim())?.rawValue || "";
-    return {
-      detected: Boolean(rawValue),
-      supported: true,
-      secureQrPayloadSha256: rawValue ? await sha256Hex(rawValue) : null,
-    };
-  } catch {
-    return { detected: false, supported: true, secureQrPayloadSha256: null };
-  }
 }
 
 function inferDocumentType(rawText, fileName = "") {
@@ -331,8 +67,7 @@ function inferDocumentType(rawText, fileName = "") {
 
   const aadhaarNumberFound = [...text.matchAll(AADHAAR_REGEX)].length > 0;
   const aadhaarTextMarker = /AADHAAR|AADHAR|UNIQUE IDENTIFICATION|GOVERNMENT OF INDIA/.test(text);
-  const aadhaarLayoutMarker =
-    /GOVERNMENT OF INDIA/.test(text)
+  const aadhaarLayoutMarker = /GOVERNMENT OF INDIA/.test(text)
     && /\b(?:DOB|DATE OF BIRTH|YOB)\b/.test(text)
     && /\b(?:MALE|FEMALE)\b/.test(text);
 
@@ -376,7 +111,7 @@ function probableName(lines, documentType) {
   if (documentType === "aadhaar") {
     const dateIndex = lines.findIndex((line) => /\b(?:DOB|YOB|DATE OF BIRTH|YEAR OF BIRTH)\b/i.test(line));
     if (dateIndex > 0) {
-      for (let index = dateIndex - 1; index >= Math.max(0, dateIndex - 3); index -= 1) {
+      for (let index = dateIndex - 1; index >= Math.max(0, dateIndex - 4); index -= 1) {
         const line = normalizeSpace(lines[index]);
         if (/^[A-Za-z][A-Za-z .'-]{2,59}$/.test(line) && !rejected.test(line)) return titleCaseWords(line);
       }
@@ -445,24 +180,7 @@ function extractDateOfBirth(lines, text) {
     const nextLine = String(lines[index + 1] || "").match(DATE_REGEX);
     if (nextLine) return isoDateFromMatch(nextLine);
   }
-  const generic = String(text || "").match(DATE_REGEX);
-  return isoDateFromMatch(generic);
-}
-
-export function extractIdentityFromText(rawText, requestedDocumentType = "auto", hints = {}) {
-  const raw = String(rawText || "");
-  const detectedDocumentType = inferDocumentType(raw, hints.fileName || "");
-  const documentType = requestedDocumentType && requestedDocumentType !== "auto"
-    ? requestedDocumentType
-    : detectedDocumentType;
-  const maskedText = maskSensitiveNumbers(raw);
-  const extractedFields = parseSafeFields(maskedText, documentType);
-  const documentNumberMasked = extractMaskedDocumentNumber(raw, documentType) || null;
-  return {
-    documentType,
-    extractedFields,
-    documentNumberMasked,
-  };
+  return isoDateFromMatch(String(text || "").match(DATE_REGEX));
 }
 
 function parseSafeFields(rawText, documentType) {
@@ -483,64 +201,110 @@ function parseSafeFields(rawText, documentType) {
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== "" && value !== null && value !== undefined));
 }
 
-export async function analyzeIdentityDocument(file, requestedDocumentType = "auto", options = {}) {
-  if (!file) throw new Error("Choose or capture a document first.");
+export function extractIdentityFromText(rawText, requestedDocumentType = "auto", hints = {}) {
+  const raw = String(rawText || "");
+  const detectedDocumentType = inferDocumentType(raw, hints.fileName || "");
+  const documentType = requestedDocumentType && requestedDocumentType !== "auto"
+    ? requestedDocumentType
+    : detectedDocumentType;
+  const maskedText = maskSensitiveNumbers(raw);
+  return {
+    documentType,
+    extractedFields: parseSafeFields(maskedText, documentType),
+    documentNumberMasked: extractMaskedDocumentNumber(raw, documentType) || null,
+  };
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)));
+  }
+  return btoa(binary);
+}
+
+async function compressImageForProvider(file) {
+  if (!file || !String(file.type || "").startsWith("image/")) return file;
+  if (file.size <= 900 * 1024) return file;
+  if (typeof createImageBitmap !== "function" || typeof document === "undefined") return file;
+
+  const bitmap = await createImageBitmap(file);
+  try {
+    const longEdge = Math.max(bitmap.width, bitmap.height);
+    const scale = longEdge > 1800 ? 1800 / longEdge : 1;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.88));
+    if (!blob) return file;
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "guest-id"}.jpg`, { type: "image/jpeg" });
+  } finally {
+    bitmap.close?.();
+  }
+}
+
+async function invokeBackendOcr(file, requestedDocumentType, options) {
+  if (!options?.hotelId) throw new Error("Hotel context is required before scanning an ID.");
   if (!String(file.type || "").startsWith("image/")) {
     return {
       status: "limited",
       method: "manual",
-      documentType: requestedDocumentType === "auto" ? "other" : requestedDocumentType,
+      documentType: requestedDocumentType === "auto" ? filenameDocumentType(file.name) || "other" : requestedDocumentType,
       extractedFields: {},
       documentNumberMasked: null,
-      secureQrDetected: false,
-      secureQrSupported: false,
-      secureQrPayloadSha256: null,
       rawOcrTextStored: false,
       rawQrPayloadStored: false,
-      message: "Automatic extraction currently runs on JPG/PNG captures. Review this file manually.",
+      message: "Automatic extraction currently supports JPG/PNG photos. Review this file manually.",
     };
   }
 
-  const bitmap = await imageBitmapFromFile(file);
-  try {
-    const [textResult, qrResult] = await Promise.all([
-      detectText(bitmap, file, options.onProgress),
-      detectQr(bitmap),
-    ]);
-    const rawText = textResult.text || "";
-    const { documentType, extractedFields, documentNumberMasked } = extractIdentityFromText(
-      rawText,
-      requestedDocumentType,
-      { fileName: file.name }
-    );
-    const hasText = Boolean(rawText.trim());
-    const meaningfulFieldKeys = ["full_name", "date_of_birth", "gender", "address_line1", "postal_code"];
-    const meaningfulFieldCount = meaningfulFieldKeys.filter((key) => Boolean(extractedFields[key])).length;
-    const hasExtractedIdentity = meaningfulFieldCount > 0 || Boolean(documentNumberMasked);
-    const status = hasExtractedIdentity ? "extracted" : "limited";
-    const warnings = [];
-    if (!hasText && textResult.errorMessage) warnings.push(`OCR engine could not start: ${textResult.errorMessage}. Hard-refresh the page and try again.`);
-    else if (!hasText) warnings.push("No readable text was detected. Retake the photo with better focus and lighting, or enter the fields manually.");
-    else if (!hasExtractedIdentity) warnings.push("Text was detected, but StayQR could not confidently map the ID fields. Retake a straighter, sharper photo or enter the fields manually.");
-    if (documentType === "aadhaar" && qrResult.detected) warnings.push("Aadhaar QR detected. This simplified check-in uses it only as a scan signal and does not claim UIDAI verification.");
-
-    return {
-      status,
-      method: hasText ? textResult.engine : qrResult.detected ? "barcode_detector" : "manual",
-      confidence: textResult.confidence ?? null,
-      ocrRuntimeReady: Boolean(textResult.supported),
-      documentType,
-      extractedFields,
-      documentNumberMasked,
-      secureQrDetected: qrResult.detected,
-      secureQrSupported: qrResult.supported,
-      secureQrPayloadSha256: qrResult.secureQrPayloadSha256,
-      rawOcrTextStored: false,
-      rawQrPayloadStored: false,
-      warnings,
-      message: warnings.join(" ") || (hasExtractedIdentity ? "ID details extracted. Review them before completing check-in." : "ID selected. Review and enter any missing details."),
-    };
-  } finally {
-    bitmap?.close?.();
+  options.onProgress?.(12);
+  const providerFile = await compressImageForProvider(file);
+  if (providerFile.size > MAX_PROVIDER_IMAGE_BYTES) {
+    throw new Error("This ID photo is too large to read automatically. Use a smaller photo or enter the details manually.");
   }
+
+  options.onProgress?.(28);
+  const contentBase64 = arrayBufferToBase64(await providerFile.arrayBuffer());
+  options.onProgress?.(42);
+
+  const { supabase } = await import("./supabase");
+  const requestPromise = supabase.functions.invoke("id-document-ocr", {
+    body: {
+      hotel_id: options.hotelId,
+      file_name: file.name,
+      mime_type: providerFile.type,
+      requested_document_type: requestedDocumentType,
+      content_base64: contentBase64,
+    },
+  });
+
+  const timeoutPromise = new Promise((_, reject) => {
+    window.setTimeout(() => reject(new Error("ID reading took too long. Please try once more or enter the details manually.")), CLIENT_OCR_TIMEOUT_MS);
+  });
+
+  options.onProgress?.(60);
+  const { data, error } = await Promise.race([requestPromise, timeoutPromise]);
+  if (error) {
+    const message = data?.error || error?.message || "Unable to read this ID automatically.";
+    throw new Error(message);
+  }
+  if (!data?.ok) throw new Error(data?.error || "Unable to read this ID automatically.");
+
+  options.onProgress?.(100);
+  return data.analysis;
+}
+
+export function prewarmIdentityOcrRuntime() {
+  return Promise.resolve(true);
+}
+
+export async function analyzeIdentityDocument(file, requestedDocumentType = "auto", options = {}) {
+  if (!file) throw new Error("Choose or capture a document first.");
+  return invokeBackendOcr(file, requestedDocumentType, options);
 }

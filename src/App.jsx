@@ -78,7 +78,7 @@ const SECTION_TITLES = {
   services: 'service requests',
   qr: 'room QR guides',
   payments: 'payments',
-  folios: 'folio settlement',
+  folios: 'guest bills',
   foodorders: 'food orders',
   charges: 'charges',
   housekeeping: 'housekeeping',
@@ -894,10 +894,10 @@ function ComingSoonPage({ section }) {
   return (
     <div className="coming-soon-page">
       <div className="cs-content">
-        <div className="cs-icon">🚧</div>
-        <h2 className="cs-title gold-text">Coming Soon</h2>
+        <div className="cs-icon" aria-hidden="true">•</div>
+        <h2 className="cs-title gold-text">Not available</h2>
         <p className="cs-sub">
-          The {section} module is being prepared for StayQR v1.0.
+          The {section} area is not available for your current StayQR setup.
         </p>
       </div>
     </div>

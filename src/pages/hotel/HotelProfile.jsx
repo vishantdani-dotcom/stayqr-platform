@@ -546,7 +546,7 @@ const defaultGuestContent = {
   feedback_prompt: "Share private feedback directly with the hotel team.",
   review_title: "Share Your Experience",
   review_prompt: "Your honest review is optional and helps future guests make informed decisions.",
-  footer_message: "Luxury Smart Hospitality Experience",
+  footer_message: "Simplifying Checkinn",
 };
 
 function cleanText(value) {

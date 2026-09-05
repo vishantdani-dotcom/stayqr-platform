@@ -515,7 +515,7 @@ export default function Payments() {
 
   return (
     <div className="payments-page" style={page}>
-      <div style={header}>
+      <div className="payments-modern-header" style={header}>
         <div>
           <p style={kicker}>
             Billing Operations
@@ -542,7 +542,7 @@ export default function Payments() {
         </button>
       </div>
 
-      <div style={statsGrid}>
+      <div className="payments-modern-stats" style={statsGrid}>
         <StatCard
           title="Total Billed"
           value={`₹${totalBilled}`}
@@ -579,7 +579,7 @@ export default function Payments() {
         />
       </div>
 
-      <div style={tableCard}>
+      <div className="payments-modern-table-card" style={tableCard}>
         {paymentRows.length === 0 ? (
           <div style={emptyState}>
             <h3>No payments found</h3>
@@ -590,9 +590,9 @@ export default function Payments() {
             </p>
           </div>
         ) : (
-          <table style={table}>
+          <table className="payments-modern-table" style={table}>
             <thead>
-              <tr>
+              <tr className="payments-modern-head-row">
                 <th style={th}>Room</th>
                 <th style={th}>Guest</th>
                 <th style={th}>Type</th>
@@ -627,7 +627,7 @@ export default function Payments() {
 
                 return (
                   <Fragment key={payment.id}>
-                    <tr>
+                    <tr className="payments-modern-row">
                       <td style={td}>
                         Room{" "}
                         {payment.rooms
@@ -775,7 +775,7 @@ export default function Payments() {
                     </tr>
 
                     {isExpanded && (
-                      <tr>
+                      <tr className="payments-modern-history-row">
                         <td
                           colSpan={12}
                           style={historyCell}
@@ -933,8 +933,8 @@ export default function Payments() {
 
       {collectingPaymentId &&
         selectedPayment && (
-          <div style={modalOverlay}>
-            <div style={modal}>
+          <div className="payments-modern-modal-overlay" style={modalOverlay}>
+            <div className="payments-modern-modal" style={modal}>
               <p style={modalKicker}>
                 PAYMENT COLLECTION
               </p>
@@ -1089,7 +1089,7 @@ export default function Payments() {
 
 function StatCard({ title, value }) {
   return (
-    <div style={statCard}>
+    <div className="payments-modern-stat" style={statCard}>
       <span style={statTitle}>
         {title}
       </span>

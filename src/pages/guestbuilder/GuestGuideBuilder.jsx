@@ -369,7 +369,7 @@ export default function GuestGuideBuilder() {
         accent_color: settings.theme?.accent_color || '#C9A24D',
         surface_color: '#161616',
         text_color: '#F7F5F2',
-        heading_font: 'Playfair Display',
+        heading_font: 'Inter',
         body_font: 'Inter',
         card_radius: 14,
         glass_effect: false,
@@ -378,7 +378,7 @@ export default function GuestGuideBuilder() {
         ...(settings.branding || {}),
         show_stayqr_branding: settings.branding?.show_stayqr_branding !== false,
         stayqr_label: settings.branding?.stayqr_label || 'Powered by StayQR',
-        stayqr_tagline: settings.branding?.stayqr_tagline || 'Smart Digital Hospitality · Scan. Stay. Simplified.',
+        stayqr_tagline: 'Simplifying Checkinn',
         offer: {
           enabled: settings.branding?.offer?.enabled !== false,
           badge: settings.branding?.offer?.badge || 'Limited Offer',

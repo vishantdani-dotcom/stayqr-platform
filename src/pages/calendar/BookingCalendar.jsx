@@ -781,7 +781,7 @@ export default function BookingCalendar() {
 
       <header className="calendar-page-header">
         <div>
-          <p className="calendar-eyebrow">Inventory Control Desk</p>
+          <p className="calendar-eyebrow">Reservations &amp; Room Planning</p>
           <h1>Booking Calendar</h1>
           <p>
             {hotel?.hotel_name} · Room-wise reservations, direct stays and operational blocks.

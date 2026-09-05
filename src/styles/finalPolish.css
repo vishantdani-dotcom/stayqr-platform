@@ -1,0 +1,666 @@
+/* StayQR Final Release Polish REV12
+   Imported after responsive.css. Internal application surfaces only; guest/public routes retain their dedicated design. */
+
+:root {
+  --sq-page-max: 1560px;
+  --sq-page-pad: clamp(18px, 2.15vw, 34px);
+  --sq-panel: #121211;
+  --sq-panel-raised: #171715;
+  --sq-panel-soft: #0f0f0e;
+  --sq-border: rgba(255, 255, 255, 0.085);
+  --sq-border-strong: rgba(255, 255, 255, 0.13);
+  --sq-gold: #dfb934;
+  --sq-gold-soft: rgba(223, 185, 52, 0.1);
+  --sq-gold-border: rgba(223, 185, 52, 0.32);
+  --sq-success: #50d890;
+  --sq-danger: #ff7474;
+  --sq-copy: #f7f5ee;
+  --sq-muted: #aaa79f;
+  --sq-radius-lg: 16px;
+  --sq-radius: 12px;
+  --sq-radius-sm: 9px;
+  --sq-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  --font-body: "Segoe UI Variable Text", "Segoe UI", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  --font-ui: var(--font-body);
+  --font-display: "Segoe UI Variable Display", "Segoe UI", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  font-family: var(--font-body);
+  background: #0b0b0b;
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+::selection {
+  color: #080808;
+  background: #e1bd43;
+}
+
+/* ----- Application shell ----- */
+.app-shell,
+.app-main,
+.app-content {
+  background: #0b0b0b;
+}
+
+.app-content {
+  background:
+    radial-gradient(circle at 88% 0%, rgba(223, 185, 52, 0.035), transparent 26rem),
+    #0b0b0b;
+}
+
+.app-content :where(button, input, select, textarea) {
+  font-family: var(--font-body);
+}
+
+.app-content :where(button, [role="button"]) {
+  border-radius: var(--sq-radius-sm);
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.app-content :where(button, [role="button"]):not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.app-content :where(button, [role="button"]):disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.app-content :where(input, select, textarea) {
+  min-height: 42px;
+  border-radius: 10px;
+  border-color: var(--sq-border-strong);
+  background-color: #10100f;
+  color: var(--sq-copy);
+}
+
+.app-content textarea { min-height: 96px; }
+
+.app-content :where(input, select, textarea):focus {
+  border-color: rgba(223, 185, 52, 0.62) !important;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(223, 185, 52, 0.10);
+}
+
+.app-content :where(input, textarea)::placeholder {
+  color: #77746e;
+  opacity: 1;
+}
+
+.app-content :where(h1, h2, h3, h4) {
+  letter-spacing: -0.018em;
+}
+
+.app-content :where(h1) {
+  line-height: 1.06;
+}
+
+.app-content :where(p, small) {
+  text-wrap: pretty;
+}
+
+/* Remove browser-default roughness from internal tables. */
+.app-content table {
+  border-spacing: 0;
+}
+
+.app-content :where(th) {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  color: #c6a73e;
+}
+
+.app-content :where(td) {
+  color: #e8e6df;
+}
+
+.app-content :where(tbody tr) {
+  transition: background-color 140ms ease;
+}
+
+.app-content :where(tbody tr:hover) {
+  background: rgba(255, 255, 255, 0.018);
+}
+
+/* ----- Navbar ----- */
+.navbar {
+  height: var(--navbar-h);
+  padding-inline: 20px;
+  background: rgba(10, 10, 10, 0.91);
+  border-bottom-color: rgba(255, 255, 255, 0.075);
+  box-shadow: 0 7px 24px rgba(0, 0, 0, 0.16);
+}
+
+.navbar-breadcrumb { font-size: 12px; }
+.breadcrumb-current { font-weight: 700; }
+.navbar-date { color: #9d9a92; }
+
+.navbar-icon-btn,
+.navbar-menu-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #131312;
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.navbar-icon-btn:hover,
+.navbar-menu-btn:hover {
+  background: rgba(223, 185, 52, 0.09);
+  border-color: rgba(223, 185, 52, 0.34);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+/* ----- Sidebar ----- */
+.sidebar {
+  background: #090909;
+  border-right-color: rgba(255, 255, 255, 0.075);
+}
+
+.sidebar-logo { border-bottom-color: rgba(255, 255, 255, 0.07); }
+
+.sidebar-nav {
+  padding: 9px 9px 12px;
+  gap: 1px;
+  scrollbar-width: none;
+}
+
+.nav-group { margin-bottom: 8px; }
+.nav-group-label {
+  padding: 10px 9px 5px;
+  color: #74716b;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+
+.nav-item {
+  min-height: 38px;
+  padding: 8px 9px;
+  border-radius: 9px;
+  color: #c9c6be;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(223, 185, 52, 0.13), rgba(223, 185, 52, 0.065));
+  border-color: rgba(223, 185, 52, 0.30);
+  color: #f3d56e;
+  box-shadow: inset 2px 0 0 rgba(223, 185, 52, 0.8);
+}
+
+.sidebar-footer {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+/* ----- Consistent internal page rhythm ----- */
+.app-content :where(
+  .dashboard-page,
+  .booking-calendar-page,
+  .checkin-page,
+  .day13-page,
+  .rooms-page,
+  .guest-directory-shell,
+  .service-day15-page,
+  .day15-foodops,
+  .menu15-page,
+  .d17-page,
+  .day12-page,
+  .reports-page,
+  .reservations-page,
+  .staff-page,
+  .commercial-shell,
+  .simple-builder-page,
+  .onboarding-shell,
+  .reservation-operations-page,
+  .folio-page,
+  .secure-qr-page,
+  .payments-page,
+  .charges-page,
+  .hotel-profile-page,
+  .owner-billing-page,
+  .v11-revenue-page,
+  .v11b-page,
+  .v11c-page,
+  .amenities-page,
+  .media-manager-page
+) {
+  width: 100%;
+  min-height: calc(100svh - var(--navbar-h));
+}
+
+/* Make large section headings deliberate but not oversized. */
+.app-content :where(
+  .dash-page-title,
+  .simple-checkin-header h1,
+  .rooms-header h1,
+  .calendar-page-header h1,
+  .reservations-header h1,
+  .service-day15-header h1,
+  .day15-page-header h1,
+  .day13-header h1,
+  .folio-page-header h1,
+  .day12-header h1,
+  .reports-hero h1,
+  .staff-header h1,
+  .commercial-hero h1,
+  .simple-builder-hero h1,
+  .onboarding-hero h1,
+  .operations-header h1,
+  .d17-hero h1,
+  .secure-qr-header h1,
+  .owner-billing-hero h1,
+  .v11-hero h1,
+  .v11b-hero h1,
+  .v11c-hero h1
+) {
+  font-size: clamp(28px, 3vw, 42px) !important;
+  font-weight: 780 !important;
+  letter-spacing: -0.035em !important;
+}
+
+/* ----- Shared panel treatment ----- */
+.app-content :where(
+  .simple-panel,
+  .day13-panel,
+  .folio-panel,
+  .d17-panel,
+  .reports-panel,
+  .reservation-panel,
+  .operations-card,
+  .owner-billing-card,
+  .commercial-card,
+  .v11-card,
+  .v11b-card,
+  .v11c-card,
+  .menu15-panel,
+  .staff-control-card,
+  .staff-table-card,
+  .config-card,
+  .secure-qr-card,
+  .guest-comms-card,
+  .guest-profile-panel,
+  .system-state__card
+) {
+  border-color: var(--sq-border) !important;
+  border-radius: var(--sq-radius-lg) !important;
+  background: linear-gradient(180deg, rgba(20, 20, 19, 0.98), rgba(15, 15, 14, 0.98)) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
+}
+
+/* Stat cards become visually quieter and easier to scan. */
+.app-content :where(
+  .stat-card,
+  .day13-stat,
+  .day12-metric,
+  .reservation-stat-card,
+  .staff-stat-card,
+  .guest-directory-metric,
+  .menu15-metric,
+  .d17-mini-card,
+  .v11-metric,
+  .v11b-metric,
+  .v11c-metric,
+  .usage-card
+) {
+  border-color: var(--sq-border) !important;
+  background: #121211 !important;
+  box-shadow: none !important;
+}
+
+/* Buttons: preserve module colors but normalize geometry. */
+.app-content :where(
+  .primary-button,
+  .secondary-button,
+  .ghost-button,
+  .day13-button,
+  .day12-btn,
+  .reservation-btn,
+  .commercial-btn,
+  .v11-btn,
+  .operations-btn,
+  .staff-primary-btn,
+  .staff-secondary-btn,
+  .secure-qr-button,
+  .folio-button,
+  .calendar-btn,
+  .checkout-btn,
+  .reports-primary-button,
+  .reports-clear-button,
+  .reports-pdf-button,
+  .simple-publish-button
+) {
+  min-height: 40px;
+  border-radius: 10px !important;
+  font-weight: 720 !important;
+}
+
+/* ----- Dashboard ----- */
+.dashboard-page {
+  padding: clamp(22px, 2.3vw, 34px) !important;
+}
+
+.dash-page-header { margin-bottom: 22px !important; }
+.dash-page-title { color: #fbf8ef !important; }
+.dash-page-sub { color: #b8b5ac !important; }
+
+.hotel-overview-card,
+.activation-card {
+  border-radius: 18px !important;
+  overflow: hidden;
+}
+
+/* ----- Check-in / OCR ----- */
+.checkin-page.simple-frontdesk {
+  padding-top: clamp(20px, 2vw, 30px) !important;
+}
+
+.simple-checkin-card,
+.simple-occupants-card,
+.simple-occupant-card,
+.simple-more-panel,
+.simple-autofill-card {
+  border-radius: 16px !important;
+  border-color: var(--sq-border) !important;
+}
+
+.simple-checkin-card :where(input, select, textarea),
+.simple-occupant-card :where(input, select, textarea) {
+  min-height: 43px !important;
+}
+
+/* ----- Guests / final checkout ----- */
+.rooms-page .guest-final-checkout-modal {
+  border-radius: 18px !important;
+  border-color: var(--sq-border-strong) !important;
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.58) !important;
+}
+
+.guest-final-checkout-header {
+  border-bottom-color: var(--sq-border) !important;
+}
+
+.rooms-page :where(.guest-move-btn, .checkout-btn) {
+  min-height: 40px;
+}
+
+/* ----- Guest Bills ----- */
+.folio-page {
+  padding-top: clamp(22px, 2vw, 30px) !important;
+}
+
+.folio-drawer {
+  border-left-color: var(--sq-border) !important;
+  box-shadow: -24px 0 70px rgba(0, 0, 0, 0.42) !important;
+}
+
+.folio-stat-grid { gap: 10px !important; }
+
+/* ----- QR Guides ----- */
+.secure-qr-card--launch {
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* ----- Operations & notification centre ----- */
+.d17-page .d17-panel,
+.d17-page .d17-mini-card {
+  border-color: var(--sq-border) !important;
+}
+
+/* ----- Legacy inline-style pages ----- */
+.charges-page,
+.payments-page,
+.hotel-profile-page {
+  padding: clamp(22px, 2.2vw, 34px) !important;
+  color: var(--sq-copy) !important;
+}
+
+.charges-page > h1,
+.hotel-profile-page > h1 {
+  margin: 0 0 6px !important;
+  font-size: clamp(30px, 3vw, 42px) !important;
+  line-height: 1.06 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.charges-page :where(input, select, textarea),
+.payments-page :where(input, select, textarea),
+.hotel-profile-page :where(input, select, textarea) {
+  border-color: var(--sq-border-strong) !important;
+  background: #10100f !important;
+  border-radius: 10px !important;
+}
+
+.charges-page table,
+.payments-page table {
+  min-width: 760px;
+}
+
+/* ----- Drawers and modal overlays ----- */
+.app-content :where(
+  .calendar-modal-backdrop,
+  .calendar-drawer-backdrop,
+  .reservation-modal-backdrop,
+  .reservation-drawer-backdrop,
+  .folio-drawer-backdrop,
+  .day12-modal-backdrop,
+  .staff-modal-backdrop,
+  .food-modal-backdrop,
+  .modal-overlay
+) {
+  background-color: rgba(0, 0, 0, 0.68) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.app-content :where(
+  .calendar-modal,
+  .reservation-modal,
+  .reservation-room-modal,
+  .day13-modal,
+  .staff-modal,
+  .food-modal,
+  .modal-card
+) {
+  border-radius: 18px !important;
+  border-color: var(--sq-border-strong) !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* ----- Empty/loading states ----- */
+.app-content :where(
+  .reservation-empty,
+  .day13-empty,
+  .day12-empty,
+  .commercial-empty,
+  .staff-empty,
+  .secure-qr-empty,
+  .guest-directory-empty,
+  .service-empty,
+  .operations-empty,
+  .media-manager-empty,
+  .menu15-loading,
+  .d17-empty,
+  .v11-empty
+) {
+  border-radius: 14px !important;
+  border-color: var(--sq-border) !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+}
+
+/* ----- Scrollbar polish ----- */
+.app-content,
+.navbar-notif-panel,
+.sidebar-nav,
+.folio-drawer,
+.guest-profile-panel {
+  scrollbar-color: rgba(223, 185, 52, 0.34) transparent;
+  scrollbar-width: thin;
+}
+
+.app-content ::-webkit-scrollbar { width: 8px; height: 8px; }
+.app-content ::-webkit-scrollbar-track { background: transparent; }
+.app-content ::-webkit-scrollbar-thumb {
+  background: rgba(223, 185, 52, 0.23);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.app-content ::-webkit-scrollbar-thumb:hover { background-color: rgba(223, 185, 52, 0.38); }
+
+/* ----- Mobile refinement ----- */
+@media (max-width: 900px) {
+  .navbar {
+    padding-inline: max(12px, var(--safe-right));
+  }
+
+  .navbar-center { display: none; }
+
+  .app-content :where(
+    .dashboard-page,
+    .booking-calendar-page,
+    .checkin-page,
+    .day13-page,
+    .rooms-page,
+    .guest-directory-shell,
+    .service-day15-page,
+    .day15-foodops,
+    .menu15-page,
+    .d17-page,
+    .day12-page,
+    .reports-page,
+    .reservations-page,
+    .staff-page,
+    .commercial-shell,
+    .simple-builder-page,
+    .onboarding-shell,
+    .reservation-operations-page,
+    .folio-page,
+    .secure-qr-page,
+    .payments-page,
+    .charges-page,
+    .hotel-profile-page
+  ) {
+    padding-inline: 16px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  :root { --navbar-h: 58px; }
+
+  .navbar {
+    height: 58px;
+    padding-left: max(10px, var(--safe-left));
+    padding-right: max(10px, var(--safe-right));
+    gap: 7px;
+  }
+
+  .navbar-left { gap: 8px; }
+  .navbar-breadcrumb { font-size: 11px; }
+  .breadcrumb-home,
+  .breadcrumb-sep { display: none; }
+
+  .navbar-icon-btn,
+  .navbar-menu-btn {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+  }
+
+  .app-content :where(
+    .dashboard-page,
+    .booking-calendar-page,
+    .checkin-page,
+    .day13-page,
+    .rooms-page,
+    .guest-directory-shell,
+    .service-day15-page,
+    .day15-foodops,
+    .menu15-page,
+    .d17-page,
+    .day12-page,
+    .reports-page,
+    .reservations-page,
+    .staff-page,
+    .commercial-shell,
+    .simple-builder-page,
+    .onboarding-shell,
+    .reservation-operations-page,
+    .folio-page,
+    .secure-qr-page,
+    .payments-page,
+    .charges-page,
+    .hotel-profile-page
+  ) {
+    padding: 16px 12px calc(24px + var(--safe-bottom)) !important;
+  }
+
+  .app-content :where(
+    .dash-page-title,
+    .simple-checkin-header h1,
+    .rooms-header h1,
+    .calendar-page-header h1,
+    .reservations-header h1,
+    .service-day15-header h1,
+    .day15-page-header h1,
+    .day13-header h1,
+    .folio-page-header h1,
+    .day12-header h1,
+    .reports-hero h1,
+    .staff-header h1,
+    .commercial-hero h1,
+    .simple-builder-hero h1,
+    .onboarding-hero h1,
+    .operations-header h1,
+    .d17-hero h1,
+    .secure-qr-header h1
+  ) {
+    font-size: clamp(26px, 9vw, 34px) !important;
+  }
+
+  .app-content :where(button, .primary-button, .secondary-button) {
+    min-height: 42px;
+  }
+
+  /* Make drawers feel native on phones. */
+  .calendar-details-drawer,
+  .reservation-drawer,
+  .guest-profile-panel,
+  .folio-drawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-radius: 0 !important;
+  }
+
+  .rooms-page .guest-final-checkout-modal,
+  .calendar-modal,
+  .reservation-modal,
+  .reservation-room-modal,
+  .staff-modal,
+  .food-modal,
+  .modal-card {
+    width: calc(100vw - 18px) !important;
+    max-width: calc(100vw - 18px) !important;
+    max-height: calc(100svh - 18px) !important;
+    border-radius: 16px !important;
+  }
+
+  .charges-page table,
+  .payments-page table {
+    min-width: 680px;
+  }
+}

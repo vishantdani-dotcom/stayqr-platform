@@ -74,7 +74,7 @@ const EN = {
   thankYou: 'Thank You for Choosing Us',
   thankYouBody: 'We hope your stay feels comfortable, safe and memorable.',
   poweredBy: 'Powered by StayQR',
-  stayqrTagline: 'Smart Digital Hospitality • Scan. Stay. Simplified.',
+  stayqrTagline: 'Simplifying Checkinn',
   services: 'Services',
   food: 'Food',
   review: 'Review',
@@ -157,7 +157,11 @@ const SECTION_MR = {
 const SECTION_PACKS = { en: SECTION_EN, hi: SECTION_HI, mr: SECTION_MR }
 
 export function getGuideCopy(locale = 'en', overrides = {}) {
-  return { ...(GUIDE_UI_COPY[locale] || GUIDE_UI_COPY.en), ...(overrides || {}) }
+  return {
+    ...(GUIDE_UI_COPY[locale] || GUIDE_UI_COPY.en),
+    ...(overrides || {}),
+    stayqrTagline: 'Simplifying Checkinn',
+  }
 }
 
 export function getDefaultSectionCopy(sectionKey, locale = 'en') {

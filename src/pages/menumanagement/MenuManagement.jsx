@@ -594,7 +594,7 @@ export default function MenuManagement() {
     <div className="menu15-page">
       <header className="menu15-header">
         <div>
-          <span>Premium Dining · Language & Offer Studio</span>
+          <span>Dining · Language & Offer Studio</span>
           <h1>Menu Management</h1>
           <p>{hotel?.hotel_name || hotel?.name} · Food photos, full-language menu, offer banner, service windows, tax and modifiers.</p>
         </div>

@@ -527,7 +527,7 @@ export default function Reports() {
         <header className="reports-hero">
           <div>
             <span className="reports-eyebrow">ANALYTICS & STANDARD REPORTS</span>
-            <h1>Hotel Intelligence</h1>
+            <h1>Reports &amp; Insights</h1>
             <p>
               {currentHotel?.hotel_name || 'StayQR Hotel'} · Source-reconciled
               metrics, operational trends and role-aware exports.

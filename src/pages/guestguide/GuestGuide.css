@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   --ag-black: #0a0a0a;
@@ -12,7 +12,7 @@
   --ag-line: rgba(255, 255, 255, 0.08);
   --ag-line-gold: rgba(201, 162, 77, 0.28);
   --ag-radius: 16px;
-  --ag-head: 'Playfair Display', Georgia, serif;
+  --ag-head: 'Inter', system-ui, sans-serif;
   --ag-body: 'Inter', system-ui, sans-serif;
 }
 
@@ -34,7 +34,7 @@
 .ag-page button { cursor: pointer; }
 .ag-progress { position: fixed; inset: 0 auto auto 0; height: 3px; z-index: 500; background: linear-gradient(90deg, var(--ag-gold), var(--ag-gold-light)); }
 
-.ag-topbar { position: sticky; top: 0; z-index: 100; background: rgba(10,10,10,.9); backdrop-filter: blur(18px); border-bottom: 1px solid var(--ag-line); }
+.ag-topbar { position: sticky; top: 0; z-index: 100; background: rgba(10,10,10,.9); backdrop-filter: none; border-bottom: 1px solid var(--ag-line); }
 .ag-topbar-inner { width: min(100% - 28px, 1060px); margin: auto; min-height: 70px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .ag-brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .ag-brand > img,
@@ -305,7 +305,7 @@
 .ag-section > p,
 .ag-section-heading p { max-width: 680px; line-height: 1.75; }
 .ag-hero-content { width: min(100% - 36px, 880px); }
-.ag-hero-brand { padding: 8px 14px 8px 9px; gap: 11px; backdrop-filter: blur(18px); }
+.ag-hero-brand { padding: 8px 14px 8px 9px; gap: 11px; backdrop-filter: none; }
 .ag-hero-brand img { width: 64px; height: 32px; object-fit: contain; border-radius: 6px; }
 .ag-hero-brand span { color: #eee9df; font-weight: 700; }
 .ag-personal-greeting { font-size: clamp(16px,2vw,20px); }

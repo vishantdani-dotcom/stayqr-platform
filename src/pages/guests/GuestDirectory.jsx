@@ -239,22 +239,37 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     }
 
     return guests.map((guest) => {
-      const guestSessions = sessionsByGuest.get(guest.id) || [];
+      const primaryGuestSessions = sessionsByGuest.get(guest.id) || [];
       const summary = summaryByGuest.get(guest.id) || {};
-      const activeStay = guestSessions.find((session) => session.status === "active") || null;
-      const totalStays = Number(summary.total_stays ?? guestSessions.length ?? 0);
+      const primaryActiveStay = primaryGuestSessions.find((session) => session.status === "active") || null;
+      const summaryActiveStay = summary.active_session_id
+        ? {
+            id: summary.active_session_id,
+            guest_id: guest.id,
+            status: "active",
+            checkin_time: summary.active_checkin || null,
+            checkout_time: summary.active_checkout || null,
+            rooms: summary.active_room_number
+              ? { room_number: summary.active_room_number }
+              : null,
+            stay_role: primaryActiveStay?.id === summary.active_session_id ? "primary" : "companion",
+          }
+        : null;
+      const activeStay = summaryActiveStay || primaryActiveStay;
+      const totalStays = Number(summary.total_stays ?? primaryGuestSessions.length ?? 0);
       const completedStays = Number(
-        summary.completed_stays ?? guestSessions.filter((session) => session.status !== "active").length
+        summary.completed_stays
+          ?? primaryGuestSessions.filter((session) => session.status !== "active").length
       );
+      const lastStayAt = summary.last_stay_at || primaryGuestSessions[0]?.checkin_time || null;
 
       return {
         guest,
-        stays: guestSessions,
+        stays: primaryGuestSessions,
         totalStays,
         completedStays,
         activeStay,
-        lastStay: guestSessions[0] || null,
-        lastStayAt: summary.last_stay_at || guestSessions[0]?.checkin_time || null,
+        lastStayAt,
         repeatGuest: totalStays > 1,
         documentCount: Number(summary.document_count || 0),
         verifiedDocument: Boolean(summary.verified_document),
@@ -1309,8 +1324,8 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                   <td>
                     <strong>{row.totalStays}</strong> stay{row.totalStays === 1 ? "" : "s"}
                     <small>
-                      {row.lastStay?.checkin_time
-                        ? `Last: ${formatDate(row.lastStay.checkin_time)}`
+                      {row.lastStayAt
+                        ? `Last: ${formatDate(row.lastStayAt)}`
                         : "No stay recorded"}
                     </small>
                   </td>

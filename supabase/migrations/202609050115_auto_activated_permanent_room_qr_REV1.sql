@@ -109,8 +109,8 @@ declare
   v_rendered text;
   v_stay_expiry timestamptz;
 begin
-  select s, h.slug
-  into v_session, v_hotel_slug
+  select s.*
+  into v_session
   from public.room_qr_codes q
   join public.rooms r
     on r.id = q.room_id
@@ -134,6 +134,21 @@ begin
   limit 1;
 
   if v_session.id is null then
+    return jsonb_build_object(
+      'ok', false,
+      'state', 'inactive',
+      'error', 'Guest access is currently inactive. Please contact reception.'
+    );
+  end if;
+
+  select h.slug
+  into v_hotel_slug
+  from public.hotels h
+  where h.id = v_session.hotel_id
+    and h.status = 'active'
+  limit 1;
+
+  if nullif(btrim(v_hotel_slug), '') is null then
     return jsonb_build_object(
       'ok', false,
       'state', 'inactive',

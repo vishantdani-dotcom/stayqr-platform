@@ -495,9 +495,16 @@ export default function CheckIn() {
       state_region: fields.state_region || current.state_region,
       postal_code: fields.postal_code || current.postal_code,
     }));
+    const extractedCount = Object.keys(fields).filter((key) => fields[key]).length + (analysis.documentNumberMasked ? 1 : 0);
     setSelectedGuest(null);
     setGuestMatches([]);
-    setMessage("ID details extracted. Review the auto-filled fields before completing check-in.");
+    if (analysis.status === "extracted" && extractedCount > 0) {
+      setMessage("ID details extracted. Review the auto-filled fields before completing check-in.");
+      setError("");
+    } else {
+      setMessage("");
+      setError(analysis.message || "StayQR could not read enough details from this ID. Retake a clearer photo or enter the fields manually.");
+    }
   };
 
   const saveCapturedIdAfterCheckin = async (checkinResult) => {

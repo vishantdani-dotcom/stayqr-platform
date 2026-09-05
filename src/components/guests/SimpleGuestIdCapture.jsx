@@ -145,7 +145,7 @@ export default function SimpleGuestIdCapture({
               <strong>{analysis ? labelForType(analysis.documentType) : "ID selected"}</strong>
               <small>{value.file.name}</small>
             </div>
-            <span className={hasFields ? "auto" : "review"}>{hasFields ? "Auto-filled" : "Ready to save"}</span>
+            <span className={hasFields ? "auto" : "review"}>{hasFields ? "Auto-filled" : "Could not auto-fill"}</span>
           </div>
 
           {hasFields && (
@@ -159,6 +159,7 @@ export default function SimpleGuestIdCapture({
             </div>
           )}
 
+          {!hasFields && analysis?.message && <p className="simple-id-message review">{analysis.message}</p>}
           <p className="simple-id-privacy">StayQR uses the scan to pre-fill the guest record. Review the details before saving.</p>
         </div>
       )}

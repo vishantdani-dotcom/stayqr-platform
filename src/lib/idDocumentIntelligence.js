@@ -1,5 +1,5 @@
-const AADHAAR_REGEX = /\b(\d{4})[\s-]?(\d{4})[\s-]?(\d{4})\b/g;
-const DATE_REGEX = /\b([0-3]?\d)[/.-]([01]?\d)[/.-]((?:19|20)\d{2})\b/;
+﻿const AADHAAR_REGEX = /\b(\d{4})[\s.-]{0,3}(\d{4})[\s.-]{0,3}(\d{4})\b/g;
+const DATE_REGEX = /\b([0-3]?\d)\s*[/.-]\s*([01]?\d)\s*[/.-]\s*((?:19|20)\d{2})\b/;
 const PAN_REGEX = /\b[A-Z]{5}\d{4}[A-Z]\b/i;
 const PASSPORT_REGEX = /\b[A-Z][0-9]{7}\b/i;
 const VOTER_REGEX = /\b[A-Z]{3}\d{7}\b/i;
@@ -30,14 +30,14 @@ function maskAadhaar(value) {
 function maskPan(value) {
   const normalized = String(value || "").toUpperCase().replace(/\s+/g, "");
   return /^[A-Z]{5}\d{4}[A-Z]$/.test(normalized)
-    ? `${normalized.slice(0, 5)}••••${normalized.slice(-1)}`
+    ? `${normalized.slice(0, 5)}â€¢â€¢â€¢â€¢${normalized.slice(-1)}`
     : "";
 }
 
 function maskGeneric(value) {
   const normalized = normalizeSpace(value).replace(/\s+/g, "");
   if (normalized.length < 4) return normalized;
-  return `${"•".repeat(Math.min(8, Math.max(4, normalized.length - 4)))}${normalized.slice(-4)}`;
+  return `${"â€¢".repeat(Math.min(8, Math.max(4, normalized.length - 4)))}${normalized.slice(-4)}`;
 }
 
 export function maskSensitiveNumbers(text) {
@@ -69,6 +69,77 @@ async function imageBitmapFromFile(file) {
   }
 }
 
+function identityTextScore(value) {
+  const text = String(value || "");
+  if (!text.trim()) return 0;
+
+  let score = Math.min(3, Math.floor(text.trim().length / 80));
+  if (/\b(?:AADHAAR|AADHAR|GOVERNMENT OF INDIA|UNIQUE IDENTIFICATION)\b/i.test(text)) score += 4;
+  if (/\b(?:DOB|DATE OF BIRTH|YOB)\b/i.test(text)) score += 2;
+  if (DATE_REGEX.test(text)) score += 2;
+  if (/\b(?:MALE|FEMALE)\b/i.test(text)) score += 1;
+  if ([...text.matchAll(AADHAAR_REGEX)].length) score += 4;
+  if (PAN_REGEX.test(text) || PASSPORT_REGEX.test(text) || VOTER_REGEX.test(text) || DL_REGEX.test(text)) score += 4;
+  if (text.split(/\r?\n/).some((line) => /^[A-Za-z][A-Za-z .'-]{3,55}$/.test(normalizeSpace(line)))) score += 1;
+  return score;
+}
+
+function filenameDocumentType(fileName) {
+  const name = String(fileName || "").toLowerCase();
+  if (/\b(?:aadhaar|aadhar|adhar)\b/.test(name)) return "aadhaar";
+  if (/\bpan\b/.test(name)) return "pan";
+  if (/passport/.test(name)) return "passport";
+  if (/(?:driving|licen[cs]e|\bdl\b)/.test(name)) return "driving_licence";
+  if (/(?:voter|epic)/.test(name)) return "voter_id";
+  return "";
+}
+
+function prepareOcrCanvas(bitmap) {
+  if (!bitmap || typeof document === "undefined") return bitmap;
+
+  const sourceWidth = Number(bitmap.width || bitmap.naturalWidth || 0);
+  const sourceHeight = Number(bitmap.height || bitmap.naturalHeight || 0);
+  if (!sourceWidth || !sourceHeight) return bitmap;
+
+  const minLongEdge = 1600;
+  const maxLongEdge = 2200;
+  const longEdge = Math.max(sourceWidth, sourceHeight);
+  const scale = longEdge < minLongEdge
+    ? Math.min(3, minLongEdge / longEdge)
+    : longEdge > maxLongEdge
+      ? maxLongEdge / longEdge
+      : 1;
+
+  const width = Math.max(1, Math.round(sourceWidth * scale));
+  const height = Math.max(1, Math.round(sourceHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return bitmap;
+
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(bitmap, 0, 0, width, height);
+
+  try {
+    const image = context.getImageData(0, 0, width, height);
+    const data = image.data;
+    const contrast = 1.18;
+    for (let index = 0; index < data.length; index += 4) {
+      const gray = (data[index] * 0.299) + (data[index + 1] * 0.587) + (data[index + 2] * 0.114);
+      const adjusted = Math.max(0, Math.min(255, ((gray - 128) * contrast) + 128));
+      data[index] = adjusted;
+      data[index + 1] = adjusted;
+      data[index + 2] = adjusted;
+    }
+    context.putImageData(image, 0, 0);
+  } catch {
+    // Keep the scaled image if pixel access is unavailable.
+  }
+  return canvas;
+}
+
 async function detectTextWithBrowser(bitmap) {
   if (!bitmap || typeof window === "undefined" || typeof window.TextDetector !== "function") {
     return { engine: "browser_text_detector", text: "", supported: false };
@@ -86,7 +157,7 @@ async function detectTextWithBrowser(bitmap) {
   }
 }
 
-async function detectTextWithTesseract(file, onProgress) {
+async function detectTextWithTesseract(file, bitmap, onProgress) {
   if (!file || !String(file.type || "").startsWith("image/")) {
     return { engine: "tesseract_browser", text: "", supported: false };
   }
@@ -101,12 +172,36 @@ async function detectTextWithTesseract(file, onProgress) {
         }
       },
     });
-    const result = await worker.recognize(file);
+
+    const source = prepareOcrCanvas(bitmap) || file;
+    await worker.setParameters?.({
+      tessedit_pageseg_mode: "6",
+      preserve_interword_spaces: "1",
+    });
+
+    const first = await worker.recognize(source);
+    let bestText = String(first?.data?.text || "");
+    let bestConfidence = Number.isFinite(first?.data?.confidence) ? Number(first.data.confidence) : null;
+    let bestScore = identityTextScore(bestText);
+
+    if (bestScore < 6) {
+      await worker.setParameters?.({ tessedit_pageseg_mode: "11" });
+      const second = await worker.recognize(source);
+      const secondText = String(second?.data?.text || "");
+      const secondScore = identityTextScore(secondText);
+      if (secondScore > bestScore) {
+        bestText = secondText;
+        bestScore = secondScore;
+        bestConfidence = Number.isFinite(second?.data?.confidence) ? Number(second.data.confidence) : bestConfidence;
+      }
+    }
+
     return {
       engine: "tesseract_browser",
-      text: String(result?.data?.text || ""),
+      text: bestText,
       supported: true,
-      confidence: Number.isFinite(result?.data?.confidence) ? Number(result.data.confidence) : null,
+      confidence: bestConfidence,
+      score: bestScore,
     };
   } catch (error) {
     console.warn("Browser OCR fallback unavailable:", error);
@@ -118,11 +213,26 @@ async function detectTextWithTesseract(file, onProgress) {
 
 async function detectText(bitmap, file, onProgress) {
   const nativeResult = await detectTextWithBrowser(bitmap);
-  if (nativeResult.supported && nativeResult.text.trim()) {
+  const nativeScore = identityTextScore(nativeResult.text);
+
+  if (nativeResult.supported && nativeScore >= 7) {
     onProgress?.(100);
-    return nativeResult;
+    return { ...nativeResult, score: nativeScore };
   }
-  return detectTextWithTesseract(file, onProgress);
+
+  const tesseractResult = await detectTextWithTesseract(file, bitmap, onProgress);
+  const tesseractScore = identityTextScore(tesseractResult.text);
+
+  if (tesseractResult.supported && tesseractScore >= nativeScore) {
+    return { ...tesseractResult, score: tesseractScore };
+  }
+
+  if (nativeResult.supported && String(nativeResult.text || "").trim()) {
+    onProgress?.(100);
+    return { ...nativeResult, score: nativeScore };
+  }
+
+  return tesseractResult;
 }
 
 async function detectQr(bitmap) {
@@ -148,14 +258,24 @@ async function detectQr(bitmap) {
   }
 }
 
-function inferDocumentType(rawText) {
+function inferDocumentType(rawText, fileName = "") {
   const text = String(rawText || "").toUpperCase();
-  if (/AADHAAR|AADHAR|UNIQUE IDENTIFICATION|GOVERNMENT OF INDIA/.test(text) && [...text.matchAll(AADHAAR_REGEX)].length) return "aadhaar";
-  if (/INCOME TAX|PERMANENT ACCOUNT NUMBER|\bPAN\b/.test(text) || PAN_REGEX.test(text)) return "pan";
+  const byFileName = filenameDocumentType(fileName);
+
   if (/PASSPORT|REPUBLIC OF INDIA|P<IND/.test(text) || PASSPORT_REGEX.test(text)) return "passport";
+  if (/INCOME TAX|PERMANENT ACCOUNT NUMBER|\bPAN\b/.test(text) || PAN_REGEX.test(text)) return "pan";
   if (/DRIVING LICEN[CS]E|TRANSPORT DEPARTMENT|\bDL\s*NO/.test(text) || DL_REGEX.test(text)) return "driving_licence";
   if (/ELECTION COMMISSION|ELECTOR PHOTO IDENTITY|EPIC/.test(text) || VOTER_REGEX.test(text)) return "voter_id";
-  return "other";
+
+  const aadhaarNumberFound = [...text.matchAll(AADHAAR_REGEX)].length > 0;
+  const aadhaarTextMarker = /AADHAAR|AADHAR|UNIQUE IDENTIFICATION|GOVERNMENT OF INDIA/.test(text);
+  const aadhaarLayoutMarker =
+    /GOVERNMENT OF INDIA/.test(text)
+    && /\b(?:DOB|DATE OF BIRTH|YOB)\b/.test(text)
+    && /\b(?:MALE|FEMALE)\b/.test(text);
+
+  if ((aadhaarTextMarker && aadhaarNumberFound) || aadhaarLayoutMarker || byFileName === "aadhaar") return "aadhaar";
+  return byFileName || "other";
 }
 
 function lineAfterLabel(lines, pattern) {
@@ -206,7 +326,7 @@ function probableName(lines, documentType) {
 
 function parseGender(text) {
   if (/\bFEMALE\b/i.test(text)) return "female";
-  if (/\bMALE\b/i.test(text)) return "male";
+  if (/\bM(?:ALE|ALLE)\b/i.test(text)) return "male";
   if (/\b(?:TRANSGENDER|THIRD GENDER)\b/i.test(text)) return "other";
   return "";
 }
@@ -255,7 +375,7 @@ function extractMaskedDocumentNumber(text, documentType) {
 }
 
 function extractDateOfBirth(lines, text) {
-  const labelPattern = /\b(?:DOB|DATE OF BIRTH|BIRTH DATE|D\.O\.B\.?|जन्म(?:\s+तिथि)?)\b/i;
+  const labelPattern = /\b(?:DOB|DATE OF BIRTH|BIRTH DATE|D\.O\.B\.?|à¤œà¤¨à¥à¤®(?:\s+à¤¤à¤¿à¤¥à¤¿)?)\b/i;
   for (let index = 0; index < lines.length; index += 1) {
     if (!labelPattern.test(lines[index])) continue;
     const sameLine = lines[index].match(DATE_REGEX);
@@ -267,9 +387,9 @@ function extractDateOfBirth(lines, text) {
   return isoDateFromMatch(generic);
 }
 
-export function extractIdentityFromText(rawText, requestedDocumentType = "auto") {
+export function extractIdentityFromText(rawText, requestedDocumentType = "auto", hints = {}) {
   const raw = String(rawText || "");
-  const detectedDocumentType = inferDocumentType(raw);
+  const detectedDocumentType = inferDocumentType(raw, hints.fileName || "");
   const documentType = requestedDocumentType && requestedDocumentType !== "auto"
     ? requestedDocumentType
     : detectedDocumentType;
@@ -328,12 +448,15 @@ export async function analyzeIdentityDocument(file, requestedDocumentType = "aut
     const rawText = textResult.text || "";
     const { documentType, extractedFields, documentNumberMasked } = extractIdentityFromText(
       rawText,
-      requestedDocumentType
+      requestedDocumentType,
+      { fileName: file.name }
     );
     const hasText = Boolean(rawText.trim());
-    const status = hasText || qrResult.detected ? "extracted" : "limited";
+    const hasExtractedIdentity = Object.keys(extractedFields).length > 0 || Boolean(documentNumberMasked);
+    const status = hasExtractedIdentity ? "extracted" : "limited";
     const warnings = [];
     if (!hasText) warnings.push("No readable text was detected. Retake the photo with better focus and lighting, or enter the fields manually.");
+    else if (!hasExtractedIdentity) warnings.push("Text was detected, but StayQR could not confidently map the ID fields. Retake a straighter, sharper photo or enter the fields manually.");
     if (documentType === "aadhaar" && qrResult.detected) warnings.push("Aadhaar QR detected. This simplified check-in uses it only as a scan signal and does not claim UIDAI verification.");
 
     return {
@@ -349,9 +472,10 @@ export async function analyzeIdentityDocument(file, requestedDocumentType = "aut
       rawOcrTextStored: false,
       rawQrPayloadStored: false,
       warnings,
-      message: warnings.join(" ") || "ID details extracted. Review them before completing check-in.",
+      message: warnings.join(" ") || (hasExtractedIdentity ? "ID details extracted. Review them before completing check-in." : "ID selected. Review and enter any missing details."),
     };
   } finally {
     bitmap?.close?.();
   }
 }
+

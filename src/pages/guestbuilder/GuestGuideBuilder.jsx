@@ -994,7 +994,7 @@ export default function GuestGuideBuilder() {
     <section className="simple-builder-page">
       <header className="simple-builder-hero">
         <div>
-          <p>DAY 14 · GUEST EXPERIENCE</p>
+          <p>GUEST EXPERIENCE</p>
           <h1>Guest Guide Setup</h1>
           <span>
             A simple six-step setup for {currentHotel.hotel_name || currentHotel.name}.
@@ -1073,7 +1073,7 @@ export default function GuestGuideBuilder() {
                   />
                 </Field>
                 <Field label="Template">
-                  <input value="StayQR Apex Signature REV5" disabled />
+                  <input value="StayQR Signature Guide" disabled />
                 </Field>
                 <Field label="StayQR footer label" wide>
                   <input

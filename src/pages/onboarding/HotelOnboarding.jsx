@@ -778,7 +778,7 @@ export default function HotelOnboarding({
     <div className={`onboarding-shell ${standalone ? 'standalone' : ''}`}>
       <header className="onboarding-hero">
         <div>
-          <span className="onboarding-kicker">StayQR v1.0 · Day 8</span>
+          <span className="onboarding-kicker">PROPERTY ONBOARDING</span>
           <h1>Hotel Onboarding & Configuration</h1>
           <p>
             Move a property from account creation to an operational,
@@ -1339,7 +1339,7 @@ function ReadinessStep({
               {onboardingFinished
                 ? 'The property onboarding has been finalized and is QR-ready.'
                 : readiness?.ready
-                  ? 'The property has passed every Day 8 readiness check.'
+                  ? 'The property has passed every readiness check.'
                   : 'Complete the missing items shown below.'}
             </p>
           </div>

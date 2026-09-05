@@ -832,6 +832,9 @@ export default function CheckIn() {
               <span>
                 {occupancy.total} guest{occupancy.total === 1 ? "" : "s"} linked to the same room stay.
               </span>
+              <small className="simple-checkin-guide-active">
+                Guest Guide activated automatically. The permanent Room {result.room_number} QR is ready now and stays valid until {formatStayAccessTime(checkoutTime)}.
+              </small>
               {(idCapture?.file || companions.some((item) => item.id_capture?.file)) && !idSaveWarning && (
                 <small>Captured ID documents were saved privately to the correct guest profiles.</small>
               )}
@@ -1085,4 +1088,11 @@ export default function CheckIn() {
       </div>
     </div>
   );
+}
+
+
+function formatStayAccessTime(value) {
+  if (!value) return "checkout";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "checkout" : parsed.toLocaleString("en-IN");
 }

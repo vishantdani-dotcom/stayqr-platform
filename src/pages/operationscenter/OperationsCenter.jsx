@@ -240,7 +240,7 @@ export default function OperationsCenter({
       })
     } catch (err) {
       console.error(err)
-      setError(err?.message || 'Day 17 workspace could not be loaded.')
+      setError(err?.message || 'Operations workspace could not be loaded.')
     } finally {
       setLoading(false)
     }
@@ -371,14 +371,14 @@ export default function OperationsCenter({
   }
 
   if (!hotelId) {
-    return <div className="d17-empty">Select a hotel to open Day 17 operations.</div>
+    return <div className="d17-empty">Select a hotel to open the operations workspace.</div>
   }
 
   return (
     <section className="d17-page">
       <header className="d17-hero">
         <div>
-          <p className="d17-eyebrow">DAY 17 · NOTIFICATIONS, ACTIVITY, SUPPORT & SETTINGS</p>
+          <p className="d17-eyebrow">OPERATIONS · NOTIFICATIONS, ACTIVITY, SUPPORT & SETTINGS</p>
           <h1>Operations & Communications Centre</h1>
           <p>{hotel?.hotel_name || 'StayQR Hotel'} · Realtime, tenant-scoped operational control.</p>
         </div>
@@ -421,7 +421,7 @@ export default function OperationsCenter({
       </nav>
 
       {error && <div className="d17-error">{error}</div>}
-      {loading ? <div className="d17-loading">Loading trusted Day 17 workspace…</div> : null}
+      {loading ? <div className="d17-loading">Loading operations workspace…</div> : null}
 
       {!loading && tab === 'notifications' && (
         <Panel title="Notification Centre" subtitle="Realtime recipient-level inbox from the trusted notification outbox.">
@@ -560,7 +560,7 @@ export default function OperationsCenter({
           <div className="d17-support-toolbar">
             <div>
               <strong>Need help from StayQR?</strong>
-              <span>24×7 support intake. Critical after-hours incidents escalate to the StayQR founder.</span>
+              <span>Support requests can be submitted anytime. Critical incidents are escalated to the StayQR team based on operational impact.</span>
             </div>
             <button
               type="button"
@@ -749,7 +749,7 @@ export default function OperationsCenter({
                 </strong>
               </div>
               <div>
-                <span>Day 18 indexes</span>
+                <span>Optimized indexes</span>
                 <strong>
                   {diagnostics.query_health?.day18_index_count ?? 'N/A'}
                 </strong>

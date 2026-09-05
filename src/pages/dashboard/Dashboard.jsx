@@ -273,7 +273,7 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
         <div>
           <p className="dash-support-kicker">STAYQR SUPPORT</p>
           <h2>Need assistance?</h2>
-          <p>24×7 support for critical incidents, with founder-owned after-hours escalation.</p>
+          <p>Submit support requests anytime. Critical incidents can be escalated to the StayQR team based on operational impact.</p>
         </div>
         <div className="dash-support-actions">
           <button

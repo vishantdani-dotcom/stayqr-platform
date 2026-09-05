@@ -1393,7 +1393,7 @@ export default function Guests({
           className={activeView === "communications" ? "active" : ""}
           onClick={() => setActiveView("communications")}
         >
-          Communications
+          Contact & consent
         </button>
       </div>
 

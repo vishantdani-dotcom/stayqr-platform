@@ -55,7 +55,7 @@ export default function OperationsAutomation({ hotel }) {
     try {
       setWorkspace(await loadOperationsAutomation(hotelId))
     } catch (error) {
-      showToast(error.message || 'Unable to load V1.1-B operations.')
+      showToast(error.message || 'Unable to load operations automation.')
     } finally {
       setLoading(false)
     }
@@ -103,7 +103,7 @@ export default function OperationsAutomation({ hotel }) {
       {toast && <div className="v11b-toast">{toast}</div>}
       <header className="v11b-hero">
         <div>
-          <span>V1.1-B · HOTEL OPERATIONS & AUTOMATION</span>
+          <span>HOTEL OPERATIONS & AUTOMATION</span>
           <h1>Operations Automation</h1>
           <p>{hotel.hotel_name} · Laundry, lost & found, consumable inventory, KOT printing and scheduled reporting.</p>
         </div>
@@ -184,7 +184,7 @@ function InventoryRow({ row, hotelId, busy, runAction }) {
   function move(type) {
     const quantity = window.prompt(`${type.replaceAll('_',' ')} quantity:`,'1')
     if (!quantity) return
-    const reason = window.prompt('Reason:','V1.1-B browser acceptance')
+    const reason = window.prompt('Reason:','Operations review')
     if (!reason) return
     void runAction(row.id, () => postInventoryMovement(hotelId,row.id,type,quantity,reason), 'Stock movement posted.')
   }

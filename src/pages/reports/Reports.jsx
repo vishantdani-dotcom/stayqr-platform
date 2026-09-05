@@ -526,7 +526,7 @@ export default function Reports() {
       <div className="reports-shell" ref={reportRef}>
         <header className="reports-hero">
           <div>
-            <span className="reports-eyebrow">DAY 16 · ANALYTICS & STANDARD REPORTS</span>
+            <span className="reports-eyebrow">ANALYTICS & STANDARD REPORTS</span>
             <h1>Hotel Intelligence</h1>
             <p>
               {currentHotel?.hotel_name || 'StayQR Hotel'} · Source-reconciled

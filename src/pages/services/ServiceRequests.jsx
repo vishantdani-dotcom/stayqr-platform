@@ -260,7 +260,7 @@ export default function ServiceRequests() {
   return (
     <div className="service-day15-page">
       <header className="service-day15-header">
-        <div><span>Day 15 · Guest Services</span><h1>Service Operations</h1><p>{hotel?.hotel_name} · Department routing, assignment, SLA, escalation and guest tracking.</p></div>
+        <div><span>Guest Services</span><h1>Service Operations</h1><p>{hotel?.hotel_name} · Department routing, assignment, escalation and guest request tracking.</p></div>
         <div><button onClick={() => setCatalogOpen((value) => !value)}>{catalogOpen ? 'Hide catalogue' : 'Service catalogue'}</button><button className="gold" disabled={busyId === 'escalate'} onClick={reconcileEscalations}>Escalate overdue ({overdueCount})</button></div>
       </header>
 

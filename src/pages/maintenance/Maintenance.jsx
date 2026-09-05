@@ -169,7 +169,7 @@ export default function Maintenance({ hotel: hotelProp }) {
     <div className="day13-page">
       <div className="day13-header">
         <div>
-          <div className="day13-kicker">Day 13 · Inventory protection</div>
+          <div className="day13-kicker">Maintenance operations</div>
           <h1>Maintenance</h1>
           <p>
             Track defects with explicit inventory impact, authoritative room blocks,

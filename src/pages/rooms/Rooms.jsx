@@ -234,7 +234,7 @@ export default function Rooms({ hotel: hotelProp }) {
     <div className="day13-page">
       <div className="day13-header">
         <div>
-          <div className="day13-kicker">Day 13 · Inventory governance</div>
+          <div className="day13-kicker">Room inventory</div>
           <h1>Rooms & Inventory</h1>
           <p>
             Configure floors, room types and rooms through audited RPC operations.

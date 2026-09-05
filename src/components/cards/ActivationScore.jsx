@@ -40,7 +40,7 @@ export default function ActivationScore({ hotelId, onNavigate, refreshKey }) {
     <section className="activation-card" aria-label="Hotel activation score">
       <header className="activation-head">
         <div className="activation-ring" style={{ '--activation': `${Math.max(0, Math.min(score, 100)) * 3.6}deg` }}><span>{score}%</span></div>
-        <div><p>HOTEL ACTIVATION SCORE</p><h2>{score === 100 ? 'Ready to sell & operate' : 'Complete your hotel launch'}</h2><span>{activation.completed_items || 0} of {activation.total_items || items.length} readiness checks complete.</span></div>
+        <div><p>HOTEL ACTIVATION SCORE</p><h2>{score === 100 ? 'Property ready' : 'Complete property setup'}</h2><span>{activation.completed_items || 0} of {activation.total_items || items.length} readiness checks complete.</span></div>
         <button type="button" onClick={load}>Refresh score</button>
       </header>
       <div className="activation-list">

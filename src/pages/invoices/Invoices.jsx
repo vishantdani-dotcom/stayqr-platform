@@ -515,7 +515,7 @@ export default function Invoices({ hotel, permissions = [], currentRole = '' }) 
     <div className="day12-page">
       <header className="day12-header">
         <div>
-          <p className="day12-kicker">DAY 12 · IMMUTABLE FINANCE</p>
+          <p className="day12-kicker">INVOICES & RECEIPTS</p>
           <h1>Invoice, Cashier & Night Audit</h1>
           <p>
             GST invoice snapshots, immutable receipts, cashier controls, day-close
@@ -551,7 +551,7 @@ export default function Invoices({ hotel, permissions = [], currentRole = '' }) 
         <Metric label="Night audits" value={metrics.audits} />
       </section>
 
-      <nav className="day12-tabs" aria-label="Day 12 finance modules">
+      <nav className="day12-tabs" aria-label="Finance modules">
         {TABS.map((tab) => (
           <button
             type="button"

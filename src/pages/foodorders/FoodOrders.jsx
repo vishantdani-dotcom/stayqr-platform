@@ -210,7 +210,7 @@ export default function FoodOrders() {
   return (
     <div className="day15-foodops">
       <header className="day15-page-header">
-        <div><span>Day 15 · Food & Kitchen</span><h1>Kitchen Command</h1><p>{hotel?.hotel_name} · Trusted status transitions, KOT and exact-once folio posting.</p></div>
+        <div><span>Food & Kitchen</span><h1>Kitchen Operations</h1><p>{hotel?.hotel_name} · Kitchen tickets, order status and folio posting.</p></div>
         <button onClick={() => Promise.all([loadOrders(hotel.id), loadAnalytics(hotel.id)])}>Refresh</button>
       </header>
 

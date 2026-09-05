@@ -6,48 +6,62 @@ import stayqrLogo from '../../assets/stayqr-logo.png'
 
 const NAV_ITEMS = [
   {
-    group: 'Main',
+    group: 'Front Desk',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: GridIcon, badge: null },
-      { id: 'reservations', label: 'Reservations', icon: CalendarIcon, badge: null },
-      { id: 'calendar', label: 'Booking Calendar', icon: CalendarIcon, badge: null },
-      { id: 'operations', label: 'Arrivals & Departures', icon: KeyIcon, badge: null },
-      { id: 'rooms', label: 'Rooms', icon: DoorIcon, badge: null },
-      { id: 'guests', label: 'Guests', icon: UsersIcon, badge: null },
-      { id: 'checkin', label: 'Check-In/Out', icon: KeyIcon, badge: null },
-      { id: 'revenue', label: 'Revenue Growth', icon: ChartIcon, badge: 'v1.1' },
-      { id: 'platformhub', label: 'Platform Hub', icon: BuildingIcon, badge: 'v1.1' },
-      { id: 'billing', label: 'Billing & AutoPay', icon: CardIcon, badge: 'NEW' },
-      { id: 'menu', label: 'Menu Management', icon: '🍽️', badge: null },
-      { id: 'staff', label: 'Staff', icon: '👥', badge: null },
+      { id: 'dashboard', label: 'Dashboard', icon: GridIcon },
+      { id: 'reservations', label: 'Reservations', icon: CalendarIcon },
+      { id: 'calendar', label: 'Booking Calendar', icon: CalendarIcon },
+      { id: 'operations', label: 'Arrivals & Departures', icon: KeyIcon },
+      { id: 'checkin', label: 'Check-In / Out', icon: KeyIcon },
+      { id: 'guests', label: 'Guests', icon: UsersIcon },
+      { id: 'rooms', label: 'Rooms', icon: DoorIcon },
     ],
   },
   {
-    group: 'Operations',
+    group: 'Guest Experience',
     items: [
-      { id: 'qr', label: 'QR Guides', icon: QrIcon, badge: null },
-      { id: 'payments', label: 'Payments', icon: CardIcon, badge: null },
-      { id: 'folios', label: 'Folio & Settlement', icon: DollarIcon, badge: null },
-      { id: 'services', label: 'Service Requests', icon: BellIcon, badge: null },
-      { id: 'foodorders', label: 'Food Orders', icon: CardIcon, badge: null },
-      { id: 'charges', label: 'Charges', icon: DollarIcon, badge: null },
-      { id: 'housekeeping', label: 'Housekeeping', icon: BellIcon, badge: null },
-      { id: 'opsautomation', label: 'Ops Automation', icon: SettingsIcon, badge: 'v1.1' },
-      { id: 'maintenance', label: 'Maintenance', icon: SettingsIcon, badge: null },
-      { id: 'amenities', label: 'Amenities', icon: StarIcon, badge: null },
-      { id: 'media', label: 'Media Manager', icon: BuildingIcon, badge: null },
+      { id: 'qr', label: 'Room QR Guides', icon: QrIcon },
+      { id: 'guidebuilder', label: 'Guest Guide Builder', icon: QrIcon },
+      { id: 'menu', label: 'Menu Management', icon: '🍽️' },
+      { id: 'services', label: 'Service Requests', icon: BellIcon },
+      { id: 'foodorders', label: 'Food Orders', icon: CardIcon },
     ],
   },
   {
-    group: 'Settings',
+    group: 'Hotel Operations',
     items: [
-      { id: 'superadmin', label: 'Super Admin', icon: BuildingIcon, badge: null },
-      { id: 'onboarding', label: 'Hotel Setup', icon: SettingsIcon, badge: null },
-      { id: 'hotel', label: 'Hotel Profile', icon: BuildingIcon, badge: null },
-      { id: 'guidebuilder', label: 'Guest Guide Builder', icon: QrIcon, badge: null },
-      { id: 'operationscenter', label: 'Operations Centre', icon: BellIcon, badge: null },
-      { id: 'reports', label: 'Reports', icon: ChartIcon, badge: null },
-      { id: 'invoices', label: 'Invoices & Audit', icon: CardIcon, badge: null },
+      { id: 'housekeeping', label: 'Housekeeping', icon: BellIcon },
+      { id: 'maintenance', label: 'Maintenance', icon: SettingsIcon },
+      { id: 'charges', label: 'Charges', icon: DollarIcon },
+      { id: 'payments', label: 'Payments', icon: CardIcon },
+      { id: 'folios', label: 'Folio & Settlement', icon: DollarIcon },
+      { id: 'opsautomation', label: 'Operations Automation', icon: SettingsIcon },
+    ],
+  },
+  {
+    group: 'Management',
+    items: [
+      { id: 'revenue', label: 'Revenue & Insights', icon: ChartIcon },
+      { id: 'reports', label: 'Reports', icon: ChartIcon },
+      { id: 'invoices', label: 'Invoices', icon: CardIcon },
+      { id: 'staff', label: 'Staff', icon: UsersIcon },
+      { id: 'operationscenter', label: 'Operations Centre', icon: BellIcon },
+    ],
+  },
+  {
+    group: 'Property Settings',
+    items: [
+      { id: 'onboarding', label: 'Hotel Setup', icon: SettingsIcon },
+      { id: 'hotel', label: 'Hotel Profile', icon: BuildingIcon },
+      { id: 'amenities', label: 'Amenities', icon: StarIcon },
+      { id: 'media', label: 'Media Manager', icon: BuildingIcon },
+      { id: 'billing', label: 'Subscription & Billing', icon: CardIcon },
+    ],
+  },
+  {
+    group: 'StayQR Platform',
+    items: [
+      { id: 'superadmin', label: 'Super Admin', icon: BuildingIcon },
     ],
   },
 ]
@@ -155,11 +169,6 @@ export default function Sidebar({
                     <span className="nav-item-label">{item.label}</span>
                   )}
 
-                  {!collapsed && item.badge && (
-                    <span className="nav-badge">{item.badge}</span>
-                  )}
-
-                  {collapsed && item.badge && <span className="nav-badge-dot" />}
                 </button>
               )
             })}

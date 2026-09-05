@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import LocalQrCode from '../../components/qr/LocalQrCode'
 import { getCurrentHotel } from '../../lib/currentHotel'
 import {
-  getGuestAccessLinks,
   getPermanentRoomQrLinks,
-  issuePermanentRoomQrPin,
+  regeneratePermanentRoomQr,
   revokeGuestAccessToken,
   rotateGuestAccessToken,
 } from '../../lib/guestPortal'
@@ -12,48 +11,35 @@ import { downloadLocalQrSvg } from '../../lib/localQr'
 import './QRGenerator.css'
 
 export default function QRGenerator() {
-  const [links, setLinks] = useState([])
-  const [permanentLinks, setPermanentLinks] = useState([])
-  const [issuedPins, setIssuedPins] = useState({})
+  const [rooms, setRooms] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentHotel, setCurrentHotel] = useState(null)
-  const [busySessionId, setBusySessionId] = useState(null)
+  const [busyId, setBusyId] = useState(null)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    initPage()
-  }, [])
+  useEffect(() => { void initPage() }, [])
 
   async function initPage() {
     const hotel = await getCurrentHotel()
-
     if (!hotel) {
       setError('No authorized hotel is selected.')
       setLoading(false)
       return
     }
-
     setCurrentHotel(hotel)
-    await loadLinks(hotel.id)
+    await loadRooms(hotel.id)
   }
 
-  async function loadLinks(hotelId = currentHotel?.id) {
+  async function loadRooms(hotelId = currentHotel?.id) {
     if (!hotelId) return
-
     setLoading(true)
     setError('')
-
     try {
-      const [data, permanent] = await Promise.all([
-        getGuestAccessLinks(hotelId),
-        getPermanentRoomQrLinks(hotelId),
-      ])
-      setLinks(data)
-      setPermanentLinks(permanent)
+      setRooms(await getPermanentRoomQrLinks(hotelId))
     } catch (loadError) {
-      console.error('Secure guest link load error:', loadError)
-      setError(loadError.message || 'Unable to load secure guest links.')
+      console.error('Room QR load error:', loadError)
+      setError(loadError.message || 'Unable to load room QR guides.')
     } finally {
       setLoading(false)
     }
@@ -61,419 +47,224 @@ export default function QRGenerator() {
 
   function absoluteUrl(path) {
     if (!path) return ''
-
-    try {
-      return new URL(path, window.location.origin).toString()
-    } catch {
-      return ''
-    }
+    try { return new URL(path, window.location.origin).toString() } catch { return '' }
   }
 
-  async function copyLink(path, label) {
-    const url = absoluteUrl(path)
+  async function copyPermanentLink(room) {
+    const url = absoluteUrl(room.permanent_path)
     if (!url) return
-
     try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url)
-      } else {
-        const input = document.createElement('textarea')
-        input.value = url
-        input.setAttribute('readonly', '')
-        input.style.position = 'fixed'
-        input.style.opacity = '0'
-        document.body.appendChild(input)
-        input.select()
-        document.execCommand('copy')
-        input.remove()
-      }
-
+      await navigator.clipboard.writeText(url)
+      setNotice(`Room ${room.room_number} permanent link copied.`)
       setError('')
-      setNotice(`${label} copied.`)
     } catch (copyError) {
       console.error('Clipboard error:', copyError)
-      setError(`Unable to copy the ${label.toLowerCase()}.`)
+      setError('Unable to copy the permanent room link.')
     }
   }
 
-  function downloadQr(link, path, purpose) {
-    const url = absoluteUrl(path)
+  function downloadPermanentQr(room) {
+    const url = absoluteUrl(room.permanent_path)
     if (!url) return
-
     try {
-      const room = safeFilenamePart(link.room_number || 'room')
       const hotel = safeFilenamePart(currentHotel?.slug || currentHotel?.hotel_name || 'hotel')
+      const roomNumber = safeFilenamePart(room.room_number || 'room')
       downloadLocalQrSvg({
         value: url,
-        filename: `stayqr-${hotel}-room-${room}-${purpose}.svg`,
-        label: `StayQR ${purpose} QR for Room ${link.room_number}`,
+        filename: `stayqr-${hotel}-room-${roomNumber}-permanent.svg`,
+        label: `StayQR permanent room QR for Room ${room.room_number}`,
       })
+      setNotice(`Room ${room.room_number} permanent QR downloaded.`)
       setError('')
-      setNotice(`${purpose === 'guest-guide' ? 'Guest guide' : purpose === 'food-menu' ? 'Food menu' : 'Permanent room'} QR downloaded.`)
     } catch (downloadError) {
       console.error('QR download error:', downloadError)
-      setError('Unable to download the QR code.')
+      setError('Unable to download the permanent room QR.')
     }
   }
 
-  async function activateOrRotateLink(link, mode = 'rotate') {
-    if (!currentHotel?.id || !link?.guest_session_id || busySessionId) return
-
-    const isActivation = mode === 'activate'
+  async function rotateStayAccess(room) {
+    if (!currentHotel?.id || !room?.guest_session_id || busyId) return
+    const mode = room.access_active ? 'rotate' : 'restore'
     const confirmed = window.confirm(
-      isActivation
-        ? `Activate a new secure guest link for Room ${link.room_number}?`
-        : `Rotate guest access for Room ${link.room_number}? The previous link will stop working immediately.`
+      mode === 'restore'
+        ? `Restore guest-guide access for the current stay in Room ${room.room_number}?`
+        : `Rotate the current stay access for Room ${room.room_number}? Any previously copied direct guest link will stop working, while the permanent room QR will continue to work.`
     )
-
     if (!confirmed) return
 
-    setBusySessionId(link.guest_session_id)
+    setBusyId(room.guest_session_id)
     setNotice('')
     setError('')
-
     try {
       await rotateGuestAccessToken({
         hotelId: currentHotel.id,
-        guestSessionId: link.guest_session_id,
-        reason: isActivation
-          ? 'Activated from Secure Guest Access screen'
-          : 'Rotated from Secure Guest Access screen',
+        guestSessionId: room.guest_session_id,
+        reason: mode === 'restore' ? 'Guest access restored from Room QR Guides' : 'Guest access rotated from Room QR Guides',
       })
-      setNotice(
-        isActivation
-          ? `New secure guest access activated for Room ${link.room_number}.`
-          : `Guest access rotated for Room ${link.room_number}.`
-      )
-      await loadLinks(currentHotel.id)
-    } catch (rotateError) {
-      console.error('Guest access rotation error:', rotateError)
-      setError(
-        rotateError.message ||
-          (isActivation
-            ? 'Unable to activate guest access.'
-            : 'Unable to rotate guest access.')
-      )
+      setNotice(`${mode === 'restore' ? 'Guest access restored' : 'Guest access rotated'} for Room ${room.room_number}.`)
+      await loadRooms(currentHotel.id)
+    } catch (actionError) {
+      console.error('Guest access rotation error:', actionError)
+      setError(actionError.message || 'Unable to update guest access.')
     } finally {
-      setBusySessionId(null)
+      setBusyId(null)
     }
   }
 
-  async function revokeLink(link) {
-    if (!currentHotel?.id || !link?.guest_session_id || busySessionId) return
+  async function emergencyRevoke(room) {
+    if (!currentHotel?.id || !room?.guest_session_id || busyId) return
+    if (!window.confirm(`Emergency-revoke guest-guide access for Room ${room.room_number}? The permanent QR will remain installed but will not open the guide until access is restored by authorized staff.`)) return
 
-    const confirmed = window.confirm(
-      `Revoke guest access for Room ${link.room_number}? The guest guide and food menu will become unavailable immediately.`
-    )
-
-    if (!confirmed) return
-
-    setBusySessionId(link.guest_session_id)
+    setBusyId(room.guest_session_id)
     setNotice('')
     setError('')
-
     try {
       await revokeGuestAccessToken({
         hotelId: currentHotel.id,
-        guestSessionId: link.guest_session_id,
-        reason: 'Revoked from Secure Guest Access screen',
+        guestSessionId: room.guest_session_id,
+        reason: 'Emergency revoke from Room QR Guides',
       })
-      setNotice(`Guest access revoked for Room ${link.room_number}.`)
-      await loadLinks(currentHotel.id)
-    } catch (revokeError) {
-      console.error('Guest access revocation error:', revokeError)
-      setError(revokeError.message || 'Unable to revoke guest access.')
+      setNotice(`Guest access revoked for Room ${room.room_number}.`)
+      await loadRooms(currentHotel.id)
+    } catch (actionError) {
+      console.error('Guest access revoke error:', actionError)
+      setError(actionError.message || 'Unable to revoke guest access.')
     } finally {
-      setBusySessionId(null)
+      setBusyId(null)
     }
   }
 
-  async function issueStayPin(link) {
-    if (!currentHotel?.id || !link?.room_id || busySessionId) return
-    if (!link.stay_active) {
-      setError('Check in a guest before issuing the room stay PIN.')
-      return
-    }
+  async function regenerateQr(room) {
+    if (!currentHotel?.id || !room?.room_id || busyId) return
+    if (!window.confirm(`Regenerate the permanent QR for Room ${room.room_number}? Only use this if the physical QR is lost, copied or compromised. The old QR will stop working immediately and the hotel must replace the printed card/standee.`)) return
 
-    const confirmed = window.confirm(
-      `Issue a new 6-digit stay PIN for Room ${link.room_number}? Any previous PIN for this room will stop working.`
-    )
-    if (!confirmed) return
-
-    setBusySessionId(link.guest_session_id || link.room_id)
+    setBusyId(room.room_id)
     setNotice('')
     setError('')
     try {
-      const result = await issuePermanentRoomQrPin({
-        hotelId: currentHotel.id,
-        roomId: link.room_id,
-      })
-      setIssuedPins((current) => ({ ...current, [link.room_id]: result?.pin || '' }))
-      setNotice(`New stay PIN issued for Room ${link.room_number}. Share it only with the checked-in guest.`)
-      await loadLinks(currentHotel.id)
-    } catch (pinError) {
-      console.error('Permanent room PIN issue error:', pinError)
-      setError(pinError?.message || 'Unable to issue the room stay PIN.')
+      await regeneratePermanentRoomQr({ hotelId: currentHotel.id, roomId: room.room_id })
+      setNotice(`Permanent QR regenerated for Room ${room.room_number}. Replace the old printed QR.`)
+      await loadRooms(currentHotel.id)
+    } catch (actionError) {
+      console.error('Permanent QR regeneration error:', actionError)
+      setError(actionError.message || 'Unable to regenerate the permanent room QR.')
     } finally {
-      setBusySessionId(null)
+      setBusyId(null)
     }
   }
 
-  if (loading) {
-    return <div className="secure-qr-page secure-qr-loading">Loading secure guest access…</div>
-  }
+  if (loading) return <div className="secure-qr-page secure-qr-loading">Loading room QR guides…</div>
 
   return (
     <div className="secure-qr-page">
       <div className="secure-qr-header">
         <div>
-          <p className="secure-qr-eyebrow">SIGNED · ROTATING · REVOCABLE</p>
-          <h1>Secure Guest Access</h1>
+          <p className="secure-qr-eyebrow">PRINT ONCE · AUTO-ACTIVATE EVERY STAY</p>
+          <h1>Room QR Guides</h1>
           <p className="secure-qr-hotel">{currentHotel?.hotel_name || 'Selected hotel'}</p>
         </div>
-
-        <button type="button" className="secure-qr-button secondary" onClick={() => loadLinks()}>
-          Refresh
-        </button>
+        <button type="button" className="secure-qr-button secondary" onClick={() => loadRooms()}>Refresh</button>
       </div>
 
       <p className="secure-qr-description">
-        Use the permanent physical QR once per room. Every stay gets a fresh PIN that resolves into StayQR’s existing signed, rotating and revocable guest token. Checkout, expiry, rotation and revocation invalidate prior access.
+        Each room has one permanent StayQR code for the key-card sleeve and in-room standee. Check-in automatically activates the personalized guide; checkout, expiry or room move automatically ends access. Guests never need a PIN or login.
       </p>
+
+      <div className="secure-qr-launch-note">
+        <strong>Zero front-desk QR work</strong>
+        <span>Print each room QR once. StayQR securely maps it to the current checked-in stay and keeps the signed guest-access lifecycle underneath.</span>
+      </div>
 
       {notice && <div className="secure-qr-alert success" role="status">{notice}</div>}
       {error && <div className="secure-qr-alert error" role="alert">{error}</div>}
 
       <div className="secure-qr-grid">
-        {links.map((link) => {
-          const permanent = permanentLinks.find((entry) => entry.room_id === link.room_id) || null
-          return (
-            <SecureRoomAccessCard
-              key={link.room_id}
-              link={link}
-              permanent={permanent}
-              issuedPin={issuedPins[link.room_id] || ''}
-              busy={busySessionId === link.guest_session_id || busySessionId === link.room_id}
-              absoluteUrl={absoluteUrl}
-              onCopy={copyLink}
-              onDownload={downloadQr}
-              onIssuePin={issueStayPin}
-              onActivate={(selectedLink) => activateOrRotateLink(selectedLink, 'activate')}
-              onRotate={(selectedLink) => activateOrRotateLink(selectedLink, 'rotate')}
-              onRevoke={revokeLink}
-            />
-          )
-        })}
+        {rooms.map((room) => (
+          <RoomQrCard
+            key={room.room_id}
+            room={room}
+            busy={busyId === room.room_id || busyId === room.guest_session_id}
+            url={absoluteUrl(room.permanent_path)}
+            onCopy={() => copyPermanentLink(room)}
+            onDownload={() => downloadPermanentQr(room)}
+            onRotate={() => rotateStayAccess(room)}
+            onRevoke={() => emergencyRevoke(room)}
+            onRegenerate={() => regenerateQr(room)}
+          />
+        ))}
       </div>
 
-      {links.length === 0 && (
-        <div className="secure-qr-empty">No rooms are available for the selected hotel.</div>
-      )}
+      {rooms.length === 0 && <div className="secure-qr-empty">No active rooms are available for the selected hotel.</div>}
     </div>
   )
 }
 
-function SecureRoomAccessCard({
-  link,
-  permanent,
-  issuedPin,
-  busy,
-  absoluteUrl,
-  onCopy,
-  onDownload,
-  onIssuePin,
-  onActivate,
-  onRotate,
-  onRevoke,
-}) {
-  const stayActive = Boolean(link.stay_active ?? link.active)
-  const accessActive = Boolean(
-    link.access_active && link.guest_path && link.food_path
-  )
-  const guestUrl = absoluteUrl(link.guest_path)
-  const foodUrl = absoluteUrl(link.food_path)
-  const status = getAccessStatus({ ...link, stay_active: stayActive, access_active: accessActive })
+function RoomQrCard({ room, busy, url, onCopy, onDownload, onRotate, onRevoke, onRegenerate }) {
+  const status = room.stay_active
+    ? room.access_active
+      ? { label: 'Guide active', tone: 'active' }
+      : { label: 'Access paused', tone: 'warning' }
+    : { label: 'Vacant · QR ready', tone: 'neutral' }
 
   return (
-    <article className="secure-qr-card">
+    <article className="secure-qr-card secure-qr-card--launch">
       <div className="secure-qr-card-top">
-        <div>
-          <h2>Room {link.room_number}</h2>
-          <p>{link.room_type || 'Room'}</p>
-        </div>
+        <div><h2>Room {room.room_number}</h2><p>{room.room_type || 'Room'}</p></div>
         <span className={`secure-qr-pill ${status.tone}`}>{status.label}</span>
       </div>
 
-      {permanent && (
-        <section className="secure-qr-permanent">
-          <div className="secure-qr-permanent-copy">
-            <span>PERMANENT PHYSICAL QR</span>
-            <strong>One QR stays in Room {link.room_number}</strong>
-            <p>Each checked-in stay receives a new PIN and resolves into the existing signed, revocable guest token.</p>
-          </div>
-          <div className="secure-qr-permanent-grid">
-            <LocalQrCode
-              value={absoluteUrl(permanent.permanent_path)}
-              label={`Permanent StayQR room QR for Room ${link.room_number}`}
-            />
-            <div className="secure-qr-permanent-actions">
-              <button
-                type="button"
-                className="secure-qr-button secondary"
-                onClick={() => onCopy(permanent.permanent_path, 'Permanent room link')}
-              >
-                Copy permanent link
-              </button>
-              <button
-                type="button"
-                className="secure-qr-button secondary"
-                onClick={() => onDownload(link, permanent.permanent_path, 'permanent-room')}
-              >
-                Download permanent QR
-              </button>
-              <button
-                type="button"
-                className="secure-qr-button primary"
-                disabled={busy || !permanent.stay_active}
-                onClick={() => onIssuePin(permanent)}
-              >
-                {permanent.pin_status === 'active' ? 'Rotate stay PIN' : 'Issue stay PIN'}
-              </button>
-              <span className="secure-qr-pin-status">
-                PIN: {permanent.pin_status === 'active' ? 'Active for current stay' : 'Not issued for current stay'}
-              </span>
-              {issuedPin && (
-                <div className="secure-qr-issued-pin" role="status">
-                  <span>NEW STAY PIN</span>
-                  <strong>{issuedPin}</strong>
-                  <small>Shown only in this browser session. Share only with the checked-in guest.</small>
-                </div>
-              )}
+      <section className="secure-qr-permanent secure-qr-permanent--launch">
+        <div className="secure-qr-permanent-grid">
+          <LocalQrCode value={url} label={`Permanent StayQR room QR for Room ${room.room_number}`} />
+          <div className="secure-qr-permanent-actions">
+            <span>PERMANENT ROOM QR</span>
+            <strong>Use this same QR for every stay</strong>
+            <p>Place it on the room standee and key-card sleeve. It never contains the guest name or stay token.</p>
+            <div className="secure-qr-inline-actions">
+              <button type="button" className="secure-qr-button secondary" onClick={onCopy}>Copy link</button>
+              <button type="button" className="secure-qr-button primary" onClick={onDownload}>Download QR</button>
             </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
-      {!stayActive ? (
-        <p className="secure-qr-inactive-copy">
-          A signed guest link is created only after a guest has an active checked-in stay.
-        </p>
-      ) : (
-        <>
-          <div className="secure-qr-guest-box">
-            <strong>{link.guest_name || 'Current guest'}</strong>
-            <span>Stay valid until {formatDateTime(link.expires_at)}</span>
-            {link.token_issued_at && <span>Link issued {formatDateTime(link.token_issued_at)}</span>}
-          </div>
+      <div className="secure-qr-stay-summary">
+        {room.stay_active ? (
+          <>
+            <div><span>CURRENT STAY</span><strong>{room.guest_name || 'Checked-in guest'}{Number(room.occupant_count || 1) > 1 ? ` + ${Number(room.occupant_count) - 1}` : ''}</strong></div>
+            <div><span>ACCESS</span><strong>{room.access_active ? 'Automatically active' : 'Paused by security control'}</strong></div>
+            <div><span>VALID UNTIL</span><strong>{formatDateTime(room.stay_expires_at)}</strong></div>
+          </>
+        ) : (
+          <div className="secure-qr-vacant"><span>ROOM STATUS</span><strong>Ready for the next check-in</strong><small>The guide activates automatically when reception checks a guest into this room.</small></div>
+        )}
+      </div>
 
-          {accessActive ? (
-            <>
-              <div className="secure-qr-pair-grid">
-                <QrAccessPanel
-                  title="Guest guide"
-                  url={guestUrl}
-                  roomNumber={link.room_number}
-                  onCopy={() => onCopy(link.guest_path, 'Guest guide link')}
-                  onDownload={() => onDownload(link, link.guest_path, 'guest-guide')}
-                />
-                <QrAccessPanel
-                  title="Food menu"
-                  url={foodUrl}
-                  roomNumber={link.room_number}
-                  onCopy={() => onCopy(link.food_path, 'Food menu link')}
-                  onDownload={() => onDownload(link, link.food_path, 'food-menu')}
-                />
-              </div>
-
-              <div className="secure-qr-token-meta">
-                <span>Token valid until {formatDateTime(link.token_expires_at)}</span>
-                <span>Used {Number(link.token_use_count || 0)} time(s)</span>
-                {link.token_last_used_at && <span>Last used {formatDateTime(link.token_last_used_at)}</span>}
-              </div>
-
-              <div className="secure-qr-actions">
-                <button type="button" className="secure-qr-button secondary" disabled={busy} onClick={() => onRotate(link)}>
-                  {busy ? 'Working…' : 'Rotate both links'}
-                </button>
-                <button type="button" className="secure-qr-button danger" disabled={busy} onClick={() => onRevoke(link)}>
-                  Revoke access
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="secure-qr-disabled-box">
-              <h3>{status.label}</h3>
-              <p>{getInactiveAccessMessage(link)}</p>
-              {link.revocation_reason && <p className="secure-qr-reason">Reason: {link.revocation_reason}</p>}
-              <button type="button" className="secure-qr-button primary" disabled={busy} onClick={() => onActivate(link)}>
-                {busy ? 'Activating…' : 'Activate new secure link'}
-              </button>
-            </div>
+      <details className="secure-qr-advanced">
+        <summary>Advanced security controls</summary>
+        <p>These actions are exceptional. Normal check-in, extension, room move and checkout require no QR management.</p>
+        <div className="secure-qr-actions">
+          {room.stay_active && (
+            <button type="button" className="secure-qr-button secondary" disabled={busy} onClick={onRotate}>
+              {busy ? 'Working…' : room.access_active ? 'Rotate active stay access' : 'Restore guest access'}
+            </button>
           )}
-        </>
-      )}
+          {room.stay_active && room.access_active && (
+            <button type="button" className="secure-qr-button danger" disabled={busy} onClick={onRevoke}>Emergency revoke</button>
+          )}
+          <button type="button" className="secure-qr-button danger ghost" disabled={busy} onClick={onRegenerate}>Regenerate permanent QR</button>
+        </div>
+      </details>
     </article>
   )
 }
 
-function QrAccessPanel({ title, url, roomNumber, onCopy, onDownload }) {
-  return (
-    <section className="secure-qr-panel">
-      <div className="secure-qr-panel-heading">
-        <h3>{title}</h3>
-        <span>Room {roomNumber}</span>
-      </div>
-      <LocalQrCode value={url} label={`StayQR ${title} QR for Room ${roomNumber}`} />
-      <div className="secure-qr-url" title={url}>{url}</div>
-      <div className="secure-qr-panel-actions">
-        <button type="button" className="secure-qr-button primary" onClick={onCopy}>Copy link</button>
-        <button type="button" className="secure-qr-button secondary" onClick={onDownload}>Download SVG</button>
-      </div>
-    </section>
-  )
-}
-
-function getAccessStatus(link) {
-  if (!link.stay_active) return { label: 'No active stay', tone: 'neutral' }
-  if (link.access_active) return { label: 'Access active', tone: 'active' }
-
-  const labels = {
-    revoked: 'Access revoked',
-    expired: 'Access expired',
-    not_issued: 'Access not issued',
-  }
-
-  return {
-    label: labels[link.access_status] || 'Access unavailable',
-    tone: link.access_status === 'revoked' ? 'revoked' : 'warning',
-  }
-}
-
-function getInactiveAccessMessage(link) {
-  if (link.access_status === 'revoked') {
-    return 'The previous guest and food links no longer work. Access remains revoked until staff explicitly activates a new signed link.'
-  }
-
-  if (link.access_status === 'expired') {
-    return 'The previous signed link has expired. Confirm the stay details before activating a replacement.'
-  }
-
-  return 'No signed guest link is currently active for this stay.'
-}
-
 function safeFilenamePart(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'stayqr'
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'stayqr'
 }
 
 function formatDateTime(value) {
-  if (!value) return 'stay checkout'
-
+  if (!value) return 'Checkout time'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'stay checkout'
-
-  return date.toLocaleString('en-IN')
+  return Number.isNaN(date.getTime()) ? 'Checkout time' : date.toLocaleString('en-IN')
 }

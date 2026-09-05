@@ -357,11 +357,19 @@ export async function getRoomQrPublicContext(publicCode) {
   return data || { valid: false }
 }
 
-export async function resolvePermanentRoomQr({ publicCode, pin }) {
+export async function resolvePermanentRoomQr({ publicCode }) {
   const { data, error } = await supabase.rpc('resolve_permanent_room_qr', {
     p_public_code: publicCode,
-    p_pin: String(pin || '').trim(),
   })
   if (error) throw error
   return data || { ok: false, error: 'Room access is unavailable.' }
+}
+
+export async function regeneratePermanentRoomQr({ hotelId, roomId }) {
+  const { data, error } = await supabase.rpc('regenerate_permanent_room_qr', {
+    p_hotel_id: hotelId,
+    p_room_id: roomId,
+  })
+  if (error) throw error
+  return data
 }

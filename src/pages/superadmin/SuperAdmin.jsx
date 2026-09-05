@@ -216,8 +216,7 @@ export default function SuperAdmin({ onNavigate, onViewHotel }) {
           <span className="commercial-kicker">Platform control centre</span>
           <h1>Super Admin</h1>
           <p>
-            Global commercial operations for plans, hotel subscriptions, pilot
-            manual billing, usage, support and immutable lifecycle evidence.
+            Global commercial operations for plans, hotel subscriptions, manual billing, usage, support and lifecycle evidence.
           </p>
         </div>
 
@@ -251,7 +250,7 @@ export default function SuperAdmin({ onNavigate, onViewHotel }) {
       <div className="commercial-runtime-strip">
         <div>
           <span className="runtime-dot" />
-          <strong>Pilot billing</strong>
+          <strong>Manual billing</strong>
           <span>Verified offline collection</span>
         </div>
         <div>
@@ -614,8 +613,8 @@ function OverviewTab({
 
         <div className="commercial-card">
           <SectionHeader
-            eyebrow="Cashfree ledger"
-            title="Recent payment links"
+            eyebrow="Online payment history"
+            title="Previous payment links"
             action={
               <button type="button" className="text-action" onClick={() => onOpenTab('payments')}>
                 View ledger
@@ -624,8 +623,8 @@ function OverviewTab({
           />
           {recentLinks.length === 0 ? (
             <EmptyState
-              title="No payment links"
-              text="Create a controlled Cashfree link from a hotel subscription."
+              title="No previous online payment links"
+              text="Online payment automation is on hold for launch. Use verified manual billing."
             />
           ) : (
             <div className="commercial-list">
@@ -662,8 +661,8 @@ function OverviewTab({
                 <button type="button" onClick={() => onManageHotel(hotel)}>
                   Lifecycle
                 </button>
-                <button type="button" onClick={() => onCreateLink(hotel)}>
-                  Payment link
+                <button type="button" onClick={() => onCreateLink(hotel)} disabled title="Online AutoPay is upcoming">
+                  AutoPay upcoming
                 </button>
                 <button type="button" onClick={() => onViewHotel(hotel)}>
                   View as Hotel
@@ -744,8 +743,8 @@ function HotelsTab({ hotels, onAction, onPayment, onUsage, onSupport }) {
                         <button type="button" onClick={() => onAction(hotel)}>
                           Manage
                         </button>
-                        <button type="button" onClick={() => onPayment(hotel)}>
-                          Link
+                        <button type="button" onClick={() => onPayment(hotel)} disabled title="Online AutoPay is upcoming">
+                          AutoPay upcoming
                         </button>
                         <button type="button" onClick={() => onUsage(hotel)}>
                           Usage
@@ -835,11 +834,11 @@ function PaymentLinksTab({ links, manualPayments }) {
         <MetricCard label="Ledger rows" value={links.length + manualPayments.length} meta="Visible records" tone="neutral" />
         <MetricCard label="Manual confirmed" value={manualPayments.length} meta={formatMoney(manualTotal, 'INR', true)} tone="green" />
         <MetricCard label="Open" value={open.length} meta="Awaiting final state" tone="blue" />
-        <MetricCard label="Cashfree paid / failed" value={`${paid.length} / ${failed.length}`} meta="Provider records retained" tone={failed.length ? 'warning' : 'neutral'} />
+        <MetricCard label="Previous online paid / failed" value={`${paid.length} / ${failed.length}`} meta="Provider records retained" tone={failed.length ? 'warning' : 'neutral'} />
       </div>
 
       <div className="commercial-card table-card">
-        <SectionHeader eyebrow="Pilot billing" title="Confirmed offline payments" />
+        <SectionHeader eyebrow="Manual billing" title="Confirmed offline payments" />
         {manualPayments.length === 0 ? (
           <EmptyState title="No offline payments recorded" text="Use Manage on a hotel to record a verified UPI, bank transfer or cash payment." />
         ) : (
@@ -887,9 +886,9 @@ function PaymentLinksTab({ links, manualPayments }) {
       </div>
 
       <div className="commercial-card table-card">
-        <SectionHeader eyebrow="Provider ledger" title="Cashfree payment links" />
+        <SectionHeader eyebrow="Historical provider ledger" title="Previous online payment links" />
         {links.length === 0 ? (
-          <EmptyState title="No payment links match" text="Create a link from Hotels & subscriptions." />
+          <EmptyState title="No online payment links" text="Online payment automation is on hold for launch. Use verified manual billing." />
         ) : (
           <div className="commercial-table-wrap">
             <table className="commercial-table payment-table">
@@ -1498,7 +1497,7 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
       {action === 'manual-payment' && (
         <>
           <div className="security-callout">
-            <strong>Pilot manual billing</strong>
+            <strong>Manual billing</strong>
             <span>
               Confirm the money has been received before submitting. This creates
               an immutable payment record and activates or renews the hotel in one
@@ -1569,7 +1568,7 @@ function HotelActionForm({ hotel, plans, onCancel, onError, onSuccess }) {
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           placeholder={action === 'manual-payment'
-            ? 'Example: September pilot plan paid and verified by founder.'
+            ? 'Example: September plan payment verified by StayQR.'
             : 'Explain why this commercial action is required.'}
         />
       </Field>
@@ -1631,7 +1630,7 @@ function PaymentLinkForm({ hotel, plans, onCancel, onError, onSuccess }) {
   return (
     <form className="commercial-form" onSubmit={submit}>
       <div className="cashfree-test-banner">
-        <strong>Cashfree test environment</strong>
+        <strong>Online payment test environment (on hold)</strong>
         <span>No production activation is performed from this screen.</span>
       </div>
       <div className="dialog-context-card">
@@ -1819,7 +1818,7 @@ function SafeSupportForm({ hotel, onCancel, onError, onSuccess }) {
 
   return (
     <form className="commercial-form" onSubmit={submit}>
-      <div className="security-callout"><strong>No silent impersonation</strong><span>This creates an explicit, time-bound and immutable View as Hotel audit trail. V1.1-C allows one active support session per Platform Admin, for up to 120 minutes, and never extends expiry through activity.</span></div>
+      <div className="security-callout"><strong>No silent impersonation</strong><span>This creates an explicit, time-bound and immutable View as Hotel audit trail. StayQR allows one active support session per Platform Admin, for up to 120 minutes, and never extends expiry through activity.</span></div>
       <div className="dialog-context-card"><div><span>Hotel</span><strong>{hotel.hotel_name}</strong></div><div><span>Lifecycle</span><StatusBadge status={hotel.lifecycle_status || hotel.subscription_status} /></div></div>
       <Field label="Reason"><textarea required rows="4" value={reason} onChange={(event) => setReason(event.target.value)} /></Field>
       <Field label="Duration"><select value={duration} onChange={(event) => setDuration(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">2 hours (maximum)</option></select></Field>
@@ -1940,7 +1939,7 @@ function TabCount({ tab, data, announcements }) {
 }
 
 function dialogTitle(dialog) {
-  const titles = { plan: dialog.plan ? 'Edit subscription plan' : 'Create subscription plan', 'hotel-actions': `Manage ${dialog.hotel?.hotel_name || 'hotel'}`, 'payment-link': 'Create Cashfree payment link', usage: 'Authoritative hotel usage', 'support-create': 'Create support ticket', 'support-ticket': 'Triage support ticket', 'safe-support': 'Start audited View as Hotel', 'safe-support-end': 'End safe support access', announcement: dialog.announcement ? 'Edit announcement' : 'Create announcement' }
+  const titles = { plan: dialog.plan ? 'Edit subscription plan' : 'Create subscription plan', 'hotel-actions': `Manage ${dialog.hotel?.hotel_name || 'hotel'}`, 'payment-link': 'Online payment link (on hold)', usage: 'Authoritative hotel usage', 'support-create': 'Create support ticket', 'support-ticket': 'Triage support ticket', 'safe-support': 'Start audited View as Hotel', 'safe-support-end': 'End safe support access', announcement: dialog.announcement ? 'Edit announcement' : 'Create announcement' }
   return titles[dialog.type] || 'Commercial action'
 }
 

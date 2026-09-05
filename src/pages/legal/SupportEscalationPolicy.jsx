@@ -7,15 +7,15 @@ const SUPPORTESCALATIONPOLICY_HTML = String.raw`
 <p>In-app support tickets and <strong>support@stayqr.in</strong> remain available as fallback channels.</p>
 <p>Support requests should include the Hotel/property name, affected feature, relevant time, screenshots/error details and sufficient information to reproduce or understand the issue.</p>
 <p>Do not email passwords, full payment-card details, unnecessary identity documents or service-role/API secrets.</p>
-<h2>2. 24×7 Support Coverage</h2>
-<p>Support requests may be submitted <strong>24 hours a day, 7 days a week</strong>.</p>
-<p>Critical after-hours incidents are escalated to the StayQR founder, who owns after-hours triage and coordination.</p>
-<p>24×7 intake and triage is not a guarantee of immediate final resolution. Provider dependencies, reproducibility, security controls and the availability of a safe workaround may affect restoration and resolution time.</p>
+<h2>2. Support Availability</h2>
+<p>Support requests may be submitted at any time through the available StayQR support channels.</p>
+<p>Requests are prioritized by severity and operational impact. Critical incidents may be escalated to the StayQR team for urgent triage.</p>
+<p>Submission availability is not a guarantee of immediate acknowledgement or final resolution. Provider dependencies, reproducibility, security controls and the availability of a safe workaround may affect restoration and resolution time.</p>
 <h2>3. Severity Levels</h2>
 <h3>P0 / Critical</h3>
 <p>Examples:</p>
 <ul><li>widespread core production outage;</li><li>confirmed tenant-isolation failure;</li><li>confirmed or reasonably suspected material security incident;</li><li>material data-loss or financial-integrity risk;</li><li>inability of multiple Hotels to access core production functionality with no reasonable workaround.</li></ul>
-<p><strong>Handling:</strong> immediate priority classification and after-hours founder escalation.</p>
+<p><strong>Handling:</strong> immediate priority classification and escalation based on severity.</p>
 <h3>P1 / High</h3>
 <p>Examples:</p>
 <ul><li>major production feature materially unavailable;</li><li>severe degradation affecting normal Hotel operations;</li><li>important workflow blocked with no reasonable normal workaround.</li></ul>

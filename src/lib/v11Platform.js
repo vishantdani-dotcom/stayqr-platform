@@ -10,7 +10,7 @@ export function loadV11cPlatformWorkspace(hotelId) {
   return rpc(
     'get_v11c_platform_workspace',
     { p_hotel_id: hotelId },
-    'Unable to load the V1.1-C platform workspace.'
+    'Unable to load the platform workspace.'
   )
 }
 

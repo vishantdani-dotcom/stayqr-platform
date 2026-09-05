@@ -36,3 +36,42 @@
   .room-entry-card { padding: 22px 18px; border-radius: 18px; }
   .room-entry-card h1 { font-size: 30px; }
 }
+
+/* Final Product Freeze — zero-friction permanent room QR */
+.room-entry-auto-status {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid rgba(82, 211, 142, 0.28);
+  border-radius: 14px;
+  background: rgba(82, 211, 142, 0.08);
+  text-align: left;
+}
+.room-entry-auto-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: #52d38e;
+  box-shadow: 0 0 0 5px rgba(82, 211, 142, 0.1);
+  flex: 0 0 auto;
+}
+.room-entry-auto-status strong { display: block; color: #f8fafc; }
+.room-entry-auto-status p { margin: 5px 0 0; color: #a7b0bf; line-height: 1.55; }
+.room-entry-error { display: grid; gap: 5px; }
+.room-entry-error strong { color: #fff; }
+.room-entry-error span { color: inherit; }
+.room-entry-retry {
+  width: 100%;
+  margin: 14px 0 6px;
+  border: 0;
+  border-radius: 12px;
+  padding: 13px 16px;
+  background: #d4af37;
+  color: #080808;
+  font-weight: 800;
+  cursor: pointer;
+}
+.room-entry-retry:disabled { opacity: .6; cursor: wait; }

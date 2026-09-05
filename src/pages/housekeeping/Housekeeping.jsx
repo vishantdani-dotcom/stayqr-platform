@@ -173,7 +173,7 @@ export default function Housekeeping({ hotel: hotelProp }) {
     <div className="day13-page">
       <div className="day13-header">
         <div>
-          <div className="day13-kicker">Day 13 · Operational readiness</div>
+          <div className="day13-kicker">Housekeeping operations</div>
           <h1>Housekeeping</h1>
           <p>
             Assignment, workload, required cleaning checklist, inspection, rework and

@@ -43,8 +43,10 @@
 .acquisition-plan small { color: #aaa; font-size: 12px; line-height: 1.45; }
 
 .acquisition-start-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.acquisition-start-options label { display: flex; gap: 12px; padding: 16px; border: 1px solid #303030; border-radius: 14px; background: #0b0b0b; cursor: pointer; }
-.acquisition-start-options label.selected { border-color: #d4af37; background: rgba(212, 175, 55, .08); }
+.acquisition-start-options label,
+.acquisition-start-options > div { display: flex; gap: 12px; padding: 16px; border: 1px solid #303030; border-radius: 14px; background: #0b0b0b; cursor: pointer; }
+.acquisition-start-options label.selected,
+.acquisition-start-options > div.selected { border-color: #d4af37; background: rgba(212, 175, 55, .08); }
 .acquisition-start-options input { margin-top: 4px; accent-color: #d4af37; }
 .acquisition-start-options span { display: flex; flex-direction: column; gap: 5px; }
 .acquisition-start-options strong { color: #fff; font-size: 14px; }

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import logo from '../../assets/stayqr-logo.png'
 import { clearTenantContextCache } from '../../lib/tenantContext'
 import {
-  createSelfServiceCheckout,
   fetchPublicSubscriptionPlans,
   getMyAcquisitionIntent,
   getOrCreateAcquisitionRequestId,
@@ -20,7 +19,7 @@ function querySelection() {
   return {
     plan: String(params.get('plan') || 'growth').toLowerCase(),
     billing: params.get('billing') === 'annual' ? 'annual' : 'monthly',
-    mode: params.get('mode') === 'trial' ? 'trial' : 'paid',
+    mode: 'trial',
     intent: params.get('intent'),
   }
 }
@@ -45,7 +44,7 @@ export default function SubscriptionCheckout({ session, routeMode = 'checkout' }
   const [plans, setPlans] = useState([])
   const [planId, setPlanId] = useState('')
   const [billingCycle, setBillingCycle] = useState(initial.billing)
-  const [acquisitionMode, setAcquisitionMode] = useState(initial.mode)
+  const acquisitionMode = 'trial'
   const [hotelName, setHotelName] = useState('')
   const [ownerName, setOwnerName] = useState(user?.user_metadata?.full_name || '')
   const [phone, setPhone] = useState('')
@@ -125,12 +124,11 @@ export default function SubscriptionCheckout({ session, routeMode = 'checkout' }
   function updateSelection(next = {}) {
     const nextPlan = next.planId || planId
     const nextBilling = next.billingCycle || billingCycle
-    const nextMode = next.acquisitionMode || acquisitionMode
     const plan = plans.find((row) => row.id === nextPlan)
     const params = new URLSearchParams({
       plan: String(plan?.plan_code || 'starter').toLowerCase(),
       billing: nextBilling,
-      mode: nextMode,
+      mode: 'trial',
     })
     window.history.replaceState(null, '', `/checkout?${params.toString()}`)
   }
@@ -161,29 +159,11 @@ export default function SubscriptionCheckout({ session, routeMode = 'checkout' }
 
     setBusy(true)
     try {
-      if (acquisitionMode === 'trial') {
-        const result = await startSelfServiceTrial(payload)
-        rememberAcquisitionIntent(user.id, result?.id || requestId)
-        resetAcquisitionRequest(user.id)
-        clearTenantContextCache()
-        window.location.replace('/setup')
-        return
-      }
-
-      const result = await createSelfServiceCheckout(payload)
-      const nextIntent = result?.intent
-      rememberAcquisitionIntent(user.id, nextIntent?.id || requestId)
-      if (['paid', 'provisioning', 'completed'].includes(nextIntent?.status)) {
-        window.location.assign(`/checkout/success?intent=${nextIntent.id}`)
-        return
-      }
-      if (!nextIntent?.provider_url) {
-        throw new Error(
-          nextIntent?.failure_reason ||
-          'This checkout does not have an active Cashfree payment URL. Start a new checkout.'
-        )
-      }
-      window.location.assign(nextIntent.provider_url)
+      const result = await startSelfServiceTrial(payload)
+      rememberAcquisitionIntent(user.id, result?.id || requestId)
+      resetAcquisitionRequest(user.id)
+      clearTenantContextCache()
+      window.location.replace('/setup')
     } catch (submitError) {
       if (submitError?.restartAllowed) resetAcquisitionRequest(user.id)
       setError(submitError?.message || 'StayQR could not start the selected plan.')
@@ -195,7 +175,7 @@ export default function SubscriptionCheckout({ session, routeMode = 'checkout' }
     resetAcquisitionRequest(user?.id)
     const planCode = String(intent?.plan?.plan_code || 'growth').toLowerCase()
     const billing = intent?.billing_cycle || 'monthly'
-    window.location.assign(`/checkout?plan=${encodeURIComponent(planCode)}&billing=${billing}&mode=paid`)
+    window.location.assign(`/checkout?plan=${encodeURIComponent(planCode)}&billing=${billing}&mode=trial`)
   }
 
   if (loading) {
@@ -215,18 +195,12 @@ export default function SubscriptionCheckout({ session, routeMode = 'checkout' }
     )
   }
 
-  const price = selectedPlan
-    ? billingCycle === 'annual'
-      ? selectedPlan.price_annual
-      : selectedPlan.price_monthly
-    : 0
-
   return (
     <CheckoutShell>
       <header className="acquisition-heading">
-        <span>Self-service hotel activation</span>
+        <span>Hotel activation</span>
         <h1>Choose your StayQR plan</h1>
-        <p>Use one verified owner account for payment, hotel setup and future sign-in.</p>
+        <p>Use one verified owner account for hotel setup and future sign-in. Paid billing is handled manually during launch.</p>
       </header>
 
       {error && <div className="acquisition-alert" role="alert">{error}</div>}
@@ -280,32 +254,12 @@ export default function SubscriptionCheckout({ session, routeMode = 'checkout' }
             <div><span>Step 2</span><h2 id="activation-heading">Choose how to start</h2></div>
           </div>
           <div className="acquisition-start-options">
-            <label className={acquisitionMode === 'paid' ? 'selected' : ''}>
-              <input
-                type="radio"
-                name="mode"
-                value="paid"
-                checked={acquisitionMode === 'paid'}
-                onChange={() => {
-                  setAcquisitionMode('paid')
-                  updateSelection({ acquisitionMode: 'paid' })
-                }}
-              />
-              <span><strong>Activate now</strong><small>Pay securely with Cashfree. Your paid cycle starts after verified payment.</small></span>
-            </label>
-            <label className={acquisitionMode === 'trial' ? 'selected' : ''}>
-              <input
-                type="radio"
-                name="mode"
-                value="trial"
-                checked={acquisitionMode === 'trial'}
-                onChange={() => {
-                  setAcquisitionMode('trial')
-                  updateSelection({ acquisitionMode: 'trial' })
-                }}
-              />
+            <div className="selected">
               <span><strong>Start 14-day trial</strong><small>No payment today. One trial is available per new hotel account.</small></span>
-            </label>
+            </div>
+            <div>
+              <span><strong>Paid activation</strong><small>During launch, paid plans are activated manually by StayQR after payment confirmation. Online AutoPay is upcoming.</small></span>
+            </div>
           </div>
         </section>
 
@@ -324,17 +278,17 @@ export default function SubscriptionCheckout({ session, routeMode = 'checkout' }
         <div className="acquisition-summary">
           <div>
             <span>{selectedPlan?.plan_name || 'StayQR plan'} · {billingCycle === 'annual' ? 'Yearly' : 'Monthly'}</span>
-            <strong>{acquisitionMode === 'trial' ? '₹0 today' : formatMoney(price, selectedPlan?.currency_code)}</strong>
-            <small>{acquisitionMode === 'trial' ? '14-day trial; payment is not collected now.' : 'Taxes may be added where legally applicable.'}</small>
+            <strong>₹0 today</strong>
+            <small>14-day trial; payment is not collected now. Paid activation is handled manually during launch.</small>
           </div>
           <label className="acquisition-consent">
             <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} required />
             <span>I accept the <a href="/terms" target="_blank" rel="noreferrer">Terms</a>, <a href="/subscription-policy" target="_blank" rel="noreferrer">Subscription Policy</a> and <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</span>
           </label>
           <button type="submit" className="acquisition-submit" disabled={busy || !selectedPlan}>
-            {busy ? 'Starting securely…' : acquisitionMode === 'trial' ? 'Start 14-day trial' : 'Continue to Cashfree'}
+            {busy ? 'Starting securely…' : 'Start 14-day trial'}
           </button>
-          <p>Payments are activated only after StayQR receives a verified Cashfree webhook. Do not close the Cashfree confirmation screen early.</p>
+          <p>Need a paid plan now? Contact StayQR Support after trial setup for manual activation and billing.</p>
         </div>
       </form>
     </CheckoutShell>
@@ -350,14 +304,14 @@ function CheckoutStatus({ intent, error, onRefresh, onStartNew }) {
   }
 
   if (['failed', 'expired', 'cancelled'].includes(intent.status)) {
-    return <div className="acquisition-state error"><span className="acquisition-state-icon">!</span><h1>Checkout needs attention</h1><p>{intent.failure_reason || `This Cashfree checkout is ${intent.status}. No hotel was activated.`}</p><button type="button" onClick={onStartNew}>Start a new checkout</button></div>
+    return <div className="acquisition-state error"><span className="acquisition-state-icon">!</span><h1>Checkout needs attention</h1><p>{intent.failure_reason || `This previous online checkout is ${intent.status}. No hotel was activated.`}</p><button type="button" onClick={onStartNew}>Start a new checkout</button></div>
   }
 
   if (intent.status === 'issued' && intent.provider_url) {
-    return <div className="acquisition-state"><span className="acquisition-state-icon">₹</span><h1>Payment is not completed</h1><p>Your secure Cashfree checkout for {intent.plan?.plan_name} is still available.</p><button type="button" onClick={() => window.location.assign(intent.provider_url)}>Continue to Cashfree</button><button type="button" className="secondary" onClick={onRefresh}>Refresh status</button></div>
+    return <div className="acquisition-state"><span className="acquisition-state-icon">i</span><h1>Online checkout is on hold</h1><p>Paid activation is handled manually during launch. Contact StayQR Support to activate {intent.plan?.plan_name || 'your plan'}.</p><button type="button" onClick={() => window.location.assign('/support')}>Contact support</button></div>
   }
 
-  return <div className="acquisition-state"><span className="acquisition-spinner" /><h1>Confirming your payment</h1><p>Cashfree has returned control to StayQR. We are waiting for the signed payment confirmation; your hotel will activate automatically.</p><button type="button" className="secondary" onClick={onRefresh}>Refresh now</button></div>
+  return <div className="acquisition-state"><span className="acquisition-state-icon">i</span><h1>Online checkout is on hold</h1><p>Paid activation is currently handled manually by StayQR Support.</p><button type="button" onClick={() => window.location.assign('/support')}>Contact support</button></div>
 }
 
 function CheckoutShell({ children }) {

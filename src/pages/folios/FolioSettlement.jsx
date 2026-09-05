@@ -821,7 +821,7 @@ export default function FolioSettlement({
     <div className="folio-page">
       <header className="folio-page-header">
         <div>
-          <p className="folio-eyebrow">Day 11 · Authoritative finance</p>
+          <p className="folio-eyebrow">Folio & settlement</p>
           <h1>Folio & Settlement</h1>
           <p className="folio-page-subtitle">
             Unified room, food, service and manual charges with collections,
@@ -2128,7 +2128,7 @@ function ServicePricing({
                       }
                       disabled={!canManage}
                     />
-                    Taxable when Day 12 GST is enabled
+                    Taxable when GST is enabled
                   </label>
                   <button
                     type="button"

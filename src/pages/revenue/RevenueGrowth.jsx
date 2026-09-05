@@ -335,7 +335,7 @@ export default function RevenueGrowth({ hotel, onNavigate }) {
     <div className="v11-revenue-page">
       <header className="v11-hero">
         <div>
-          <p className="v11-eyebrow">V1.1 · Revenue, Reservation &amp; Finance Growth</p>
+          <p className="v11-eyebrow">REVENUE, RESERVATION &amp; FINANCE</p>
           <h1>Revenue Growth</h1>
           <p>
             Direct bookings, negotiated corporate rates, planned split stays,
@@ -620,7 +620,7 @@ export default function RevenueGrowth({ hotel, onNavigate }) {
               <div className="v11-form-grid two nested"><Field label="Date from"><input type="date" value={accounting.date_from} onChange={(event) => setAccounting((current) => ({ ...current, date_from: event.target.value }))} /></Field><Field label="Date to"><input type="date" value={accounting.date_to} onChange={(event) => setAccounting((current) => ({ ...current, date_to: event.target.value }))} /></Field></div>
             </div>
             <div className="v11-actions"><button type="button" className="v11-btn primary" disabled={Boolean(busy) || !accounting.profile_id} onClick={handleAccountingExport}>{busy === 'accounting-export' ? 'Generating…' : 'Generate & download CSV'}</button><button type="button" className="v11-btn secondary" onClick={() => onNavigate?.('invoices')}>Open Invoices &amp; Audit</button></div>
-            <div className="v11-note">StayQR Standard preserves the existing Day 12 accounting export. Tally, Zoho Books and QuickBooks profiles generate dedicated column layouts without changing invoice or folio data.</div>
+            <div className="v11-note">StayQR Standard preserves the existing accounting export. Tally, Zoho Books and QuickBooks profiles generate dedicated column layouts without changing invoice or folio data.</div>
           </Card>
 
           <Card title="Recent accounting exports">

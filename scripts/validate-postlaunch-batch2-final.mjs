@@ -27,6 +27,7 @@ const files = {
   portal: read('src/lib/guestPortal.js'),
   roomAccess: read('src/pages/roomaccess/RoomAccess.jsx'),
   migration: read('supabase/migrations/202608200088_postlaunch_batch2_final_completion.sql'),
+  qrFinal: read('supabase/migrations/202609050115_auto_activated_permanent_room_qr_REV1.sql'),
   audit: read('supabase/audit/202608200089_postlaunch_batch2_final_completion_ACCEPTANCE.sql'),
 }
 
@@ -87,15 +88,15 @@ expect('13.8 Storage bucket limits are enforced server-side', has(files.migratio
 // Item 14 — permanent room QR + fresh per-stay access layer.
 expect('14.1 Standalone permanent room QR route exists', exists('src/pages/roomaccess/RoomAccess.jsx') && has(files.app, "startsWith('/room/')"))
 expect('14.2 QR generator loads stable permanent room links', has(files.qr, 'getPermanentRoomQrLinks'))
-expect('14.3 QR generator can issue or rotate the current stay PIN', has(files.qr, 'issuePermanentRoomQrPin') && has(files.qr, 'Rotate stay PIN'))
-expect('14.4 Public room access requires a six-digit stay PIN', has(files.roomAccess, '6-digit') && has(files.roomAccess, 'resolvePermanentRoomQr'))
+expect('14.3 QR generator uses zero-friction permanent room access', has(files.qr, 'PRINT ONCE · AUTO-ACTIVATE EVERY STAY') && !has(files.qr, 'Issue stay PIN'))
+expect('14.4 Public room access resolves automatically without a PIN form', has(files.roomAccess, 'No PIN or login is required') && has(files.roomAccess, 'resolvePermanentRoomQr') && !has(files.roomAccess, '6-digit stay PIN'))
 expect('14.5 Permanent QR tables are additive and room-bound', has(files.migration, 'create table if not exists public.room_qr_codes') && has(files.migration, 'room_id uuid primary key'))
 expect('14.6 PIN challenge is bound to guest_session_id', has(files.migration, 'guest_session_id uuid not null references public.guest_sessions'))
 expect('14.7 PIN values are stored only as bcrypt hashes', has(files.migration, 'pin_hash text not null') && has(files.migration, "extensions.gen_salt('bf', 8)"))
 expect('14.8 Five failed PIN attempts lock access', has(files.migration, 'failed_attempts >= 5') && has(files.migration, "status = 'locked'"))
 expect('14.9 Checkout/stay changes revoke active room PIN challenge', has(files.migration, 'sync_room_qr_pin_from_guest_session') && has(files.migration, 'Guest stay changed or ended'))
-expect('14.10 Permanent room resolver preserves existing signed token lifecycle', has(files.migration, 'private.render_guest_access_token') && has(files.migration, 'private.issue_guest_access_token'))
-expect('14.11 Resolver cannot bypass manually revoked or expired signed access', has(files.migration, "v_token.status <> 'active'") && has(files.migration, 'v_token.expires_at <= now()'))
+expect('14.10 Permanent room resolver preserves existing signed token lifecycle', has(files.qrFinal, 'private.render_guest_access_token') && has(files.qrFinal, 'private.issue_guest_access_token'))
+expect('14.11 Resolver cannot bypass manually revoked or expired signed access', has(files.qrFinal, "v_token.status <> 'active'") && has(files.qrFinal, 'v_token.expires_at <= now()'))
 expect('14.12 Public resolver exposes no direct QR/PIN table grants to anon', has(files.migration, 'revoke all on table public.room_qr_codes from public, anon') && has(files.migration, 'revoke all on table public.room_qr_pin_challenges from public, anon'))
 
 expect('Final database acceptance audit is packaged', has(files.audit, 'POSTLAUNCH_BATCH2_FINAL_DATABASE_ACCEPTANCE: PASS (24/24)'))

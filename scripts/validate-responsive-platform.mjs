@@ -57,7 +57,7 @@ const checks = [
   ['mobile web app capability is declared', html.includes('name="mobile-web-app-capable"')],
   ['iOS web app capability is declared', html.includes('name="apple-mobile-web-app-capable"')],
   ['iOS status bar style is declared', html.includes('apple-mobile-web-app-status-bar-style')],
-  ['browser title uses StayQR branding', html.includes('<title>StayQR</title>')],
+  ['browser title uses StayQR branding', /<title>StayQR(?:[^<]*)?<\/title>/.test(html)],
   [
     'responsive layer is imported after globals',
     main.indexOf("./styles/responsive.css") > main.indexOf("./styles/globals.css"),

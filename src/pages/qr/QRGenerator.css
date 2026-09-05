@@ -308,3 +308,45 @@
   .secure-qr-permanent-grid > img,
   .secure-qr-permanent-grid > svg { justify-self: center; }
 }
+
+/* Final Product Freeze — launch room QR workflow */
+.secure-qr-launch-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 15px 17px;
+  border: 1px solid rgba(82, 211, 142, .25);
+  border-radius: 14px;
+  background: rgba(82, 211, 142, .07);
+}
+.secure-qr-launch-note strong { color: #fff; white-space: nowrap; }
+.secure-qr-launch-note span { color: #aeb7c5; line-height: 1.5; }
+.secure-qr-card--launch { overflow: hidden; }
+.secure-qr-permanent--launch { margin-bottom: 14px; }
+.secure-qr-inline-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.secure-qr-stay-summary {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.secure-qr-stay-summary > div {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(255,255,255,.025);
+}
+.secure-qr-stay-summary span { display:block; color:#8d96a5; font-size:10px; letter-spacing:.08em; margin-bottom:5px; }
+.secure-qr-stay-summary strong { display:block; color:#f8fafc; font-size:13px; }
+.secure-qr-vacant { grid-column: 1 / -1; }
+.secure-qr-vacant small { display:block; color:#8d96a5; margin-top:6px; }
+.secure-qr-advanced { margin-top:14px; border-top:1px solid rgba(255,255,255,.08); padding-top:12px; }
+.secure-qr-advanced summary { cursor:pointer; color:#d6b64d; font-weight:700; }
+.secure-qr-advanced > p { color:#8d96a5; font-size:12px; line-height:1.5; }
+.secure-qr-button.ghost { background:transparent; }
+@media (max-width: 760px) {
+  .secure-qr-launch-note { flex-direction:column; }
+  .secure-qr-launch-note strong { white-space:normal; }
+  .secure-qr-stay-summary { grid-template-columns:1fr; }
+}

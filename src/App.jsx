@@ -76,7 +76,7 @@ const SECTION_TITLES = {
   checkin: 'check-in',
   guests: 'guests',
   services: 'service requests',
-  qr: 'QR management',
+  qr: 'room QR guides',
   payments: 'payments',
   folios: 'folio settlement',
   foodorders: 'food orders',
@@ -94,10 +94,10 @@ const SECTION_TITLES = {
   staff: 'staff management',
   superadmin: 'platform administration',
   onboarding: 'hotel onboarding',
-  revenue: 'revenue growth',
+  revenue: 'revenue and insights',
   opsautomation: 'operations automation',
-  platformhub: 'platform hub',
-  billing: 'owner billing',
+  platformhub: 'properties and support',
+  billing: 'subscription and billing',
 }
 
 import './styles/globals.css'

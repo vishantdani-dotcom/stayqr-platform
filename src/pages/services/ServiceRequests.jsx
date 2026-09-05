@@ -231,7 +231,7 @@ export default function ServiceRequests() {
         checkoutRequestId: request.id,
       })
     } catch (error) {
-      showToast(error.message || 'Unable to open checkout settlement.')
+      showToast(error.message || 'Unable to open Guest Bills for this checkout request.')
     } finally {
       setBusyId('')
     }
@@ -337,7 +337,7 @@ function RequestCard({ request, staff, nowMs, busy, onAssign, onPriority, onEta,
       </div>
       <div className="service-card-meta"><span>Assigned: {assigned?.full_name || 'Nobody'}</span><span>Escalation: L{request.escalation_level || 0}</span></div>
       <div className="service-card-actions">
-        {checkout && !['completed', 'cancelled'].includes(request.status) && <button className="gold" disabled={busy} onClick={onCheckout}>Open settlement</button>}
+        {checkout && !['completed', 'cancelled'].includes(request.status) && <button className="gold" disabled={busy} onClick={onCheckout}>Open Guest Bill</button>}
         {!checkout && nextStatus && <button className="gold" disabled={busy} onClick={() => onStatus(nextStatus)}>{busy ? 'Updating…' : `Mark ${formatLabel(nextStatus)}`}</button>}
         {['pending', 'accepted', 'in_progress', 'escalated'].includes(request.status) && <button className="danger" disabled={busy} onClick={onCancel}>Cancel</button>}
       </div>

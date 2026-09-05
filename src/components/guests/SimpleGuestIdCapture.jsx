@@ -33,6 +33,7 @@ export default function SimpleGuestIdCapture({
   const extracted = analysis?.extractedFields || {};
   const meaningfulKeys = ["full_name", "date_of_birth", "gender", "address_line1", "postal_code"];
   const hasFields = meaningfulKeys.some((key) => Boolean(extracted[key])) || Boolean(analysis?.documentNumberMasked);
+  const needsReview = Boolean(analysis && (analysis.reviewRequired || analysis.status !== "extracted"));
   const progressLabel = useMemo(() => {
     if (!busy) return "";
     if (progress > 0) return `Reading ID… ${Math.round(progress)}%`;
@@ -148,7 +149,7 @@ export default function SimpleGuestIdCapture({
               <strong>{analysis ? labelForType(analysis.documentType) : "ID selected"}</strong>
               <small>{value.file.name}</small>
             </div>
-            <span className={hasFields ? "auto" : "review"}>{hasFields ? "Auto-filled" : "Could not auto-fill"}</span>
+            <span className={hasFields && !needsReview ? "auto" : "review"}>{hasFields && !needsReview ? "Auto-filled" : hasFields ? "Review required" : "Could not auto-fill"}</span>
           </div>
 
           {hasFields && (
@@ -162,7 +163,7 @@ export default function SimpleGuestIdCapture({
             </div>
           )}
 
-          {!hasFields && analysis?.message && <p className="simple-id-message review">{analysis.message}</p>}
+          {analysis?.message && (needsReview || !hasFields) && <p className="simple-id-message review">{analysis.message}</p>}
           <p className="simple-id-privacy">StayQR uses the scan to pre-fill the guest record. Review the details before saving.</p>
         </div>
       )}

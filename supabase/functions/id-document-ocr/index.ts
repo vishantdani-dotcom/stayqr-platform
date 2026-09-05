@@ -150,38 +150,59 @@ function lineAfterLabel(lines: string[], pattern: RegExp) {
   return ''
 }
 
+const NAME_NOISE_RE = /government|govt\.?|india|bharat|aadhaar|aadhar|uidai|unique identification|income tax|department|date of birth|dob|male|female|address|year of birth|father|mother|signature|passport|republic|driving|licen[cs]e|election|commission|authority|number|no\.|issue|issued|valid|verified|verify|download|document|identity|support|update|updated|enrolment|enrollment|vid\b|help|www\.|http|toll\s*free/i
+const ADDRESS_NOISE_RE = /documents?\s+to\s+support|identity\s+and\s+address|should\s+be\s+updated|update\s+your|downloaded|digitally\s+signed|authentication|verification|government\s+of\s+india|unique\s+identification|aadhaar\s+is|mera\s+aadhaar|www\.|uidai\.gov/i
+const ADDRESS_LABEL_RE = /^(?:address|पता)\s*[:.-]\s*/i
+const ADDRESS_RELATION_RE = /^(?:c\/?o|s\/?o|d\/?o|w\/?o)\b/i
+const ADDRESS_SIGNAL_RE = /\b(?:road|rd\.?|street|st\.?|lane|nagar|colony|sector|ward|village|gaon|taluka|tehsil|district|dist\.?|state|near|opp(?:osite)?|behind|apartment|flat|house|plot|floor|post|po\b|p\.o\.|pin(?:code)?|maharashtra|madhya pradesh|uttar pradesh|delhi|karnataka|tamil nadu|telangana|gujarat|rajasthan|punjab|haryana|bihar|odisha|west bengal|kerala|goa)\b/i
+
+function looksLikePersonName(value: unknown) {
+  const line = normalizeSpace(value)
+  if (line.length < 3 || line.length > 60) return false
+  if (!/^[A-Za-z][A-Za-z .'-]+$/.test(line)) return false
+  if (NAME_NOISE_RE.test(line)) return false
+  const tokens = line.split(/\s+/).filter(Boolean)
+  if (tokens.length >= 2) return true
+  return tokens.length === 1 && tokens[0].length >= 4
+}
+
 function probableName(lines: string[], documentType: string) {
   if (documentType === 'passport') {
     const surname = lineAfterLabel(lines, /^(?:surname|last name)\s*/i)
     const given = lineAfterLabel(lines, /^(?:given names?|given name|first name)\s*/i)
-    if (surname || given) return titleCaseWords(`${given} ${surname}`)
+    const combined = normalizeSpace(`${given} ${surname}`)
+    if (looksLikePersonName(combined)) return titleCaseWords(combined)
   }
   if (documentType === 'pan') {
     const name = lineAfterLabel(lines, /^(?:name)\s*/i)
-    if (name) return titleCaseWords(name)
+    if (looksLikePersonName(name)) return titleCaseWords(name)
   }
   if (documentType === 'driving_licence' || documentType === 'voter_id') {
     const name = lineAfterLabel(lines, /^(?:name|holder'?s? name|elector'?s? name)\s*/i)
-    if (name) return titleCaseWords(name)
+    if (looksLikePersonName(name)) return titleCaseWords(name)
   }
-
-  const rejected = /government|india|aadhaar|uidai|income tax|department|date of birth|dob|male|female|address|year of birth|father|signature|passport|republic|driving|licen[cs]e|election|commission|authority|number|no\.|issue|valid/i
-  const candidates = lines
-    .map(normalizeSpace)
-    .filter((line) => line.length >= 3 && line.length <= 60)
-    .filter((line) => /^[A-Za-z][A-Za-z .'-]+$/.test(line))
-    .filter((line) => !rejected.test(line))
 
   if (documentType === 'aadhaar') {
-    const dateIndex = lines.findIndex((line) => /\b(?:DOB|YOB|DATE OF BIRTH|YEAR OF BIRTH)\b/i.test(line))
+    const dateIndex = lines.findIndex((line) => /\b(?:DOB|YOB|DATE OF BIRTH|YEAR OF BIRTH|जन्म(?:\s+तिथि)?)\b/i.test(line))
     if (dateIndex > 0) {
-      for (let index = dateIndex - 1; index >= Math.max(0, dateIndex - 4); index -= 1) {
+      const scored: Array<{ line: string; score: number }> = []
+      for (let index = Math.max(0, dateIndex - 6); index < dateIndex; index += 1) {
         const line = normalizeSpace(lines[index])
-        if (/^[A-Za-z][A-Za-z .'-]{2,59}$/.test(line) && !rejected.test(line)) return titleCaseWords(line)
+        if (!looksLikePersonName(line)) continue
+        const distance = dateIndex - index
+        const tokenCount = line.split(/\s+/).filter(Boolean).length
+        let score = 20 - (distance * 2)
+        if (tokenCount >= 2) score += 8
+        if (tokenCount >= 3) score += 2
+        scored.push({ line, score })
       }
+      scored.sort((a, b) => b.score - a.score)
+      if (scored[0]) return titleCaseWords(scored[0].line)
     }
   }
-  return candidates.length ? titleCaseWords(candidates[0]) : ''
+
+  const candidate = lines.map(normalizeSpace).find(looksLikePersonName)
+  return candidate ? titleCaseWords(candidate) : ''
 }
 
 function parseGender(text: string) {
@@ -192,32 +213,57 @@ function parseGender(text: string) {
 }
 
 function extractAddress(lines: string[]) {
-  const start = lines.findIndex((line) => /\baddress\b\s*[:-]?/i.test(line))
+  let start = lines.findIndex((line) => ADDRESS_LABEL_RE.test(normalizeSpace(line)))
+  let explicitLabel = start >= 0
+  if (start < 0) {
+    start = lines.findIndex((line) => ADDRESS_RELATION_RE.test(normalizeSpace(line)))
+    explicitLabel = false
+  }
   if (start < 0) return ''
+
   const addressLines: string[] = []
-  for (let index = start; index < Math.min(lines.length, start + 7); index += 1) {
-    const cleaned = normalizeSpace(lines[index]).replace(/^address\s*[:-]?\s*/i, '')
+  for (let index = start; index < Math.min(lines.length, start + 8); index += 1) {
+    let cleaned = normalizeSpace(lines[index])
+    if (index === start && explicitLabel) cleaned = cleaned.replace(ADDRESS_LABEL_RE, '')
     if (!cleaned) continue
-    if (/\b(?:dob|date of birth|male|female|aadhaar|vid|signature)\b/i.test(cleaned)) break
+    if (ADDRESS_NOISE_RE.test(cleaned)) break
+    if (/\b(?:dob|date of birth|male|female|aadhaar|vid|signature|verified|verify)\b/i.test(cleaned)) break
+    if (/^\d{4}[\s.-]?\d{4}[\s.-]?\d{4}$/.test(cleaned.replace(/X/gi, '0'))) break
     addressLines.push(cleaned)
   }
-  return normalizeSpace(addressLines.join(', ')).slice(0, 240)
+
+  const combined = normalizeSpace(addressLines.join(', ')).slice(0, 240)
+  if (combined.length < 10 || ADDRESS_NOISE_RE.test(combined)) return ''
+  const hasPostalCode = /\b[1-9]\d{5}\b/.test(combined)
+  const hasAddressSignal = ADDRESS_SIGNAL_RE.test(combined) || ADDRESS_RELATION_RE.test(combined)
+  if (!hasPostalCode && !hasAddressSignal && addressLines.length < 2) return ''
+  return combined
 }
 
 function extractPostalCode(text: string) {
   return String(text || '').match(/\b[1-9]\d{5}\b/)?.[0] || ''
 }
 
+function validIsoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return ''
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return ''
+  const nowYear = new Date().getUTCFullYear()
+  if (year < 1900 || year > nowYear) return ''
+  return value
+}
+
 function extractDateOfBirth(lines: string[], text: string) {
   const labelPattern = /\b(?:DOB|DATE OF BIRTH|BIRTH DATE|D\.O\.B\.?|जन्म(?:\s+तिथि)?)\b/i
   for (let index = 0; index < lines.length; index += 1) {
     if (!labelPattern.test(lines[index])) continue
-    const sameLine = lines[index].match(DATE_REGEX)
-    if (sameLine) return isoDateFromMatch(sameLine)
-    const nextLine = String(lines[index + 1] || '').match(DATE_REGEX)
-    if (nextLine) return isoDateFromMatch(nextLine)
+    const sameLine = validIsoDate(isoDateFromMatch(lines[index].match(DATE_REGEX)))
+    if (sameLine) return sameLine
+    const nextLine = validIsoDate(isoDateFromMatch(String(lines[index + 1] || '').match(DATE_REGEX)))
+    if (nextLine) return nextLine
   }
-  return isoDateFromMatch(String(text || '').match(DATE_REGEX))
+  return validIsoDate(isoDateFromMatch(String(text || '').match(DATE_REGEX)))
 }
 
 function extractMaskedDocumentNumber(text: string, documentType: string) {
@@ -247,17 +293,33 @@ function extractMaskedDocumentNumber(text: string, documentType: string) {
 function parseSafeFields(rawText: string, documentType: string) {
   const text = String(rawText || '')
   const lines = text.split(/\r?\n/).map(normalizeSpace).filter(Boolean)
+  const address = extractAddress(lines)
   const indianDocument = ['aadhaar', 'pan', 'voter_id', 'driving_licence'].includes(documentType)
   const fields = {
     full_name: probableName(lines, documentType),
     date_of_birth: extractDateOfBirth(lines, text),
     gender: parseGender(text),
-    address_line1: extractAddress(lines),
-    postal_code: extractPostalCode(text),
+    address_line1: address,
+    postal_code: address ? extractPostalCode(address) : '',
     nationality: indianDocument ? 'India' : documentType === 'passport' && /\bIND\b/.test(text) ? 'India' : '',
     country_of_residence: indianDocument ? 'India' : '',
   }
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== '' && value !== null && value !== undefined))
+}
+
+function extractionQuality(documentType: string, fields: Record<string, unknown>, documentNumberMasked: string | null) {
+  let score = 0
+  const reasons: string[] = []
+  if (documentNumberMasked) score += 25; else reasons.push('document number not confidently detected')
+  if (fields.full_name) score += 25; else reasons.push('name needs review')
+  if (fields.date_of_birth) score += 20; else reasons.push('date of birth needs review')
+  if (fields.gender) score += 10
+  if (fields.address_line1) score += 10
+  if (fields.postal_code) score += 10
+  const coreReady = documentType === 'aadhaar'
+    ? Boolean(documentNumberMasked && fields.full_name && fields.date_of_birth)
+    : Boolean(documentNumberMasked || fields.full_name)
+  return { score: Math.min(100, score), reviewRequired: !coreReady || score < 60, reasons }
 }
 
 function safeAnalysis(rawText: string, requestedType: string, fileName: string, confidence: number | null, latencyMs: number, provider: string) {
@@ -266,18 +328,18 @@ function safeAnalysis(rawText: string, requestedType: string, fileName: string, 
   const maskedText = maskSensitiveNumbers(rawText)
   const extractedFields = parseSafeFields(maskedText, documentType)
   const documentNumberMasked = extractMaskedDocumentNumber(rawText, documentType) || null
-  const meaningfulKeys = ['full_name', 'date_of_birth', 'gender', 'address_line1', 'postal_code']
-  const meaningfulCount = meaningfulKeys.filter((key) => Boolean(extractedFields[key])).length
-  const hasExtractedIdentity = meaningfulCount > 0 || Boolean(documentNumberMasked)
+  const quality = extractionQuality(documentType, extractedFields, documentNumberMasked)
   const warnings: string[] = []
   if (!rawText.trim()) warnings.push('No readable text was detected. Retake the photo with better focus and lighting, or enter the fields manually.')
-  else if (!hasExtractedIdentity) warnings.push('Text was detected, but StayQR could not confidently map the ID fields. Retake a straighter photo or enter the fields manually.')
-
+  else if (quality.reviewRequired) warnings.push('Some ID fields could not be mapped confidently. Review the extracted details and complete any missing fields manually.')
   return {
-    status: hasExtractedIdentity ? 'extracted' : 'limited',
+    status: quality.reviewRequired ? 'review_required' : 'extracted',
     method: provider === 'ocr_space' ? 'ocr_space_engine_2' : 'google_cloud_vision_document_text',
     provider: provider === 'ocr_space' ? 'ocr_space' : 'google_cloud_vision',
     confidence,
+    qualityScore: quality.score,
+    reviewRequired: quality.reviewRequired,
+    qualityReasons: quality.reasons,
     providerLatencyMs: latencyMs,
     documentType,
     extractedFields,
@@ -309,6 +371,79 @@ function averageConfidence(annotation: any) {
   return Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 100)
 }
 
+type ProviderResult = {
+  provider: string
+  rawText: string
+  confidence: number | null
+  latencyMs: number
+}
+
+async function runProviderOcr(
+  providerName: string,
+  contentBase64: string,
+  mimeType: string,
+  googleApiKey?: string,
+  ocrSpaceApiKey?: string,
+): Promise<ProviderResult> {
+  if (providerName === 'ocr_space' && !ocrSpaceApiKey) throw new Error('provider_unavailable')
+  if (providerName === 'google_vision' && !googleApiKey) throw new Error('provider_unavailable')
+  if (providerName === 'ocr_space' && base64ByteLength(contentBase64) > OCR_SPACE_FREE_MAX_IMAGE_BYTES) {
+    throw new Error('ocr_space_image_too_large')
+  }
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS)
+  const startedAt = Date.now()
+  try {
+    let response: Response
+    if (providerName === 'ocr_space') {
+      const form = new URLSearchParams()
+      form.set('base64Image', `data:${mimeType};base64,${contentBase64}`)
+      form.set('language', 'eng')
+      form.set('OCREngine', '2')
+      form.set('scale', 'true')
+      form.set('detectOrientation', 'true')
+      form.set('isOverlayRequired', 'false')
+      response = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        headers: { apikey: ocrSpaceApiKey!, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form.toString(),
+        signal: controller.signal,
+      })
+    } else {
+      response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(googleApiKey!)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: [{
+            image: { content: contentBase64 },
+            features: [{ type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 }],
+            imageContext: { languageHints: ['en', 'hi'] },
+          }],
+        }),
+        signal: controller.signal,
+      })
+    }
+
+    if (!response.ok) throw new Error('provider_rejected')
+    const body = await response.json().catch(() => ({}))
+    let rawText = ''
+    let confidence: number | null = null
+    if (providerName === 'ocr_space') {
+      if (body?.IsErroredOnProcessing) throw new Error('provider_processing_failed')
+      rawText = String(body?.ParsedResults?.[0]?.ParsedText || '')
+    } else {
+      const annotation = body?.responses?.[0]
+      if (annotation?.error) throw new Error('provider_processing_failed')
+      rawText = String(annotation?.fullTextAnnotation?.text || annotation?.textAnnotations?.[0]?.description || '')
+      confidence = averageConfidence(annotation?.fullTextAnnotation)
+    }
+    return { provider: providerName, rawText, confidence, latencyMs: Date.now() - startedAt }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: cors(request) })
   if (request.method !== 'POST') return json(request, 405, { ok: false, error: 'Method not allowed.' })
@@ -323,8 +458,7 @@ Deno.serve(async (request) => {
     if (!supabaseUrl || !anonKey) throw new Error('Supabase function environment is incomplete.')
     if (!enabled) return json(request, 503, { ok: false, error: 'ID OCR is not enabled in this environment.' })
     if (!['google_vision', 'ocr_space'].includes(provider)) return json(request, 503, { ok: false, error: 'Configured ID OCR provider is not supported by this release.' })
-    if (provider === 'google_vision' && !googleApiKey) return json(request, 503, { ok: false, error: 'Google Vision credentials are not configured.' })
-    if (provider === 'ocr_space' && !ocrSpaceApiKey) return json(request, 503, { ok: false, error: 'OCR.Space credentials are not configured.' })
+    if (!googleApiKey && !ocrSpaceApiKey) return json(request, 503, { ok: false, error: 'No ID OCR provider is configured.' })
 
     const authorization = request.headers.get('Authorization') || ''
     const token = authorization.replace(/^Bearer\s+/i, '').trim()
@@ -356,76 +490,41 @@ Deno.serve(async (request) => {
       return json(request, 403, { ok: false, error: 'ID scanning access denied for this hotel.' })
     }
 
-    if (provider === 'ocr_space' && base64ByteLength(contentBase64) > OCR_SPACE_FREE_MAX_IMAGE_BYTES) {
-      return json(request, 413, { ok: false, error: 'This image is too large for the staging OCR provider. Retake or upload a photo under 1 MB.' })
+    const providers: string[] = []
+    const addProvider = (value: string) => {
+      if (!providers.includes(value)) providers.push(value)
     }
+    addProvider(provider)
+    if (provider === 'ocr_space' && googleApiKey) addProvider('google_vision')
+    if (provider === 'google_vision' && ocrSpaceApiKey) addProvider('ocr_space')
 
-    const providerController = new AbortController()
-    const timer = setTimeout(() => providerController.abort(), PROVIDER_TIMEOUT_MS)
-    const startedAt = Date.now()
-    let providerResponse: Response
-    try {
-      if (provider === 'ocr_space') {
-        const form = new URLSearchParams()
-        form.set('base64Image', `data:${mimeType};base64,${contentBase64}`)
-        form.set('language', 'eng')
-        form.set('OCREngine', '2')
-        form.set('scale', 'true')
-        form.set('detectOrientation', 'true')
-        form.set('isOverlayRequired', 'false')
-        providerResponse = await fetch('https://api.ocr.space/parse/image', {
-          method: 'POST',
-          headers: {
-            apikey: ocrSpaceApiKey!,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: form.toString(),
-          signal: providerController.signal,
-        })
-      } else {
-        providerResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(googleApiKey!)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            requests: [{
-              image: { content: contentBase64 },
-              features: [{ type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 }],
-              imageContext: { languageHints: ['en', 'hi'] },
-            }],
-          }),
-          signal: providerController.signal,
-        })
+    const candidates: any[] = []
+    const attemptedProviders: string[] = []
+    for (const providerName of providers) {
+      attemptedProviders.push(providerName)
+      try {
+        const result = await runProviderOcr(providerName, contentBase64, mimeType, googleApiKey, ocrSpaceApiKey)
+        const analysis = safeAnalysis(result.rawText, requestedType, fileName, result.confidence, result.latencyMs, providerName)
+        candidates.push(analysis)
+        if (!analysis.reviewRequired && Number(analysis.qualityScore || 0) >= 70) break
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') continue
+        continue
       }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        return json(request, 504, { ok: false, error: 'ID reading timed out. Please retry or enter the details manually.' })
-      }
-      return json(request, 502, { ok: false, error: 'ID OCR provider is temporarily unavailable.' })
-    } finally {
-      clearTimeout(timer)
     }
 
-    if (!providerResponse.ok) {
-      return json(request, providerResponse.status >= 500 ? 502 : 503, { ok: false, error: 'ID OCR provider rejected the request. Check the staging provider configuration.' })
+    if (!candidates.length) {
+      return json(request, 502, { ok: false, error: 'StayQR could not read this ID with the configured OCR providers. Retake the photo or enter the details manually.' })
     }
 
-    const providerBody = await providerResponse.json().catch(() => ({}))
-    let rawText = ''
-    let confidence: number | null = null
-    if (provider === 'ocr_space') {
-      if (providerBody?.IsErroredOnProcessing) {
-        return json(request, 502, { ok: false, error: 'OCR.Space could not process this image. Retake the photo or enter the details manually.' })
-      }
-      rawText = String(providerBody?.ParsedResults?.[0]?.ParsedText || '')
-    } else {
-      const annotation = providerBody?.responses?.[0]
-      if (annotation?.error) return json(request, 502, { ok: false, error: 'Google Vision could not process this image.' })
-      rawText = String(annotation?.fullTextAnnotation?.text || annotation?.textAnnotations?.[0]?.description || '')
-      confidence = averageConfidence(annotation?.fullTextAnnotation)
-    }
-
-    const latencyMs = Date.now() - startedAt
-    const analysis = safeAnalysis(rawText, requestedType, fileName, confidence, latencyMs, provider)
+    candidates.sort((a, b) => {
+      const qualityDelta = Number(b.qualityScore || 0) - Number(a.qualityScore || 0)
+      if (qualityDelta !== 0) return qualityDelta
+      return Number(b.confidence || 0) - Number(a.confidence || 0)
+    })
+    const analysis = candidates[0]
+    analysis.fallbackUsed = analysis.provider !== (provider === 'ocr_space' ? 'ocr_space' : 'google_cloud_vision')
+    analysis.providersTried = attemptedProviders.map((item) => item === 'google_vision' ? 'google_cloud_vision' : item)
 
     // Important: raw OCR text and provider response are intentionally not returned or persisted.
     return json(request, 200, { ok: true, analysis })

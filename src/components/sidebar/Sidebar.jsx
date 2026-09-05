@@ -34,7 +34,7 @@ const NAV_ITEMS = [
       { id: 'maintenance', label: 'Maintenance', icon: SettingsIcon },
       { id: 'charges', label: 'Charges', icon: DollarIcon },
       { id: 'payments', label: 'Payments', icon: CardIcon },
-      { id: 'folios', label: 'Folio & Settlement', icon: DollarIcon },
+      { id: 'folios', label: 'Guest Bills', icon: DollarIcon },
       { id: 'opsautomation', label: 'Operations Automation', icon: SettingsIcon },
     ],
   },

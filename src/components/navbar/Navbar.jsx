@@ -150,7 +150,7 @@ export default function Navbar({
     checkin: 'Check-In / Out',
     qr: 'QR Guides',
     payments: 'Payments',
-    folios: 'Folio & Settlement',
+    folios: 'Guest Bills',
     services: 'Service Requests',
     amenities: 'Amenities',
     hotel: 'Hotel Profile',

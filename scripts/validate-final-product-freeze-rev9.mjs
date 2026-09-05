@@ -101,7 +101,7 @@ const visibleFiles = [foodOrders, rooms, folios, services, automation, maintenan
 add('Customer module headings contain no Day/REV/V1.1 build labels', visibleFiles.every((source) => !/(Day\s+\d+|DAY\s+\d+|V1\.1|REV\d+)/.test(source.replace(/console\.(?:error|log|warn)\([^\n]+/g, ''))))
 add('Food orders heading is commercial', foodOrders.includes('Food & Kitchen') && foodOrders.includes('Kitchen Operations'))
 add('Rooms heading is commercial', rooms.includes('Room inventory'))
-add('Folio heading is commercial', folios.includes('Folio & settlement'))
+add('Folio heading is commercial', folios.includes('Guest Bills') || folios.includes('Folio & settlement'))
 add('Guest services heading is commercial', services.includes('Guest Services'))
 add('Maintenance heading is commercial', maintenance.includes('Maintenance operations'))
 add('Reports heading is commercial', reports.includes('ANALYTICS & STANDARD REPORTS'))

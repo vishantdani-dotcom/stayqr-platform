@@ -17,8 +17,8 @@ const combined = [app, page, api, sidebar, navbar, access].join('\n')
 const required = [
   ['Folio route', /case\s+['"]folios['"]/],
   ['Folio page import', /pages\/folios\/FolioSettlement/],
-  ['Folio sidebar navigation', /id:\s*['"]folios['"][\s\S]{0,100}Folio & Settlement/],
-  ['Navbar section label', /folios:\s*['"]Folio & Settlement['"]/],
+  ['Folio sidebar navigation', /id:\s*['"]folios['"][\s\S]{0,100}(?:Folio & Settlement|Guest Bills)/],
+  ['Navbar section label', /folios:\s*['"](?:Folio & Settlement|Guest Bills)['"]/],
   ['Payments-view route permission', /folios:\s*['"]payments\.view['"]/],
   ['Hotel-scoped folio query', /\.from\(['"]folios['"]\)[\s\S]{0,120}\.eq\(['"]hotel_id['"],\s*hotelId\)/],
   ['Folio item ledger query', /\.from\(['"]folio_items['"]\)/],

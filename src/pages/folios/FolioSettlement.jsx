@@ -821,8 +821,8 @@ export default function FolioSettlement({
     <div className="folio-page">
       <header className="folio-page-header">
         <div>
-          <p className="folio-eyebrow">Folio & settlement</p>
-          <h1>Folio & Settlement</h1>
+          <p className="folio-eyebrow">Stay billing</p>
+          <h1>Guest Bills</h1>
           <p className="folio-page-subtitle">
             Unified room, food, service and manual charges with collections,
             discounts, refunds, credits and gateway reconciliation.
@@ -831,7 +831,7 @@ export default function FolioSettlement({
 
         <div className="folio-header-actions">
           <span className={`folio-access-badge ${canManage ? 'manage' : 'view'}`}>
-            {canManage ? 'Settlement access' : 'View only'}
+            {canManage ? 'Billing access' : 'View only'}
           </span>
           <button
             type="button"

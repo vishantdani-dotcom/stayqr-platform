@@ -362,3 +362,53 @@
   }
 }
 
+
+
+/* REV10 launch polish: keep final bill usable on phones without horizontal squeeze. */
+@media (max-width: 700px) {
+  .guest-final-checkout-overlay {
+    padding: 10px 8px !important;
+  }
+
+  .guest-final-checkout-modal {
+    padding: 18px 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .guest-final-checkout-header {
+    gap: 12px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .guest-final-checkout-header h2 {
+    font-size: 24px !important;
+    line-height: 1.15;
+  }
+
+  .guest-final-checkout-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+
+  .guest-final-checkout-summary {
+    max-width: none !important;
+    margin-left: 0 !important;
+    padding: 16px !important;
+  }
+
+  .guest-final-checkout-actions {
+    position: sticky;
+    bottom: -1px;
+    z-index: 2;
+    flex-direction: column-reverse !important;
+    gap: 9px !important;
+    margin: 18px -6px -6px !important;
+    padding: 12px 6px 6px !important;
+    background: linear-gradient(to top, #0f0f0f 82%, rgba(15,15,15,0));
+  }
+
+  .guest-final-checkout-actions button {
+    width: 100% !important;
+    min-height: 46px;
+  }
+}

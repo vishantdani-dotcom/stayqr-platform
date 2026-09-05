@@ -5,7 +5,7 @@ const PASSPORT_REGEX = /\b[A-Z][0-9]{7}\b/i;
 const VOTER_REGEX = /\b[A-Z]{3}\d{7}\b/i;
 const DL_REGEX = /\b[A-Z]{2}[\s-]?\d{2}[\s-]?\d{4}[\s-]?\d{7}\b/i;
 const MAX_PROVIDER_IMAGE_BYTES = 5 * 1024 * 1024;
-const CLIENT_OCR_TIMEOUT_MS = 15000;
+const CLIENT_OCR_TIMEOUT_MS = 30000;
 
 function normalizeSpace(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -86,39 +86,59 @@ function lineAfterLabel(lines, pattern) {
   return "";
 }
 
+const NAME_NOISE_RE = /government|govt\.?|india|bharat|aadhaar|aadhar|uidai|unique identification|income tax|department|date of birth|dob|male|female|address|year of birth|father|mother|signature|passport|republic|driving|licen[cs]e|election|commission|authority|number|no\.|issue|issued|valid|verified|verify|download|document|identity|support|update|updated|enrolment|enrollment|vid\b|help|www\.|http|toll\s*free/i;
+const ADDRESS_NOISE_RE = /documents?\s+to\s+support|identity\s+and\s+address|should\s+be\s+updated|update\s+your|downloaded|digitally\s+signed|authentication|verification|government\s+of\s+india|unique\s+identification|aadhaar\s+is|mera\s+aadhaar|www\.|uidai\.gov/i;
+const ADDRESS_LABEL_RE = /^(?:address|पता)\s*[:.-]\s*/i;
+const ADDRESS_RELATION_RE = /^(?:c\/?o|s\/?o|d\/?o|w\/?o)\b/i;
+const ADDRESS_SIGNAL_RE = /\b(?:road|rd\.?|street|st\.?|lane|nagar|colony|sector|ward|village|gaon|taluka|tehsil|district|dist\.?|state|near|opp(?:osite)?|behind|apartment|flat|house|plot|floor|post|po\b|p\.o\.|pin(?:code)?|maharashtra|madhya pradesh|uttar pradesh|delhi|karnataka|tamil nadu|telangana|gujarat|rajasthan|punjab|haryana|bihar|odisha|west bengal|kerala|goa)\b/i;
+
+function looksLikePersonName(value) {
+  const line = normalizeSpace(value);
+  if (line.length < 3 || line.length > 60) return false;
+  if (!/^[A-Za-z][A-Za-z .'-]+$/.test(line)) return false;
+  if (NAME_NOISE_RE.test(line)) return false;
+  const tokens = line.split(/\s+/).filter(Boolean);
+  if (tokens.length >= 2) return true;
+  return tokens.length === 1 && tokens[0].length >= 4;
+}
+
 function probableName(lines, documentType) {
   if (documentType === "passport") {
     const surname = lineAfterLabel(lines, /^(?:surname|last name)\s*/i);
     const given = lineAfterLabel(lines, /^(?:given names?|given name|first name)\s*/i);
-    if (surname || given) return titleCaseWords(`${given} ${surname}`);
+    const combined = normalizeSpace(`${given} ${surname}`);
+    if (looksLikePersonName(combined)) return titleCaseWords(combined);
   }
   if (documentType === "pan") {
     const name = lineAfterLabel(lines, /^(?:name)\s*/i);
-    if (name) return titleCaseWords(name);
+    if (looksLikePersonName(name)) return titleCaseWords(name);
   }
   if (documentType === "driving_licence" || documentType === "voter_id") {
     const name = lineAfterLabel(lines, /^(?:name|holder'?s? name|elector'?s? name)\s*/i);
-    if (name) return titleCaseWords(name);
+    if (looksLikePersonName(name)) return titleCaseWords(name);
   }
 
-  const rejected = /government|india|aadhaar|uidai|income tax|department|date of birth|dob|male|female|address|year of birth|father|signature|passport|republic|driving|licen[cs]e|election|commission|authority|number|no\.|issue|valid/i;
-  const candidates = lines
-    .map(normalizeSpace)
-    .filter((line) => line.length >= 3 && line.length <= 60)
-    .filter((line) => /^[A-Za-z][A-Za-z .'-]+$/.test(line))
-    .filter((line) => !rejected.test(line));
-
   if (documentType === "aadhaar") {
-    const dateIndex = lines.findIndex((line) => /\b(?:DOB|YOB|DATE OF BIRTH|YEAR OF BIRTH)\b/i.test(line));
+    const dateIndex = lines.findIndex((line) => /\b(?:DOB|YOB|DATE OF BIRTH|YEAR OF BIRTH|जन्म(?:\s+तिथि)?)\b/i.test(line));
     if (dateIndex > 0) {
-      for (let index = dateIndex - 1; index >= Math.max(0, dateIndex - 4); index -= 1) {
+      const scored = [];
+      for (let index = Math.max(0, dateIndex - 6); index < dateIndex; index += 1) {
         const line = normalizeSpace(lines[index]);
-        if (/^[A-Za-z][A-Za-z .'-]{2,59}$/.test(line) && !rejected.test(line)) return titleCaseWords(line);
+        if (!looksLikePersonName(line)) continue;
+        const distance = dateIndex - index;
+        const tokenCount = line.split(/\s+/).filter(Boolean).length;
+        let score = 20 - (distance * 2);
+        if (tokenCount >= 2) score += 8;
+        if (tokenCount >= 3) score += 2;
+        scored.push({ line, score });
       }
+      scored.sort((a, b) => b.score - a.score);
+      if (scored[0]) return titleCaseWords(scored[0].line);
     }
   }
 
-  return candidates.length ? titleCaseWords(candidates[0]) : "";
+  const candidate = lines.map(normalizeSpace).find(looksLikePersonName);
+  return candidate ? titleCaseWords(candidate) : "";
 }
 
 function parseGender(text) {
@@ -129,16 +149,31 @@ function parseGender(text) {
 }
 
 function extractAddress(lines) {
-  const start = lines.findIndex((line) => /\baddress\b\s*[:-]?/i.test(line));
+  let start = lines.findIndex((line) => ADDRESS_LABEL_RE.test(normalizeSpace(line)));
+  let explicitLabel = start >= 0;
+  if (start < 0) {
+    start = lines.findIndex((line) => ADDRESS_RELATION_RE.test(normalizeSpace(line)));
+    explicitLabel = false;
+  }
   if (start < 0) return "";
+
   const addressLines = [];
-  for (let index = start; index < Math.min(lines.length, start + 7); index += 1) {
-    const cleaned = normalizeSpace(lines[index]).replace(/^address\s*[:-]?\s*/i, "");
+  for (let index = start; index < Math.min(lines.length, start + 8); index += 1) {
+    let cleaned = normalizeSpace(lines[index]);
+    if (index === start && explicitLabel) cleaned = cleaned.replace(ADDRESS_LABEL_RE, "");
     if (!cleaned) continue;
-    if (/\b(?:dob|date of birth|male|female|aadhaar|vid|signature)\b/i.test(cleaned)) break;
+    if (ADDRESS_NOISE_RE.test(cleaned)) break;
+    if (/\b(?:dob|date of birth|male|female|aadhaar|vid|signature|verified|verify)\b/i.test(cleaned)) break;
+    if (/^\d{4}[\s.-]?\d{4}[\s.-]?\d{4}$/.test(cleaned.replace(/X/gi, "0"))) break;
     addressLines.push(cleaned);
   }
-  return normalizeSpace(addressLines.join(", ")).slice(0, 240);
+
+  const combined = normalizeSpace(addressLines.join(", ")).slice(0, 240);
+  if (combined.length < 10 || ADDRESS_NOISE_RE.test(combined)) return "";
+  const hasPostalCode = /\b[1-9]\d{5}\b/.test(combined);
+  const hasAddressSignal = ADDRESS_SIGNAL_RE.test(combined) || ADDRESS_RELATION_RE.test(combined);
+  if (!hasPostalCode && !hasAddressSignal && addressLines.length < 2) return "";
+  return combined;
 }
 
 function extractPostalCode(text) {
@@ -171,23 +206,33 @@ function extractMaskedDocumentNumber(text, documentType) {
   return "";
 }
 
+function validIsoDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return "";
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return "";
+  const nowYear = new Date().getUTCFullYear();
+  if (year < 1900 || year > nowYear) return "";
+  return value;
+}
+
 function extractDateOfBirth(lines, text) {
   const labelPattern = /\b(?:DOB|DATE OF BIRTH|BIRTH DATE|D\.O\.B\.?|जन्म(?:\s+तिथि)?)\b/i;
   for (let index = 0; index < lines.length; index += 1) {
     if (!labelPattern.test(lines[index])) continue;
-    const sameLine = lines[index].match(DATE_REGEX);
-    if (sameLine) return isoDateFromMatch(sameLine);
-    const nextLine = String(lines[index + 1] || "").match(DATE_REGEX);
-    if (nextLine) return isoDateFromMatch(nextLine);
+    const sameLine = validIsoDate(isoDateFromMatch(lines[index].match(DATE_REGEX)));
+    if (sameLine) return sameLine;
+    const nextLine = validIsoDate(isoDateFromMatch(String(lines[index + 1] || "").match(DATE_REGEX)));
+    if (nextLine) return nextLine;
   }
-  return isoDateFromMatch(String(text || "").match(DATE_REGEX));
+  return validIsoDate(isoDateFromMatch(String(text || "").match(DATE_REGEX)));
 }
 
 function parseSafeFields(rawText, documentType) {
   const text = String(rawText || "");
   const lines = text.split(/\r?\n/).map(normalizeSpace).filter(Boolean);
   const address = extractAddress(lines);
-  const postalCode = extractPostalCode(text);
+  const postalCode = address ? extractPostalCode(address) : "";
   const indianDocument = ["aadhaar", "pan", "voter_id", "driving_licence"].includes(documentType);
   const fields = {
     full_name: probableName(lines, documentType),
@@ -201,6 +246,26 @@ function parseSafeFields(rawText, documentType) {
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== "" && value !== null && value !== undefined));
 }
 
+function extractionQuality(documentType, fields, documentNumberMasked) {
+  let score = 0;
+  const reasons = [];
+  if (documentNumberMasked) score += 25; else reasons.push("document number not confidently detected");
+  if (fields.full_name) score += 25; else reasons.push("name needs review");
+  if (fields.date_of_birth) score += 20; else reasons.push("date of birth needs review");
+  if (fields.gender) score += 10;
+  if (fields.address_line1) score += 10;
+  if (fields.postal_code) score += 10;
+
+  const coreReady = documentType === "aadhaar"
+    ? Boolean(documentNumberMasked && fields.full_name && fields.date_of_birth)
+    : Boolean(documentNumberMasked || fields.full_name);
+  return {
+    score: Math.min(100, score),
+    reviewRequired: !coreReady || score < 60,
+    reasons,
+  };
+}
+
 export function extractIdentityFromText(rawText, requestedDocumentType = "auto", hints = {}) {
   const raw = String(rawText || "");
   const detectedDocumentType = inferDocumentType(raw, hints.fileName || "");
@@ -208,10 +273,16 @@ export function extractIdentityFromText(rawText, requestedDocumentType = "auto",
     ? requestedDocumentType
     : detectedDocumentType;
   const maskedText = maskSensitiveNumbers(raw);
+  const extractedFields = parseSafeFields(maskedText, documentType);
+  const documentNumberMasked = extractMaskedDocumentNumber(raw, documentType) || null;
+  const quality = extractionQuality(documentType, extractedFields, documentNumberMasked);
   return {
     documentType,
-    extractedFields: parseSafeFields(maskedText, documentType),
-    documentNumberMasked: extractMaskedDocumentNumber(raw, documentType) || null,
+    extractedFields,
+    documentNumberMasked,
+    qualityScore: quality.score,
+    reviewRequired: quality.reviewRequired,
+    qualityReasons: quality.reasons,
   };
 }
 

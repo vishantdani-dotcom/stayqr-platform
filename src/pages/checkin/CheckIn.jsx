@@ -547,8 +547,10 @@ export default function CheckIn() {
     const extractedCount = Object.keys(fields).filter((key) => fields[key]).length + (analysis.documentNumberMasked ? 1 : 0);
     setSelectedGuest(null);
     setGuestMatches([]);
-    if (analysis.status === "extracted" && extractedCount > 0) {
-      setMessage("ID details extracted. Review the auto-filled fields before completing check-in.");
+    if (extractedCount > 0) {
+      setMessage(analysis.status === "extracted"
+        ? "ID details extracted. Review the auto-filled fields before completing check-in."
+        : "Some ID details were extracted, but review is required. Complete any missing or incorrect fields before check-in.");
       setError("");
     } else {
       setMessage("");

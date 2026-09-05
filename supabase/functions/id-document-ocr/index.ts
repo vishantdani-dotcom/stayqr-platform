@@ -1,7 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.106.2'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
-const PROVIDER_TIMEOUT_MS = 10000
+const OCR_SPACE_FREE_MAX_IMAGE_BYTES = 1 * 1024 * 1024
+const PROVIDER_TIMEOUT_MS = 12000
 const SUPPORTED_MIME_TYPES = new Set(['image/jpeg', 'image/png'])
 
 const AADHAAR_REGEX = /\b(\d{4})[\s.-]{0,3}(\d{4})[\s.-]{0,3}(\d{4})\b/g
@@ -259,7 +260,7 @@ function parseSafeFields(rawText: string, documentType: string) {
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== '' && value !== null && value !== undefined))
 }
 
-function safeAnalysis(rawText: string, requestedType: string, fileName: string, confidence: number | null, latencyMs: number) {
+function safeAnalysis(rawText: string, requestedType: string, fileName: string, confidence: number | null, latencyMs: number, provider: string) {
   const detectedType = inferDocumentType(rawText, fileName)
   const documentType = requestedType && requestedType !== 'auto' ? requestedType : detectedType
   const maskedText = maskSensitiveNumbers(rawText)
@@ -274,8 +275,8 @@ function safeAnalysis(rawText: string, requestedType: string, fileName: string, 
 
   return {
     status: hasExtractedIdentity ? 'extracted' : 'limited',
-    method: 'google_cloud_vision_document_text',
-    provider: 'google_cloud_vision',
+    method: provider === 'ocr_space' ? 'ocr_space_engine_2' : 'google_cloud_vision_document_text',
+    provider: provider === 'ocr_space' ? 'ocr_space' : 'google_cloud_vision',
     confidence,
     providerLatencyMs: latencyMs,
     documentType,
@@ -316,12 +317,14 @@ Deno.serve(async (request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     const enabled = String(Deno.env.get('ID_OCR_ENABLED') || '').toLowerCase() === 'true'
-    const provider = String(Deno.env.get('ID_OCR_PROVIDER') || 'google_vision').toLowerCase()
-    const apiKey = Deno.env.get('GOOGLE_CLOUD_VISION_API_KEY')?.trim()
+    const provider = String(Deno.env.get('ID_OCR_PROVIDER') || 'ocr_space').toLowerCase()
+    const googleApiKey = Deno.env.get('GOOGLE_CLOUD_VISION_API_KEY')?.trim()
+    const ocrSpaceApiKey = Deno.env.get('OCR_SPACE_API_KEY')?.trim()
     if (!supabaseUrl || !anonKey) throw new Error('Supabase function environment is incomplete.')
     if (!enabled) return json(request, 503, { ok: false, error: 'ID OCR is not enabled in this environment.' })
-    if (provider !== 'google_vision') return json(request, 503, { ok: false, error: 'Configured ID OCR provider is not supported by this release.' })
-    if (!apiKey) return json(request, 503, { ok: false, error: 'ID OCR provider credentials are not configured.' })
+    if (!['google_vision', 'ocr_space'].includes(provider)) return json(request, 503, { ok: false, error: 'Configured ID OCR provider is not supported by this release.' })
+    if (provider === 'google_vision' && !googleApiKey) return json(request, 503, { ok: false, error: 'Google Vision credentials are not configured.' })
+    if (provider === 'ocr_space' && !ocrSpaceApiKey) return json(request, 503, { ok: false, error: 'OCR.Space credentials are not configured.' })
 
     const authorization = request.headers.get('Authorization') || ''
     const token = authorization.replace(/^Bearer\s+/i, '').trim()
@@ -353,23 +356,46 @@ Deno.serve(async (request) => {
       return json(request, 403, { ok: false, error: 'ID scanning access denied for this hotel.' })
     }
 
+    if (provider === 'ocr_space' && base64ByteLength(contentBase64) > OCR_SPACE_FREE_MAX_IMAGE_BYTES) {
+      return json(request, 413, { ok: false, error: 'This image is too large for the staging OCR provider. Retake or upload a photo under 1 MB.' })
+    }
+
     const providerController = new AbortController()
     const timer = setTimeout(() => providerController.abort(), PROVIDER_TIMEOUT_MS)
     const startedAt = Date.now()
     let providerResponse: Response
     try {
-      providerResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(apiKey)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          requests: [{
-            image: { content: contentBase64 },
-            features: [{ type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 }],
-            imageContext: { languageHints: ['en', 'hi'] },
-          }],
-        }),
-        signal: providerController.signal,
-      })
+      if (provider === 'ocr_space') {
+        const form = new URLSearchParams()
+        form.set('base64Image', `data:${mimeType};base64,${contentBase64}`)
+        form.set('language', 'eng')
+        form.set('OCREngine', '2')
+        form.set('scale', 'true')
+        form.set('detectOrientation', 'true')
+        form.set('isOverlayRequired', 'false')
+        providerResponse = await fetch('https://api.ocr.space/parse/image', {
+          method: 'POST',
+          headers: {
+            apikey: ocrSpaceApiKey!,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: form.toString(),
+          signal: providerController.signal,
+        })
+      } else {
+        providerResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(googleApiKey!)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requests: [{
+              image: { content: contentBase64 },
+              features: [{ type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 }],
+              imageContext: { languageHints: ['en', 'hi'] },
+            }],
+          }),
+          signal: providerController.signal,
+        })
+      }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         return json(request, 504, { ok: false, error: 'ID reading timed out. Please retry or enter the details manually.' })
@@ -384,12 +410,22 @@ Deno.serve(async (request) => {
     }
 
     const providerBody = await providerResponse.json().catch(() => ({}))
-    const annotation = providerBody?.responses?.[0]
-    if (annotation?.error) return json(request, 502, { ok: false, error: 'ID OCR provider could not process this image.' })
+    let rawText = ''
+    let confidence: number | null = null
+    if (provider === 'ocr_space') {
+      if (providerBody?.IsErroredOnProcessing) {
+        return json(request, 502, { ok: false, error: 'OCR.Space could not process this image. Retake the photo or enter the details manually.' })
+      }
+      rawText = String(providerBody?.ParsedResults?.[0]?.ParsedText || '')
+    } else {
+      const annotation = providerBody?.responses?.[0]
+      if (annotation?.error) return json(request, 502, { ok: false, error: 'Google Vision could not process this image.' })
+      rawText = String(annotation?.fullTextAnnotation?.text || annotation?.textAnnotations?.[0]?.description || '')
+      confidence = averageConfidence(annotation?.fullTextAnnotation)
+    }
 
-    const rawText = String(annotation?.fullTextAnnotation?.text || annotation?.textAnnotations?.[0]?.description || '')
     const latencyMs = Date.now() - startedAt
-    const analysis = safeAnalysis(rawText, requestedType, fileName, averageConfidence(annotation?.fullTextAnnotation), latencyMs)
+    const analysis = safeAnalysis(rawText, requestedType, fileName, confidence, latencyMs, provider)
 
     // Important: raw OCR text and provider response are intentionally not returned or persisted.
     return json(request, 200, { ok: true, analysis })

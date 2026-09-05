@@ -1,5 +1,9 @@
 const AADHAAR_REGEX = /\b(\d{4})[\s-]?(\d{4})[\s-]?(\d{4})\b/g;
 const DATE_REGEX = /\b([0-3]?\d)[/.-]([01]?\d)[/.-]((?:19|20)\d{2})\b/;
+const PAN_REGEX = /\b[A-Z]{5}\d{4}[A-Z]\b/i;
+const PASSPORT_REGEX = /\b[A-Z][0-9]{7}\b/i;
+const VOTER_REGEX = /\b[A-Z]{3}\d{7}\b/i;
+const DL_REGEX = /\b[A-Z]{2}[\s-]?\d{2}[\s-]?\d{4}[\s-]?\d{7}\b/i;
 
 function normalizeSpace(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -65,18 +69,60 @@ async function imageBitmapFromFile(file) {
   }
 }
 
-async function detectText(bitmap) {
+async function detectTextWithBrowser(bitmap) {
   if (!bitmap || typeof window === "undefined" || typeof window.TextDetector !== "function") {
-    return { engine: "manual_fallback", text: "", supported: false };
+    return { engine: "browser_text_detector", text: "", supported: false };
+  }
+  try {
+    const detector = new window.TextDetector();
+    const blocks = await detector.detect(bitmap);
+    const text = (blocks || [])
+      .map((block) => block.rawValue || block.text || "")
+      .filter(Boolean)
+      .join("\n");
+    return { engine: "browser_text_detector", text, supported: true };
+  } catch {
+    return { engine: "browser_text_detector", text: "", supported: false };
+  }
+}
+
+async function detectTextWithTesseract(file, onProgress) {
+  if (!file || !String(file.type || "").startsWith("image/")) {
+    return { engine: "tesseract_browser", text: "", supported: false };
   }
 
-  const detector = new window.TextDetector();
-  const blocks = await detector.detect(bitmap);
-  const text = (blocks || [])
-    .map((block) => block.rawValue || block.text || "")
-    .filter(Boolean)
-    .join("\n");
-  return { engine: "browser_text_detector", text, supported: true };
+  let worker;
+  try {
+    const { createWorker } = await import("tesseract.js");
+    worker = await createWorker("eng", 1, {
+      logger: (event) => {
+        if (event?.status === "recognizing text" && Number.isFinite(event.progress)) {
+          onProgress?.(Math.round(event.progress * 100));
+        }
+      },
+    });
+    const result = await worker.recognize(file);
+    return {
+      engine: "tesseract_browser",
+      text: String(result?.data?.text || ""),
+      supported: true,
+      confidence: Number.isFinite(result?.data?.confidence) ? Number(result.data.confidence) : null,
+    };
+  } catch (error) {
+    console.warn("Browser OCR fallback unavailable:", error);
+    return { engine: "tesseract_browser", text: "", supported: false, error };
+  } finally {
+    try { await worker?.terminate?.(); } catch { /* best effort */ }
+  }
+}
+
+async function detectText(bitmap, file, onProgress) {
+  const nativeResult = await detectTextWithBrowser(bitmap);
+  if (nativeResult.supported && nativeResult.text.trim()) {
+    onProgress?.(100);
+    return nativeResult;
+  }
+  return detectTextWithTesseract(file, onProgress);
 }
 
 async function detectQr(bitmap) {
@@ -102,20 +148,66 @@ async function detectQr(bitmap) {
   }
 }
 
-function probableName(lines) {
-  const rejected = /government|india|aadhaar|uidai|income tax|department|date of birth|dob|male|female|address|year of birth|father|signature|passport|republic|driving|licen[cs]e|election|commission/i;
+function inferDocumentType(rawText) {
+  const text = String(rawText || "").toUpperCase();
+  if (/AADHAAR|AADHAR|UNIQUE IDENTIFICATION|GOVERNMENT OF INDIA/.test(text) && [...text.matchAll(AADHAAR_REGEX)].length) return "aadhaar";
+  if (/INCOME TAX|PERMANENT ACCOUNT NUMBER|\bPAN\b/.test(text) || PAN_REGEX.test(text)) return "pan";
+  if (/PASSPORT|REPUBLIC OF INDIA|P<IND/.test(text) || PASSPORT_REGEX.test(text)) return "passport";
+  if (/DRIVING LICEN[CS]E|TRANSPORT DEPARTMENT|\bDL\s*NO/.test(text) || DL_REGEX.test(text)) return "driving_licence";
+  if (/ELECTION COMMISSION|ELECTOR PHOTO IDENTITY|EPIC/.test(text) || VOTER_REGEX.test(text)) return "voter_id";
+  return "other";
+}
+
+function lineAfterLabel(lines, pattern) {
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!pattern.test(lines[index])) continue;
+    const inline = normalizeSpace(lines[index].replace(pattern, "").replace(/^\s*[:.-]\s*/, ""));
+    if (inline && !/^[:.-]+$/.test(inline)) return inline;
+    const next = normalizeSpace(lines[index + 1] || "");
+    if (next) return next;
+  }
+  return "";
+}
+
+function probableName(lines, documentType) {
+  if (documentType === "passport") {
+    const surname = lineAfterLabel(lines, /^(?:surname|last name)\s*/i);
+    const given = lineAfterLabel(lines, /^(?:given names?|given name|first name)\s*/i);
+    if (surname || given) return titleCaseWords(`${given} ${surname}`);
+  }
+  if (documentType === "pan") {
+    const name = lineAfterLabel(lines, /^(?:name)\s*/i);
+    if (name) return titleCaseWords(name);
+  }
+  if (documentType === "driving_licence" || documentType === "voter_id") {
+    const name = lineAfterLabel(lines, /^(?:name|holder'?s? name|elector'?s? name)\s*/i);
+    if (name) return titleCaseWords(name);
+  }
+
+  const rejected = /government|india|aadhaar|uidai|income tax|department|date of birth|dob|male|female|address|year of birth|father|signature|passport|republic|driving|licen[cs]e|election|commission|authority|number|no\.|issue|valid/i;
   const candidates = lines
     .map(normalizeSpace)
     .filter((line) => line.length >= 3 && line.length <= 60)
     .filter((line) => /^[A-Za-z][A-Za-z .'-]+$/.test(line))
     .filter((line) => !rejected.test(line));
+
+  if (documentType === "aadhaar") {
+    const dateIndex = lines.findIndex((line) => /\b(?:DOB|YOB|DATE OF BIRTH|YEAR OF BIRTH)\b/i.test(line));
+    if (dateIndex > 0) {
+      for (let index = dateIndex - 1; index >= Math.max(0, dateIndex - 3); index -= 1) {
+        const line = normalizeSpace(lines[index]);
+        if (/^[A-Za-z][A-Za-z .'-]{2,59}$/.test(line) && !rejected.test(line)) return titleCaseWords(line);
+      }
+    }
+  }
+
   return candidates.length ? titleCaseWords(candidates[0]) : "";
 }
 
 function parseGender(text) {
-  if (/\b(female|f)\b/i.test(text)) return "female";
-  if (/\b(male|m)\b/i.test(text)) return "male";
-  if (/\b(transgender|third gender)\b/i.test(text)) return "other";
+  if (/\bFEMALE\b/i.test(text)) return "female";
+  if (/\bMALE\b/i.test(text)) return "male";
+  if (/\b(?:TRANSGENDER|THIRD GENDER)\b/i.test(text)) return "other";
   return "";
 }
 
@@ -123,10 +215,10 @@ function extractAddress(lines) {
   const start = lines.findIndex((line) => /\baddress\b\s*[:-]?/i.test(line));
   if (start < 0) return "";
   const addressLines = [];
-  for (let index = start; index < Math.min(lines.length, start + 5); index += 1) {
+  for (let index = start; index < Math.min(lines.length, start + 7); index += 1) {
     const cleaned = normalizeSpace(lines[index]).replace(/^address\s*[:-]?\s*/i, "");
     if (!cleaned) continue;
-    if (/\b(?:dob|date of birth|male|female|aadhaar|vid)\b/i.test(cleaned)) break;
+    if (/\b(?:dob|date of birth|male|female|aadhaar|vid|signature)\b/i.test(cleaned)) break;
     addressLines.push(cleaned);
   }
   return normalizeSpace(addressLines.join(", ")).slice(0, 240);
@@ -144,77 +236,120 @@ function extractMaskedDocumentNumber(text, documentType) {
     return match ? maskAadhaar(match[0]) : "";
   }
   if (documentType === "pan") {
-    const match = raw.toUpperCase().match(/\b[A-Z]{5}\d{4}[A-Z]\b/);
+    const match = raw.toUpperCase().match(PAN_REGEX);
     return match ? maskPan(match[0]) : "";
   }
   if (documentType === "passport") {
-    const match = raw.toUpperCase().match(/\b[A-Z][0-9]{7}\b/);
+    const match = raw.toUpperCase().match(PASSPORT_REGEX);
     return match ? maskGeneric(match[0]) : "";
   }
   if (documentType === "driving_licence") {
-    const match = raw.toUpperCase().match(/\b[A-Z]{2}[\s-]?\d{2}[\s-]?\d{4}[\s-]?\d{7}\b/);
+    const match = raw.toUpperCase().match(DL_REGEX);
     return match ? maskGeneric(match[0]) : "";
   }
   if (documentType === "voter_id") {
-    const match = raw.toUpperCase().match(/\b[A-Z]{3}\d{7}\b/);
+    const match = raw.toUpperCase().match(VOTER_REGEX);
     return match ? maskGeneric(match[0]) : "";
   }
   return "";
 }
 
+function extractDateOfBirth(lines, text) {
+  const labelPattern = /\b(?:DOB|DATE OF BIRTH|BIRTH DATE|D\.O\.B\.?|जन्म(?:\s+तिथि)?)\b/i;
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!labelPattern.test(lines[index])) continue;
+    const sameLine = lines[index].match(DATE_REGEX);
+    if (sameLine) return isoDateFromMatch(sameLine);
+    const nextLine = String(lines[index + 1] || "").match(DATE_REGEX);
+    if (nextLine) return isoDateFromMatch(nextLine);
+  }
+  const generic = String(text || "").match(DATE_REGEX);
+  return isoDateFromMatch(generic);
+}
+
+export function extractIdentityFromText(rawText, requestedDocumentType = "auto") {
+  const raw = String(rawText || "");
+  const detectedDocumentType = inferDocumentType(raw);
+  const documentType = requestedDocumentType && requestedDocumentType !== "auto"
+    ? requestedDocumentType
+    : detectedDocumentType;
+  const maskedText = maskSensitiveNumbers(raw);
+  const extractedFields = parseSafeFields(maskedText, documentType);
+  const documentNumberMasked = extractMaskedDocumentNumber(raw, documentType) || null;
+  return {
+    documentType,
+    extractedFields,
+    documentNumberMasked,
+  };
+}
+
 function parseSafeFields(rawText, documentType) {
   const text = String(rawText || "");
   const lines = text.split(/\r?\n/).map(normalizeSpace).filter(Boolean);
-  const dateMatch = text.match(DATE_REGEX);
+  const address = extractAddress(lines);
+  const postalCode = extractPostalCode(text);
+  const indianDocument = ["aadhaar", "pan", "voter_id", "driving_licence"].includes(documentType);
   const fields = {
-    name: probableName(lines),
-    dob: isoDateFromMatch(dateMatch),
+    full_name: probableName(lines, documentType),
+    date_of_birth: extractDateOfBirth(lines, text),
     gender: parseGender(text),
-    address_line1: extractAddress(lines),
-    postal_code: extractPostalCode(text),
-    nationality: documentType === "aadhaar" || documentType === "pan" || documentType === "voter_id" || documentType === "driving_licence" ? "India" : "",
-    issue_country: documentType === "aadhaar" || documentType === "pan" || documentType === "voter_id" || documentType === "driving_licence" ? "India" : "",
+    address_line1: address,
+    postal_code: postalCode,
+    nationality: indianDocument ? "India" : documentType === "passport" && /\bIND\b/.test(text) ? "India" : "",
+    country_of_residence: indianDocument ? "India" : "",
   };
-
-  return Object.fromEntries(
-    Object.entries(fields).filter(([, value]) => value !== "" && value !== null && value !== undefined)
-  );
+  return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== "" && value !== null && value !== undefined));
 }
 
-export async function analyzeIdentityDocument(file, documentType) {
+export async function analyzeIdentityDocument(file, requestedDocumentType = "auto", options = {}) {
   if (!file) throw new Error("Choose or capture a document first.");
   if (!String(file.type || "").startsWith("image/")) {
     return {
-      status: "limited", method: "manual", extractedFields: {}, documentNumberMasked: null,
-      secureQrDetected: false, secureQrSupported: false, secureQrPayloadSha256: null,
-      rawOcrTextStored: false, rawQrPayloadStored: false,
-      message: "Automatic extraction currently runs on JPEG/PNG captures. Review this file securely and manually.",
+      status: "limited",
+      method: "manual",
+      documentType: requestedDocumentType === "auto" ? "other" : requestedDocumentType,
+      extractedFields: {},
+      documentNumberMasked: null,
+      secureQrDetected: false,
+      secureQrSupported: false,
+      secureQrPayloadSha256: null,
+      rawOcrTextStored: false,
+      rawQrPayloadStored: false,
+      message: "Automatic extraction currently runs on JPG/PNG captures. Review this file manually.",
     };
   }
 
   const bitmap = await imageBitmapFromFile(file);
   try {
-    const [textResult, qrResult] = await Promise.all([detectText(bitmap), detectQr(bitmap)]);
+    const [textResult, qrResult] = await Promise.all([
+      detectText(bitmap, file, options.onProgress),
+      detectQr(bitmap),
+    ]);
     const rawText = textResult.text || "";
-    const maskedText = maskSensitiveNumbers(rawText);
-    const extractedFields = parseSafeFields(maskedText, documentType);
-    const documentNumberMasked = extractMaskedDocumentNumber(rawText, documentType) || null;
-    const hasText = Boolean(textResult.supported && rawText.trim());
-    const method = hasText && qrResult.detected ? "combined" : hasText ? "browser_text_detector" : qrResult.detected ? "barcode_detector" : "manual";
+    const { documentType, extractedFields, documentNumberMasked } = extractIdentityFromText(
+      rawText,
+      requestedDocumentType
+    );
+    const hasText = Boolean(rawText.trim());
     const status = hasText || qrResult.detected ? "extracted" : "limited";
     const warnings = [];
-    if (!textResult.supported) warnings.push("This browser does not expose local OCR. The file can still be stored and reviewed manually.");
-    if (textResult.supported && !rawText.trim()) warnings.push("No readable text was detected. Retake the photo with better focus and lighting.");
-    if (documentType === "aadhaar" && !qrResult.detected) warnings.push("Aadhaar Secure QR was not detected automatically. OCR alone must not be treated as Aadhaar verification.");
-    if (documentType === "aadhaar" && qrResult.detected) warnings.push("Secure QR detected. Authenticity still requires UIDAI digital-signature verification; QR presence alone is not proof.");
+    if (!hasText) warnings.push("No readable text was detected. Retake the photo with better focus and lighting, or enter the fields manually.");
+    if (documentType === "aadhaar" && qrResult.detected) warnings.push("Aadhaar QR detected. This simplified check-in uses it only as a scan signal and does not claim UIDAI verification.");
 
     return {
-      status, method, extractedFields, documentNumberMasked,
-      secureQrDetected: qrResult.detected, secureQrSupported: qrResult.supported,
+      status,
+      method: hasText ? textResult.engine : qrResult.detected ? "barcode_detector" : "manual",
+      confidence: textResult.confidence ?? null,
+      documentType,
+      extractedFields,
+      documentNumberMasked,
+      secureQrDetected: qrResult.detected,
+      secureQrSupported: qrResult.supported,
       secureQrPayloadSha256: qrResult.secureQrPayloadSha256,
-      rawOcrTextStored: false, rawQrPayloadStored: false,
+      rawOcrTextStored: false,
+      rawQrPayloadStored: false,
       warnings,
-      message: warnings.join(" ") || "Safe identity fields extracted locally. Review before saving.",
+      message: warnings.join(" ") || "ID details extracted. Review them before completing check-in.",
     };
   } finally {
     bitmap?.close?.();

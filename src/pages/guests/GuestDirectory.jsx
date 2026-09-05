@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { loadTenantContext } from "../../lib/tenantContext";
 import DocumentScanner from "../../components/guests/DocumentScanner";
 import GuestIdentityCompliance from "../../components/guests/GuestIdentityCompliance";
+import SimpleGuestIdCapture from "../../components/guests/SimpleGuestIdCapture";
 import {
   auditGuestDocumentAccess,
   exportGuestDirectory360,
@@ -10,6 +11,7 @@ import {
   prepareManualWhatsAppContact,
   recordGuestDocumentExtraction,
   applyGuestDocumentIdentityFields,
+  applyScannedGuestIdentityFields,
 } from "../../lib/guestCompliance";
 import { analyzeIdentityDocument } from "../../lib/idDocumentIntelligence";
 import "./GuestDirectory.css";
@@ -47,8 +49,8 @@ const EXPORT_COLUMN_OPTIONS = [
   { key: "total_stays", label: "Total stays" },
   { key: "last_stay", label: "Last stay" },
   { key: "created_at", label: "Profile created" },
-  { key: "kyc_status", label: "KYC status" },
-  { key: "kyc_document_count", label: "KYC document count" },
+  { key: "kyc_status", label: "ID document status" },
+  { key: "kyc_document_count", label: "ID document count" },
   { key: "whatsapp_transactional_consent", label: "Transactional WhatsApp consent" },
   { key: "whatsapp_marketing_consent", label: "Marketing WhatsApp consent" },
   { key: "whatsapp_suppressed", label: "WhatsApp suppressed" },
@@ -56,7 +58,7 @@ const EXPORT_COLUMN_OPTIONS = [
 
 function createEmptyKycForm() {
   return {
-    documentType: "aadhaar",
+    documentType: "other",
     documentNumberMasked: "",
     issueCountry: "",
     issuedOn: "",
@@ -106,6 +108,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
   const [kycUploading, setKycUploading] = useState(false);
   const [kycAnalyzing, setKycAnalyzing] = useState(false);
   const [kycAnalysis, setKycAnalysis] = useState(null);
+  const [simpleProfileCapture, setSimpleProfileCapture] = useState(null);
   const [applyingDocumentId, setApplyingDocumentId] = useState(null);
   const [openingDocumentId, setOpeningDocumentId] = useState(null);
   const [reviewingDocumentId, setReviewingDocumentId] = useState(null);
@@ -297,11 +300,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
       if (directoryFilters.room !== "all" && activeStay?.rooms?.room_number !== directoryFilters.room) return false;
       if (directoryFilters.repeat === "repeat" && !row.repeatGuest) return false;
       if (directoryFilters.repeat === "first" && row.repeatGuest) return false;
-      const effectiveKyc = row.verifiedDocument || guest.identity_verification_status === "verified"
-        ? "verified"
-        : row.documentCount > 0 || guest.identity_verification_status === "pending"
-          ? "pending"
-          : "unverified";
+      const effectiveKyc = row.documentCount > 0 ? "pending" : "unverified";
       if (directoryFilters.kyc !== "all" && effectiveKyc !== directoryFilters.kyc) return false;
       if (directoryFilters.whatsapp === "transactional" && (!row.whatsappTransactionalConsent || row.whatsappSuppressed)) return false;
       if (directoryFilters.whatsapp === "marketing" && (!row.whatsappMarketingConsent || row.whatsappSuppressed)) return false;
@@ -319,9 +318,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
       total: directoryRows.length,
       active: directoryRows.filter((row) => row.activeStay).length,
       repeat: directoryRows.filter((row) => row.repeatGuest).length,
-      verified: directoryRows.filter(
-        (row) => row.verifiedDocument || row.guest.identity_verification_status === "verified"
-      ).length,
+      withId: directoryRows.filter((row) => row.documentCount > 0).length,
     };
   }, [directoryRows]);
 
@@ -644,6 +641,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     setKycDocumentId(createUuid());
     setKycRequestId(createUuid());
     setKycAnalysis(null);
+    setSimpleProfileCapture(null);
     if (!preserveGroup) setKycDocumentGroupId(createUuid());
     setKycFileInputKey((value) => value + 1);
   }
@@ -700,6 +698,31 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     } finally {
       setSavingPreference(false);
     }
+  }
+
+  function handleSimpleProfileCapture(nextCapture) {
+    setSimpleProfileCapture(nextCapture);
+    const analysis = nextCapture?.analysis || null;
+    setKycAnalysis(analysis);
+    setKycForm((current) => ({
+      ...current,
+      file: nextCapture?.file || null,
+      documentType:
+        analysis?.documentType && analysis.documentType !== "other"
+          ? analysis.documentType
+          : current.documentType || "other",
+      documentNumberMasked:
+        analysis?.documentNumberMasked || current.documentNumberMasked || "",
+      issueCountry:
+        analysis?.extractedFields?.nationality ||
+        analysis?.extractedFields?.country_of_residence ||
+        current.issueCountry ||
+        "India",
+      captureSource: nextCapture?.captureSource === "camera" ? "camera" : "upload",
+      qualityStatus: nextCapture?.qualityStatus || "not_assessed",
+      qualityScore: nextCapture?.qualityScore ?? null,
+      qualityFlags: nextCapture?.qualityFlags || [],
+    }));
   }
 
   async function analyzeKycFile(file, documentType = kycForm.documentType) {
@@ -763,7 +786,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
     const mimeType = resolveFileMimeType(file);
 
     if (!file) {
-      onNotice?.("error", "Choose a synthetic JPEG, PNG or PDF document.");
+      onNotice?.("error", "Choose or scan a guest ID document first.");
       return;
     }
 
@@ -843,8 +866,9 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
           retention_basis: kycForm.retentionBasis || "hotel_policy",
           metadata: {
             source: "guest_directory",
-            workflow: "postlaunch_batch3_private_kyc",
+            workflow: "simple_front_desk_id_capture_rev1",
             raw_document_number_stored: false,
+            government_verification_claimed: false,
           },
         },
       });
@@ -852,32 +876,44 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
       if (error) throw error;
 
       const safeAnalysis = kycAnalysis || await analyzeKycFile(file, kycForm.documentType);
+      const savedDocumentId = data?.document?.id || kycDocumentId;
       if (safeAnalysis) {
         await recordGuestDocumentExtraction({
           hotelId: currentHotel.id,
-          documentId: data?.document?.id || kycDocumentId,
+          documentId: savedDocumentId,
           analysis: safeAnalysis,
         });
+        if (safeAnalysis.status === "extracted") {
+          await applyScannedGuestIdentityFields({
+            hotelId: currentHotel.id,
+            documentId: savedDocumentId,
+          });
+        }
       }
 
       onNotice?.(
         "success",
         data?.idempotent
-          ? "KYC upload retry resolved without creating a duplicate."
-          : "Private KYC document uploaded for review."
+          ? "ID save retry resolved without creating a duplicate."
+          : safeAnalysis?.status === "extracted"
+            ? "ID saved and extracted details added to the guest profile."
+            : "ID saved privately with the guest profile."
       );
 
-      const keepGroupForBack = kycForm.documentSide === "front";
-      resetKycDraft(selectedGuest, {
-        preserveGroup: keepGroupForBack,
-        nextSide: keepGroupForBack ? "back" : "single",
-      });
-      await Promise.all([openProfile(selectedGuest), loadDirectory()]);
+      const { data: updatedGuest } = await supabase
+        .from("guests")
+        .select("*")
+        .eq("hotel_id", currentHotel.id)
+        .eq("id", selectedGuest.id)
+        .maybeSingle();
+      resetKycDraft(updatedGuest || selectedGuest);
+      setSimpleProfileCapture(null);
+      await Promise.all([openProfile(updatedGuest || selectedGuest), loadDirectory()]);
     } catch (error) {
-      console.error("Guest KYC upload error:", error);
+      console.error("Guest ID upload error:", error);
       onNotice?.(
         "error",
-        `${error.message || "Unable to upload the KYC document."} The same draft can be retried safely.`
+        `${error.message || "Unable to save the ID document."} You can retry the same scan safely.`
       );
     } finally {
       setKycUploading(false);
@@ -911,8 +947,8 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
       anchor.click();
       anchor.remove();
     } catch (error) {
-      console.error("Private KYC view error:", error);
-      onNotice?.("error", error.message || "Unable to open the private document.");
+      console.error("Private ID document view error:", error);
+      onNotice?.("error", error.message || "Unable to open the private ID document.");
     } finally {
       setOpeningDocumentId(null);
     }
@@ -1086,7 +1122,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
         <div>
           <p className="guest-directory-kicker">CANONICAL GUEST DIRECTORY</p>
           <h2>Guest profiles and stay history</h2>
-          <p>Search every guest profile, review repeat stays, KYC status, notes and preferences.</p>
+          <p>Search guest profiles, repeat stays, saved ID documents, notes and preferences.</p>
         </div>
 
         <div className="guest-directory-actions">
@@ -1132,7 +1168,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
           <option value="all">All guest types</option><option value="repeat">Repeat guests</option><option value="first">First-time guests</option>
         </select>
         <select value={directoryFilters.kyc} onChange={(event) => setDirectoryFilters((current) => ({ ...current, kyc: event.target.value }))}>
-          <option value="all">All KYC states</option><option value="verified">Verified</option><option value="pending">Pending</option><option value="unverified">Unverified</option>
+          <option value="all">All ID records</option><option value="pending">ID saved</option><option value="unverified">No ID saved</option>
         </select>
         <select value={directoryFilters.whatsapp} onChange={(event) => setDirectoryFilters((current) => ({ ...current, whatsapp: event.target.value }))}>
           <option value="all">All WhatsApp states</option><option value="transactional">Transactional consent</option><option value="marketing">Marketing consent</option><option value="suppressed">Suppressed</option><option value="none">No consent</option>
@@ -1160,7 +1196,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
           </div>
           <label className="guest-export-kyc">
             <input type="checkbox" checked={exportIncludeKyc} onChange={(event) => setExportIncludeKyc(event.target.checked)} />
-            <span>Include KYC status/count summary (requires guest-management permission; never includes files or full ID numbers)</span>
+            <span>Include ID document status/count summary (requires guest-management permission; never includes files or full ID numbers)</span>
           </label>
           <div className="guest-export-actions">
             <button type="button" className="secondary" onClick={() => setExportPanelOpen(false)}>Cancel</button>
@@ -1173,7 +1209,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
         <Metric label="Guest profiles" value={metrics.total} />
         <Metric label="Currently in-house" value={metrics.active} />
         <Metric label="Repeat guests" value={metrics.repeat} />
-        <Metric label="KYC verified" value={metrics.verified} />
+        <Metric label="ID on file" value={metrics.withId} />
       </div>
 
       {visibleRows.length === 0 ? (
@@ -1188,7 +1224,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                 <th>Identity</th>
                 <th>Stay history</th>
                 <th>Current status</th>
-                <th>KYC</th>
+                <th>ID docs</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -1208,7 +1244,7 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                   </td>
                   <td>
                     <span>{formatIdentity(row.guest)}</span>
-                    <small>{formatVerification(row.guest.identity_verification_status)}</small>
+                    <small>{row.guest.id_number ? "Masked ID on file" : "No ID number"}</small>
                   </td>
                   <td>
                     <strong>{row.totalStays}</strong> stay{row.totalStays === 1 ? "" : "s"}
@@ -1228,8 +1264,8 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                     )}
                   </td>
                   <td>
-                    <span className={`guest-chip ${row.verifiedDocument ? "verified" : "neutral"}`}>
-                      {row.verifiedDocument ? "Verified" : `${row.documentCount} document(s)`}
+                    <span className={`guest-chip ${row.documentCount > 0 ? "active" : "neutral"}`}>
+                      {row.documentCount > 0 ? `${row.documentCount} saved` : "No ID"}
                     </span>
                   </td>
                   <td>
@@ -1267,7 +1303,141 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
             {profileLoading ? (
               <div className="guest-directory-empty">Loading complete guest history...</div>
             ) : (
-              <div className="guest-profile-content">
+              <>
+                <div className="guest-profile-simple">
+                  {(() => {
+                    const stay = profile.sessions.find((session) => session.status === "active") || profile.sessions[0] || null;
+                    const roomNumber = stay?.rooms?.room_number || "—";
+                    const stayStatus = stay?.status === "active" ? "Checked-in" : stay?.status ? titleCase(stay.status) : "Guest";
+                    const stayWindow = stay
+                      ? `${formatDateOnly(stay.checkin_time)} – ${formatDateOnly(stay.extended_until || stay.checkout_time)}`
+                      : "No stay recorded";
+                    const initials = String(selectedGuest.full_name || "G")
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((part) => part[0]?.toUpperCase())
+                      .join("") || "G";
+
+                    return (
+                      <>
+                        <section className="simple-profile-summary">
+                          <div className="simple-profile-avatar">{initials}</div>
+                          <div className="simple-profile-name">
+                            <h3>{selectedGuest.full_name}</h3>
+                            <span>Guest · {selectedGuest.id.slice(0, 8).toUpperCase()}</span>
+                          </div>
+                          <div className="simple-profile-summary-item"><span>Room</span><strong>{roomNumber}</strong></div>
+                          <div className="simple-profile-summary-item wide"><span>Stay dates</span><strong>{stayWindow}</strong></div>
+                          <div className="simple-profile-status">{stayStatus}</div>
+                        </section>
+
+                        <div className="simple-profile-grid">
+                          <section className="simple-profile-card">
+                            <div className="simple-profile-card-title"><span>◎</span><h3>Identity & contact</h3></div>
+                            <div className="simple-profile-contact-grid">
+                              <Detail label="Phone number" value={selectedGuest.phone} />
+                              <Detail label="Email" value={selectedGuest.email} />
+                              <Detail label="ID type" value={titleCase(selectedGuest.id_type)} />
+                              <Detail label="ID number" value={maskDocumentValue(selectedGuest.id_number)} />
+                              <Detail label="Date of birth" value={formatDateOnly(selectedGuest.date_of_birth)} />
+                              <Detail label="Nationality" value={selectedGuest.nationality} />
+                              <Detail
+                                label="Address"
+                                value={[selectedGuest.address_line1, selectedGuest.address_line2, selectedGuest.city, selectedGuest.state_region, selectedGuest.postal_code].filter(Boolean).join(", ")}
+                                wide
+                              />
+                            </div>
+                          </section>
+
+                          <section className="simple-profile-card simple-saved-documents">
+                            <div className="simple-profile-card-title simple-profile-card-title-row">
+                              <div><span>▤</span><div><h3>Saved ID documents</h3><p>Documents captured during check-in.</p></div></div>
+                              {kycPermissions.canUpload && (
+                                <button type="button" onClick={() => document.getElementById("simple-profile-id-capture")?.scrollIntoView({ behavior: "smooth", block: "center" })}>Rescan ID</button>
+                              )}
+                            </div>
+                            {profile.documents.length === 0 ? (
+                              <p className="guest-muted">No ID document saved for this guest yet.</p>
+                            ) : (
+                              <div className="simple-document-list">
+                                {profile.documents.map((documentRecord) => {
+                                  const extracted = documentRecord.metadata?.extraction?.status === "extracted";
+                                  return (
+                                    <article key={documentRecord.id}>
+                                      <div className="simple-document-icon">ID</div>
+                                      <div className="simple-document-copy">
+                                        <strong>{titleCase(documentRecord.document_type)}{documentRecord.document_number_masked ? ` (${documentRecord.document_number_masked})` : ""}</strong>
+                                        <span>Uploaded {formatDateTime(documentRecord.created_at)}</span>
+                                      </div>
+                                      <span className="simple-document-status">{extracted ? "Scanned" : "Saved"}</span>
+                                      {kycPermissions.canView && (
+                                        <button type="button" className="simple-document-view" disabled={openingDocumentId === documentRecord.id} onClick={() => openPrivateDocument(documentRecord)}>
+                                          {openingDocumentId === documentRecord.id ? "Opening…" : "View document"}
+                                        </button>
+                                      )}
+                                    </article>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </section>
+                        </div>
+
+                        {kycPermissions.canUpload && (
+                          <section className="simple-profile-scan" id="simple-profile-id-capture">
+                            <SimpleGuestIdCapture
+                              compact
+                              value={simpleProfileCapture}
+                              onChange={handleSimpleProfileCapture}
+                              disabled={kycUploading}
+                            />
+                            {simpleProfileCapture?.file && (
+                              <div className="simple-profile-scan-actions">
+                                <div><strong>Ready to save</strong><span>StayQR will save the ID privately and apply safe extracted fields to this guest profile.</span></div>
+                                <button type="button" onClick={() => uploadGuestDocument({ preventDefault() {} })} disabled={kycUploading || kycAnalyzing}>
+                                  {kycUploading ? "Saving ID…" : "Save ID to guest"}
+                                </button>
+                              </div>
+                            )}
+                          </section>
+                        )}
+
+                        <details className="simple-profile-more">
+                          <summary>More guest details</summary>
+                          <div className="simple-profile-more-content">
+                            <section>
+                              <h4>Stay history</h4>
+                              {profile.sessions.length === 0 ? <p className="guest-muted">No stay history recorded.</p> : (
+                                <div className="simple-stay-list">
+                                  {profile.sessions.map((session) => <article key={session.id}><strong>Room {session.rooms?.room_number || "—"}</strong><span>{formatDateTime(session.checkin_time)} → {formatDateTime(session.extended_until || session.checkout_time)}</span><em>{titleCase(session.status)}</em></article>)}
+                                </div>
+                              )}
+                            </section>
+                            <section>
+                              <h4>Private notes</h4>
+                              <div className="guest-inline-form">
+                                <input value={noteText} onChange={(event) => setNoteText(event.target.value)} placeholder="Add a private guest note" />
+                                <button type="button" disabled={savingNote || !noteText.trim()} onClick={addNote}>{savingNote ? "Saving…" : "Save note"}</button>
+                              </div>
+                              <div className="guest-record-list compact-list">{profile.notes.slice(0, 5).map((note) => <article key={note.id}><strong>{titleCase(note.note_type)}</strong><p>{note.note_text}</p></article>)}</div>
+                            </section>
+                            <section>
+                              <h4>Guest preferences</h4>
+                              <div className="guest-inline-form">
+                                <input value={preferenceKey} onChange={(event) => setPreferenceKey(event.target.value)} placeholder="Preference" />
+                                <input value={preferenceValue} onChange={(event) => setPreferenceValue(event.target.value)} placeholder="Value" />
+                                <button type="button" disabled={savingPreference || !preferenceKey.trim() || !preferenceValue.trim()} onClick={savePreference}>{savingPreference ? "Saving…" : "Save"}</button>
+                              </div>
+                            </section>
+                          </div>
+                        </details>
+                      </>
+                    );
+                  })()}
+                </div>
+                {import.meta.env.VITE_ENABLE_LEGACY_GUEST_PROFILE === "true" && (
+                  <div className="guest-profile-content guest-profile-content--legacy">
                 <div className="guest-directory-metrics compact">
                   <Metric label="Total stays" value={profileSummary.totalStays} />
                   <Metric label="Active stays" value={profileSummary.activeStays} />
@@ -2014,7 +2184,9 @@ export default function GuestDirectory({ currentHotel, onNotice }) {
                     </div>
                   )}
                 </section>
-              </div>
+                  </div>
+                )}
+              </>
             )}
           </section>
         </div>

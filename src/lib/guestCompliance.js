@@ -170,6 +170,15 @@ export async function applyGuestDocumentIdentityFields({ hotelId, documentId }) 
   return data;
 }
 
+export async function applyScannedGuestIdentityFields({ hotelId, documentId }) {
+  const { data, error } = await supabase.rpc("apply_scanned_guest_identity_fields", {
+    target_hotel_id: hotelId,
+    target_document_id: documentId,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function auditGuestDocumentAccess({
   hotelId,
   documentId,

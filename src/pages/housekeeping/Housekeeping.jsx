@@ -30,6 +30,7 @@ export default function Housekeeping({ hotel: hotelProp }) {
   const [selectedStaffId, setSelectedStaffId] = useState('')
   const [loading, setLoading] = useState(true)
   const [busyTaskId, setBusyTaskId] = useState('')
+  const [busyChecklistTaskId, setBusyChecklistTaskId] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
@@ -130,6 +131,94 @@ export default function Housekeeping({ hotel: hotelProp }) {
     }
   }
 
+  const patchChecklist = useCallback((taskId, statusByItemId) => {
+    setWorkspace((current) => ({
+      ...current,
+      tasks: (current.tasks || []).map((task) => {
+        if (task.id !== taskId) return task
+        return {
+          ...task,
+          items: (task.items || []).map((item) => (
+            Object.prototype.hasOwnProperty.call(statusByItemId, item.id)
+              ? { ...item, item_status: statusByItemId[item.id] }
+              : item
+          )),
+        }
+      }),
+    }))
+  }, [])
+
+  const updateChecklistItemOptimistic = async (task, item, status) => {
+    if (!task?.id || !item?.id || busyChecklistTaskId) return
+    const previousStatus = item.item_status || 'pending'
+    if (previousStatus === status) return
+
+    setBusyChecklistTaskId(task.id)
+    setError('')
+    setSuccess('')
+    patchChecklist(task.id, { [item.id]: status })
+
+    try {
+      await updateHousekeepingChecklistItem(hotel.id, task.id, item.id, status, '')
+      setSuccess('Checklist saved.')
+    } catch (actionError) {
+      patchChecklist(task.id, { [item.id]: previousStatus })
+      setError(actionError.message || 'Unable to update this checklist item.')
+    } finally {
+      setBusyChecklistTaskId('')
+    }
+  }
+
+  const updateChecklistAllOptimistic = async (task) => {
+    if (!task?.id || busyChecklistTaskId) return
+    const items = task.items || []
+    if (items.length === 0) return
+
+    const allComplete = items.every((item) =>
+      ['completed', 'not_applicable'].includes(item.item_status)
+    )
+    const targetStatus = allComplete ? 'pending' : 'completed'
+    const changedItems = items.filter((item) => {
+      const complete = ['completed', 'not_applicable'].includes(item.item_status)
+      return targetStatus === 'completed' ? !complete : complete
+    })
+    if (changedItems.length === 0) return
+
+    const previousStatuses = Object.fromEntries(
+      changedItems.map((item) => [item.id, item.item_status || 'pending'])
+    )
+    const nextStatuses = Object.fromEntries(
+      changedItems.map((item) => [item.id, targetStatus])
+    )
+
+    setBusyChecklistTaskId(task.id)
+    setError('')
+    setSuccess('')
+    patchChecklist(task.id, nextStatuses)
+
+    try {
+      for (const item of changedItems) {
+        await updateHousekeepingChecklistItem(
+          hotel.id,
+          task.id,
+          item.id,
+          targetStatus,
+          ''
+        )
+      }
+      setSuccess(targetStatus === 'completed' ? 'Checklist completed.' : 'Checklist cleared.')
+    } catch (actionError) {
+      // A bulk request can fail after earlier rows were already persisted.
+      // Reconcile only on failure so normal checklist taps never reload or lose scroll.
+      patchChecklist(task.id, previousStatuses)
+      setError(actionError.message || 'Unable to update the full checklist.')
+      await loadData(false)
+      if (activeTab === 'mobile') await loadMobile()
+    } finally {
+      setBusyChecklistTaskId('')
+    }
+  }
+
   const createTask = (event) => {
     event.preventDefault()
     runTaskAction('new', 'Housekeeping task created.', async () => {
@@ -175,10 +264,7 @@ export default function Housekeeping({ hotel: hotelProp }) {
         <div>
           <div className="day13-kicker">Housekeeping operations</div>
           <h1>Housekeeping</h1>
-          <p>
-            Assignment, workload, required cleaning checklist, inspection, rework and
-            explicit room-ready approval.
-          </p>
+          <p>Touch-friendly checks, clear progress and compact task cards.</p>
         </div>
         <div className="day13-actions">
           <button className="day13-button" onClick={() => loadData()} type="button">
@@ -197,13 +283,11 @@ export default function Housekeeping({ hotel: hotelProp }) {
       {error && <div className="day13-alert">{error}</div>}
       {success && <div className="day13-success">{success}</div>}
 
-      <div className="day13-stats">
-        <Stat label="Open tasks" value={stats.open} />
-        <Stat label="Unassigned" value={stats.unassigned} />
-        <Stat label="In progress" value={stats.inProgress} />
-        <Stat label="Inspection queue" value={stats.inspection} />
-        <Stat label="Ready" value={stats.ready} />
-        <Stat label="Rooms waiting" value={stats.roomsWaiting} />
+      <div className="day13-stats day13-stats-approved">
+        <Stat label="Open tasks" value={stats.open} hint={stats.unassigned ? `${stats.unassigned} unassigned` : 'All assigned'} />
+        <Stat label="In progress" value={stats.inProgress} hint={stats.inProgress ? 'Cleaning underway' : 'No active task'} />
+        <Stat label="Inspection" value={stats.inspection} hint={stats.inspection ? 'Needs review' : 'Nothing waiting'} />
+        <Stat label="Rooms waiting" value={stats.roomsWaiting} hint={stats.ready ? `${stats.ready} ready` : 'Checkout cleaning queue'} />
       </div>
 
       <div className="day13-tabs">
@@ -240,17 +324,9 @@ export default function Housekeeping({ hotel: hotelProp }) {
                     startHousekeepingTask(hotel.id, task.id)
                   )
                 }
-                onItem={(item, status) =>
-                  runTaskAction(task.id, 'Checklist updated.', () =>
-                    updateHousekeepingChecklistItem(
-                      hotel.id,
-                      task.id,
-                      item.id,
-                      status,
-                      ''
-                    )
-                  )
-                }
+                busyChecklist={busyChecklistTaskId === task.id}
+                onItem={(item, status) => updateChecklistItemOptimistic(task, item, status)}
+                onToggleAll={() => updateChecklistAllOptimistic(task)}
                 onComplete={() =>
                   runTaskAction(task.id, 'Cleaning marked complete.', () =>
                     completeHousekeepingCleaning(hotel.id, task.id, '')
@@ -477,9 +553,11 @@ export default function Housekeeping({ hotel: hotelProp }) {
 function HousekeepingCard({
   task,
   busy,
+  busyChecklist,
   onAssign,
   onStart,
   onItem,
+  onToggleAll,
   onComplete,
   onInspect,
   onReady,
@@ -489,6 +567,8 @@ function HousekeepingCard({
   const complete = items.filter((item) =>
     ['completed', 'not_applicable'].includes(item.item_status)
   ).length
+  const allComplete = items.length > 0 && complete === items.length
+  const checklistEnabled = ['assigned', 'in_progress', 'inspection_failed'].includes(task.status)
 
   return (
     <div className="day13-card">
@@ -505,8 +585,21 @@ function HousekeepingCard({
         </span>
       </div>
 
-      <div className="day13-small" style={{ marginTop: 12 }}>
-        Checklist {complete}/{items.length}
+      <div className="day13-checklist-summary">
+        <div>
+          <span>Checklist</span>
+          <strong>{complete}/{items.length}</strong>
+        </div>
+        {items.length > 0 && checklistEnabled && (
+          <button
+            className="day13-select-all"
+            type="button"
+            disabled={busy || busyChecklist}
+            onClick={onToggleAll}
+          >
+            {busyChecklist ? 'Saving…' : allComplete ? 'Clear all' : 'Complete all'}
+          </button>
+        )}
       </div>
       <Progress completed={complete} total={items.length} />
 
@@ -515,10 +608,7 @@ function HousekeepingCard({
           <label className="day13-check" key={item.id}>
             <input
               type="checkbox"
-              disabled={
-                busy ||
-                !['assigned', 'in_progress', 'inspection_failed'].includes(task.status)
-              }
+              disabled={busy || busyChecklist || !checklistEnabled}
               checked={['completed', 'not_applicable'].includes(item.item_status)}
               onChange={(event) => onItem(item, event.target.checked ? 'completed' : 'pending')}
             />
@@ -608,11 +698,12 @@ function Field({ label, children, full = false }) {
   )
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value, hint = '' }) {
   return (
     <div className="day13-stat">
       <span>{label}</span>
       <strong>{value}</strong>
+      {hint && <small>{hint}</small>}
     </div>
   )
 }

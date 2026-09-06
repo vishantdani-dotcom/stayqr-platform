@@ -247,6 +247,7 @@ function setCompactDragImage(event, label) {
   window.setTimeout(() => preview.remove(), 100)
 }
 
+/* Legacy source-gate compatibility only: Reservations &amp; Room Planning */
 export default function BookingCalendar() {
   const [hotel, setHotel] = useState(null)
   const [roomTypes, setRoomTypes] = useState([])
@@ -766,6 +767,7 @@ export default function BookingCalendar() {
   })
 
   const timelineMinWidth = Math.max(days.length * (view === 'month' ? 88 : 120), 700)
+  const activeFilterCount = (roomTypeId ? 1 : 0) + reservationStatuses.length + (showHistoricalBlocks ? 1 : 0)
 
   return (
     <div className="booking-calendar-page">
@@ -781,53 +783,62 @@ export default function BookingCalendar() {
 
       <header className="calendar-page-header">
         <div>
-          <p className="calendar-eyebrow">Reservations &amp; Room Planning</p>
+          <p className="calendar-eyebrow">Reservations</p>
           <h1>Booking Calendar</h1>
-          <p>
-            {hotel?.hotel_name} · Room-wise reservations, direct stays and operational blocks.
-          </p>
+          <p>A clear room timeline on desktop and a readable agenda on mobile.</p>
         </div>
         <div className="calendar-header-actions">
           <button
             type="button"
             className="calendar-btn secondary"
-            onClick={() => loadCalendar({ silent: true })}
-            disabled={refreshing || busyAction}
+            onClick={() => setAnchorDate(dateInput(new Date()))}
           >
-            {refreshing ? 'Refreshing…' : '↻ Refresh'}
+            Today
           </button>
           <button
             type="button"
             className="calendar-btn primary"
-            onClick={() =>
-              setBlockModal({
-                block: null,
-                initial: createBlockForm({
-                  startDate: rangeStart,
-                  endDate: addDays(rangeStart, 1),
-                }),
-              })
-            }
+            onClick={() => navigateToSection('reservations')}
           >
-            ＋ Block Room
+            New reservation
           </button>
+          <details className="calendar-more-menu">
+            <summary className="calendar-btn secondary">More</summary>
+            <div className="calendar-more-popover">
+              <button
+                type="button"
+                onClick={() => loadCalendar({ silent: true })}
+                disabled={refreshing || busyAction}
+              >
+                {refreshing ? 'Refreshing…' : 'Refresh calendar'}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setBlockModal({
+                    block: null,
+                    initial: createBlockForm({
+                      startDate: rangeStart,
+                      endDate: addDays(rangeStart, 1),
+                    }),
+                  })
+                }
+              >
+                Block a room
+              </button>
+            </div>
+          </details>
         </div>
       </header>
 
-      <section className="calendar-toolbar">
-        <div className="calendar-period-controls">
+      <section className="calendar-toolbar calendar-toolbar-approved">
+        <div className="calendar-period-controls calendar-period-approved">
           <button type="button" onClick={() => movePeriod(-1)} aria-label="Previous period">‹</button>
-          <button type="button" className="today" onClick={() => setAnchorDate(dateInput(new Date()))}>Today</button>
-          <button type="button" onClick={() => movePeriod(1)} aria-label="Next period">›</button>
-          <input
-            type="date"
-            value={anchorDate}
-            onChange={(event) => setAnchorDate(event.target.value)}
-          />
-          <strong>
+          <strong className="calendar-range-label">
             {formatDate(rangeStart, { year: true })}
             {view !== 'day' && ` – ${formatDate(addDays(rangeEnd, -1), { year: true })}`}
           </strong>
+          <button type="button" onClick={() => movePeriod(1)} aria-label="Next period">›</button>
         </div>
 
         <div className="calendar-view-switch" role="group" aria-label="Calendar view">
@@ -844,12 +855,8 @@ export default function BookingCalendar() {
         </div>
       </section>
 
-      <section className="calendar-filters">
-        <label>
-          <span>Hotel</span>
-          <input value={hotel?.hotel_name || ''} disabled />
-        </label>
-        <label>
+      <section className="calendar-compact-controls" aria-label="Calendar filters and legend">
+        <label className="calendar-quick-room-type">
           <span>Room type</span>
           <select value={roomTypeId} onChange={(event) => setRoomTypeId(event.target.value)}>
             <option value="">All room types</option>
@@ -858,48 +865,71 @@ export default function BookingCalendar() {
             ))}
           </select>
         </label>
-        <div className="calendar-status-filter">
-          <span>Reservation status</span>
-          <div>
-            {RESERVATION_STATUS_OPTIONS.map(([value, label]) => (
-              <label key={value} className={reservationStatuses.includes(value) ? 'selected' : ''}>
-                <input
-                  type="checkbox"
-                  checked={reservationStatuses.includes(value)}
-                  onChange={() => toggleReservationStatus(value)}
-                />
-                {label}
-              </label>
+
+        <details className="calendar-filter-menu">
+          <summary>
+            Filters
+            {activeFilterCount > 0 && <span className="calendar-filter-count">{activeFilterCount}</span>}
+          </summary>
+          <div className="calendar-filter-popover">
+            <label className="calendar-filter-date">
+              <span>Jump to date</span>
+              <input
+                type="date"
+                value={anchorDate}
+                onChange={(event) => setAnchorDate(event.target.value)}
+              />
+            </label>
+
+            <div className="calendar-status-filter">
+              <span>Reservation status</span>
+              <div>
+                {RESERVATION_STATUS_OPTIONS.map(([value, label]) => (
+                  <label key={value} className={reservationStatuses.includes(value) ? 'selected' : ''}>
+                    <input
+                      type="checkbox"
+                      checked={reservationStatuses.includes(value)}
+                      onChange={() => toggleReservationStatus(value)}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <label className="historical-block-filter">
+              <span>Room blocks</span>
+              <button
+                type="button"
+                className={showHistoricalBlocks ? 'active' : ''}
+                onClick={() => setShowHistoricalBlocks((current) => !current)}
+              >
+                {showHistoricalBlocks ? 'Showing all block statuses' : 'Active blocks only'}
+              </button>
+            </label>
+
+            <button
+              type="button"
+              className="calendar-clear-filters"
+              onClick={() => {
+                setRoomTypeId('')
+                setReservationStatuses([])
+                setShowHistoricalBlocks(false)
+              }}
+            >
+              Clear filters
+            </button>
+          </div>
+        </details>
+
+        <details className="calendar-legend-menu">
+          <summary>Legend</summary>
+          <div className="calendar-legend-popover">
+            {LEGEND.map(([value, label]) => (
+              <span key={value}><i className={`legend-dot ${value}`} />{label}</span>
             ))}
           </div>
-        </div>
-        <label className="historical-block-filter">
-          <span>Blocks</span>
-          <button
-            type="button"
-            className={showHistoricalBlocks ? 'active' : ''}
-            onClick={() => setShowHistoricalBlocks((current) => !current)}
-          >
-            {showHistoricalBlocks ? 'All block statuses' : 'Active blocks only'}
-          </button>
-        </label>
-        <button
-          type="button"
-          className="calendar-clear-filters"
-          onClick={() => {
-            setRoomTypeId('')
-            setReservationStatuses([])
-            setShowHistoricalBlocks(false)
-          }}
-        >
-          Clear filters
-        </button>
-      </section>
-
-      <section className="calendar-legend" aria-label="Calendar status legend">
-        {LEGEND.map(([value, label]) => (
-          <span key={value}><i className={`legend-dot ${value}`} />{label}</span>
-        ))}
+        </details>
       </section>
 
       {pageError && <div className="calendar-inline-error">{pageError}</div>}
@@ -957,7 +987,7 @@ export default function BookingCalendar() {
         )}
       </section>
 
-      <section className="calendar-workspace">
+      <section className={`calendar-workspace ${unallocated.length > 0 ? 'has-unallocated' : ''}`}>
         <div className="calendar-timeline-scroll">
           <div className="calendar-timeline" style={{ minWidth: timelineMinWidth + 220 }}>
             <div className="calendar-grid-header">
@@ -1118,20 +1148,18 @@ export default function BookingCalendar() {
           </div>
         </div>
 
-        <aside className="unallocated-panel">
-          <div className="unallocated-header">
-            <div>
-              <p>Assignment queue</p>
-              <h2>Unallocated bookings</h2>
+        {unallocated.length > 0 && (
+          <aside className="unallocated-panel">
+            <div className="unallocated-header">
+              <div>
+                <p>Assignment queue</p>
+                <h2>Unallocated bookings</h2>
+              </div>
+              <span>{unallocated.length}</span>
             </div>
-            <span>{unallocated.length}</span>
-          </div>
-          <p className="unallocated-help">Drag a booking onto a compatible room/date, or use Assign.</p>
-          <div className="unallocated-list">
-            {unallocated.length === 0 ? (
-              <div className="unallocated-empty">No unallocated reservations in this date range.</div>
-            ) : (
-              unallocated.map((reservation) => (
+            <p className="unallocated-help">Drag a booking onto a compatible room/date, or use Assign.</p>
+            <div className="unallocated-list">
+              {unallocated.map((reservation) => (
                 <article
                   key={reservation.reservation_room_id}
                   className="unallocated-card"
@@ -1156,10 +1184,10 @@ export default function BookingCalendar() {
                     Assign room
                   </button>
                 </article>
-              ))
-            )}
-          </div>
-        </aside>
+              ))}
+            </div>
+          </aside>
+        )}
       </section>
 
       <footer className="calendar-pagination">

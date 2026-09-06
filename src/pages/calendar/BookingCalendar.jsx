@@ -904,6 +904,59 @@ export default function BookingCalendar() {
 
       {pageError && <div className="calendar-inline-error">{pageError}</div>}
 
+      <section className="calendar-mobile-agenda" aria-label="Mobile booking agenda">
+        <div className="calendar-mobile-agenda-head">
+          <div>
+            <span>ROOM PLAN</span>
+            <h2>{formatDate(rangeStart, { year: true })}{rangeStart !== rangeEnd ? ` – ${formatDate(rangeEnd, { year: true })}` : ''}</h2>
+          </div>
+          <strong>{events.length} event{events.length === 1 ? '' : 's'}</strong>
+        </div>
+        {events.length === 0 ? (
+          <div className="calendar-mobile-empty">No reservations or room blocks match the selected filters.</div>
+        ) : (
+          <div className="calendar-mobile-agenda-list">
+            {[...events]
+              .sort((left, right) => String(left.start_date || '').localeCompare(String(right.start_date || '')))
+              .map((calendarEvent) => {
+                const room = rooms.find((item) => item.id === calendarEvent.room_id)
+                const eventStatus = calendarEvent.event_type === 'room_block'
+                  ? calendarEvent.block_type
+                  : calendarEvent.status || 'active'
+                return (
+                  <button
+                    key={`mobile-${calendarEvent.event_type}-${calendarEvent.id}`}
+                    type="button"
+                    className={`calendar-mobile-event ${eventClass(calendarEvent)}`}
+                    onClick={() =>
+                      calendarEvent.event_type === 'room_block'
+                        ? openBlockDetails(calendarEvent)
+                        : setSelectedEvent(calendarEvent)
+                    }
+                  >
+                    <span className="calendar-mobile-event-date">
+                      <strong>{new Date(`${calendarEvent.start_date}T12:00:00`).toLocaleDateString('en-IN', { day: '2-digit' })}</strong>
+                      <small>{new Date(`${calendarEvent.start_date}T12:00:00`).toLocaleDateString('en-IN', { month: 'short' })}</small>
+                    </span>
+                    <span className="calendar-mobile-event-copy">
+                      <b>{eventTitle(calendarEvent)}</b>
+                      <small>{room ? `Room ${room.room_number} · ${room.room_type_name || 'Room'}` : 'Unallocated room'}</small>
+                      <em>{formatDate(calendarEvent.start_date)} → {formatDate(calendarEvent.end_date)}</em>
+                    </span>
+                    <span className="calendar-mobile-event-status">{labelize(eventStatus)}</span>
+                  </button>
+                )
+              })}
+          </div>
+        )}
+        {unallocated.length > 0 && (
+          <div className="calendar-mobile-unallocated">
+            <strong>{unallocated.length} unallocated booking{unallocated.length === 1 ? '' : 's'}</strong>
+            <span>Open the assignment queue on tablet or desktop to place them on a room.</span>
+          </div>
+        )}
+      </section>
+
       <section className="calendar-workspace">
         <div className="calendar-timeline-scroll">
           <div className="calendar-timeline" style={{ minWidth: timelineMinWidth + 220 }}>

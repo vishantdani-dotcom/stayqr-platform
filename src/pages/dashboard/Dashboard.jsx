@@ -246,19 +246,19 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
 
       <section className="dash-section">
         <div style={analyticsGrid}>
-          <AnalyticsCard title="Total Rooms" value={analytics.totalRooms} icon="🏨" />
-          <AnalyticsCard title="Available Rooms" value={analytics.availableRooms} icon="🟢" />
-          <AnalyticsCard title="Occupied Rooms" value={analytics.occupiedRooms} icon="🔴" />
-          <AnalyticsCard title="Cleaning Rooms" value={analytics.cleaningRooms} icon="🧹" />
-          <AnalyticsCard title="Total Guests" value={analytics.totalGuests} icon="👥" />
-          <AnalyticsCard title="Active Guests" value={analytics.activeGuests} icon="🛏️" />
-          <AnalyticsCard title="Pending Requests" value={analytics.pendingRequests} icon="🛎️" />
-          <AnalyticsCard title="Food Orders Today" value={analytics.todayOrders} icon="🍽️" />
+          <AnalyticsCard title="Total Rooms" value={analytics.totalRooms} type="rooms" />
+          <AnalyticsCard title="Available Rooms" value={analytics.availableRooms} type="available" />
+          <AnalyticsCard title="Occupied Rooms" value={analytics.occupiedRooms} type="occupied" />
+          <AnalyticsCard title="Cleaning Rooms" value={analytics.cleaningRooms} type="cleaning" />
+          <AnalyticsCard title="Total Guests" value={analytics.totalGuests} type="guests" />
+          <AnalyticsCard title="Active Guests" value={analytics.activeGuests} type="active" />
+          <AnalyticsCard title="Pending Requests" value={analytics.pendingRequests} type="requests" />
+          <AnalyticsCard title="Food Orders Today" value={analytics.todayOrders} type="food" />
           <AnalyticsCard
             title="Food Revenue Today"
             detail="Delivered orders placed today; not cash collected."
             value={formatCurrency(analytics.todayRevenue, currentHotel?.currency_code)}
-            icon="💰"
+            type="revenue"
           />
         </div>
       </section>
@@ -307,17 +307,33 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
   )
 }
 
-function AnalyticsCard({ title, value, icon, detail }) {
+function AnalyticsCard({ title, value, type, detail }) {
   return (
-    <div style={analyticsCard}>
-      <div style={analyticsIcon}>{icon}</div>
-      <div>
+    <article style={analyticsCard} className="dash-metric-card">
+      <div style={analyticsIcon} className={`dash-metric-icon dash-metric-icon-${type || 'default'}`}>
+        <MetricIcon type={type} />
+      </div>
+      <div className="dash-metric-copy">
         <p style={analyticsTitle}>{title}</p>
         <h3 style={analyticsValue}>{value}</h3>
-        {detail && <small style={{ color: '#aaa', lineHeight: 1.5 }}>{detail}</small>}
+        {detail && <small className="dash-metric-detail">{detail}</small>}
       </div>
-    </div>
+    </article>
   )
+}
+
+function MetricIcon({ type }) {
+  const common = { width: 19, height: 19, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
+  if (type === 'rooms') return <svg {...common}><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h.01M16 7h.01M8 11h.01M16 11h.01M8 15h8M9 21v-3h6v3"/></svg>
+  if (type === 'available') return <svg {...common}><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>
+  if (type === 'occupied') return <svg {...common}><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6"/><path d="M5 10V7a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3M12 10V7a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3M3 18h18"/></svg>
+  if (type === 'cleaning') return <svg {...common}><path d="m4 20 5-5"/><path d="m14.5 3.5 6 6-9 9-6-6 9-9Z"/><path d="m5.5 12.5-2 2 6 6 2-2"/></svg>
+  if (type === 'guests') return <svg {...common}><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1"/><path d="M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5v1"/></svg>
+  if (type === 'active') return <svg {...common}><path d="M3 18v-7h18v7"/><path d="M5 11V7h5a2 2 0 0 1 2 2v2M12 11V8h5a2 2 0 0 1 2 2v1M3 18h18"/></svg>
+  if (type === 'requests') return <svg {...common}><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v4a2 2 0 0 0 2 2h2v-7H6a2 2 0 0 0-2 1ZM20 13v4a2 2 0 0 1-2 2h-2v-7h2a2 2 0 0 1 2 1Z"/></svg>
+  if (type === 'food') return <svg {...common}><path d="M7 3v8M10 3v8M7 7h3M8.5 11v10M16 3v18M16 3c3 2 4 5 4 8h-4"/></svg>
+  if (type === 'revenue') return <svg {...common}><circle cx="12" cy="12" r="9"/><path d="M8 8h8M8 11h7M10 8c3 0 4 1 4 3s-1 3-4 3H9l5 5"/></svg>
+  return <svg {...common}><circle cx="12" cy="12" r="9"/></svg>
 }
 
 

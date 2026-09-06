@@ -22,7 +22,7 @@ const NAV_ITEMS = [
     items: [
       { id: 'qr', label: 'Room QR Guides', icon: QrIcon },
       { id: 'guidebuilder', label: 'Guest Guide Builder', icon: QrIcon },
-      { id: 'menu', label: 'Menu Management', icon: '🍽️' },
+      { id: 'menu', label: 'Menu Management', icon: UtensilsIcon },
       { id: 'services', label: 'Service Requests', icon: BellIcon },
       { id: 'foodorders', label: 'Food Orders', icon: CardIcon },
     ],
@@ -298,6 +298,15 @@ export default function Sidebar({
         </div>
       )}
     </aside>
+  )
+}
+
+function UtensilsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 3v8M10 3v8M7 7h3M8.5 11v10" />
+      <path d="M16 3v18M16 3c3 2 4 5 4 8h-4" />
+    </svg>
   )
 }
 

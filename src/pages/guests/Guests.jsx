@@ -1156,6 +1156,69 @@ export default function Guests({
         ) : sessions.length === 0 ? (
           <p>No active guests found.</p>
         ) : (
+          <>
+          <div className="guests-active-mobile" aria-label="Active stays">
+            {sessions.map((session) => {
+              const checkoutLoading = checkoutLoadingId === session.id
+              const effectiveCheckout = session.extended_until || session.checkout_time
+              return (
+                <article
+                  className={`guest-active-card ${focusedSessionId === session.id ? "guest-session-focused" : ""}`}
+                  key={`mobile-${session.id}`}
+                  id={`guest-session-mobile-${session.id}`}
+                >
+                  <div className="guest-active-card-head">
+                    <div className="guest-active-avatar" aria-hidden="true">
+                      {String(session.guests?.full_name || "G").trim().charAt(0).toUpperCase() || "G"}
+                    </div>
+                    <div className="guest-active-title">
+                      <span>ACTIVE STAY</span>
+                      <h3>{session.guests?.full_name || "Guest"}</h3>
+                      <p>Room {session.rooms?.room_number || "—"} · {session.rooms?.room_type || "Room"}</p>
+                    </div>
+                    <span className={`guest-session-status ${session.status || "unknown"}`}>
+                      {String(session.status || "unknown").replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}
+                    </span>
+                  </div>
+
+                  <div className="guest-active-meta">
+                    <div><span>Phone</span><strong>{session.guests?.phone || "Not added"}</strong></div>
+                    <div><span>Checked in</span><strong>{session.checkin_time ? new Date(session.checkin_time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</strong></div>
+                    <div><span>Checkout</span><strong>{effectiveCheckout ? new Date(effectiveCheckout).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</strong></div>
+                  </div>
+
+                  <div className="guest-active-actions">
+                    <button
+                      className="checkout-btn primary"
+                      disabled={checkoutLoading}
+                      onClick={() => openSettlementModal(session)}
+                    >
+                      {checkoutLoading ? "Preparing..." : "Final Bill & Checkout"}
+                    </button>
+                    {!session.reservation_id && !session.reservation_room_id && (
+                      <button
+                        className="checkout-btn guest-move-btn"
+                        disabled={checkoutLoading || moveLoading}
+                        onClick={() => openMoveModal(session)}
+                      >
+                        {moveLoading && moveSession?.id === session.id ? "Preparing..." : "Move Room"}
+                      </button>
+                    )}
+                    {!session.reservation_id && !session.reservation_room_id && (
+                      <button
+                        className="checkout-btn"
+                        disabled={checkoutLoading || moveLoading || extendLoading}
+                        onClick={() => openExtendModal(session)}
+                      >
+                        {extendLoading && selectedSession?.id === session.id ? "Preparing..." : "Extend Stay"}
+                      </button>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+
           <table className="rooms-table">
             <thead>
               <tr>
@@ -1319,6 +1382,7 @@ export default function Guests({
               })}
             </tbody>
           </table>
+          </>
         )}
       </div>
       )}

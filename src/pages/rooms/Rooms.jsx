@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getCurrentHotel } from '../../lib/currentHotel'
+import { supabase } from '../../lib/supabase'
+import {
+  getGuestGuideMediaUrl,
+  removeGuestGuideMediaFile,
+  saveGuestGuideMedia,
+  uploadGuestGuideMediaFile,
+} from '../../lib/guestGuideBuilder'
 import {
   archiveFloor,
   archiveRoom,
@@ -12,6 +19,7 @@ import {
   transitionRoomStatus,
 } from '../../lib/day13Operations'
 import '../day13/Day13Operations.css'
+import './Rooms.css'
 
 const EMPTY_FLOOR = {
   id: null,
@@ -45,6 +53,49 @@ const EMPTY_ROOM = {
   status: 'available',
 }
 
+async function loadRoomVisualMedia(hotelId) {
+  const empty = { byRoom: {}, hotelFallback: '', qrRoomIds: new Set() }
+  try {
+    const [mediaResult, qrResult] = await Promise.all([
+      supabase
+        .from('guest_guide_media')
+        .select('id, room_id, scope_type, category, object_path, mime_type, updated_at, is_active')
+        .eq('hotel_id', hotelId)
+        .eq('is_active', true)
+        .in('category', ['room', 'hero', 'property'])
+        .order('updated_at', { ascending: false }),
+      supabase
+        .from('room_qr_codes')
+        .select('room_id, is_active')
+        .eq('hotel_id', hotelId)
+        .eq('is_active', true),
+    ])
+
+    const byRoom = {}
+    let hotelFallback = ''
+    if (!mediaResult.error) {
+      for (const item of mediaResult.data || []) {
+        const isImage = String(item.mime_type || '').startsWith('image/')
+        if (!isImage || !item.object_path) continue
+        const url = getGuestGuideMediaUrl(item.object_path)
+        if (!url) continue
+        if (item.scope_type === 'room' && item.room_id && !byRoom[item.room_id]) {
+          byRoom[item.room_id] = { ...item, url }
+        } else if (!hotelFallback && item.scope_type === 'hotel') {
+          hotelFallback = url
+        }
+      }
+    }
+
+    const qrRoomIds = new Set(
+      qrResult.error ? [] : (qrResult.data || []).map((item) => item.room_id).filter(Boolean)
+    )
+    return { byRoom, hotelFallback, qrRoomIds }
+  } catch {
+    return empty
+  }
+}
+
 export default function Rooms({ hotel: hotelProp }) {
   const [hotel, setHotel] = useState(hotelProp || null)
   const [workspace, setWorkspace] = useState({
@@ -63,6 +114,11 @@ export default function Rooms({ hotel: hotelProp }) {
   const [floorForm, setFloorForm] = useState(EMPTY_FLOOR)
   const [typeForm, setTypeForm] = useState(EMPTY_TYPE)
   const [roomForm, setRoomForm] = useState(EMPTY_ROOM)
+  const [roomMedia, setRoomMedia] = useState({})
+  const [hotelFallbackMedia, setHotelFallbackMedia] = useState('')
+  const [qrRoomIds, setQrRoomIds] = useState(() => new Set())
+  const [mediaBusyRoomId, setMediaBusyRoomId] = useState('')
+  const [openRoomMenuId, setOpenRoomMenuId] = useState('')
   const [importText, setImportText] = useState(
     'room_number,floor_code,room_type_code,status\n'
   )
@@ -77,7 +133,10 @@ export default function Rooms({ hotel: hotelProp }) {
 
       if (!hotel) setHotel(activeHotel)
 
-      const data = await getRoomInventoryWorkspace(activeHotel.id)
+      const [data, visuals] = await Promise.all([
+        getRoomInventoryWorkspace(activeHotel.id),
+        loadRoomVisualMedia(activeHotel.id),
+      ])
       setWorkspace({
         rooms: data?.rooms || [],
         floors: data?.floors || [],
@@ -85,6 +144,9 @@ export default function Rooms({ hotel: hotelProp }) {
         imports: data?.imports || [],
         status_events: data?.status_events || [],
       })
+      setRoomMedia(visuals.byRoom || {})
+      setHotelFallbackMedia(visuals.hotelFallback || '')
+      setQrRoomIds(visuals.qrRoomIds || new Set())
     } catch (loadError) {
       setError(loadError.message)
     } finally {
@@ -226,29 +288,96 @@ export default function Rooms({ hotel: hotelProp }) {
     )
   }
 
+  const openRoomEditor = (room) => {
+    setRoomForm({
+      id: room.id,
+      room_number: room.room_number,
+      floor_id: room.floor_id,
+      room_type_id: room.room_type_id,
+      status: room.status,
+      metadata: room.metadata || {},
+    })
+    setOpenRoomMenuId('')
+    setActiveTab('room-form')
+  }
+
+  const uploadRoomPhoto = async (room, file) => {
+    if (!hotel?.id || !room?.id || !file) return
+    if (!String(file.type || '').startsWith('image/')) {
+      setError('Room photos must be JPG, PNG or WebP images.')
+      return
+    }
+
+    setMediaBusyRoomId(room.id)
+    setError('')
+    setSuccess('')
+    const previous = roomMedia[room.id]
+    try {
+      const upload = await uploadGuestGuideMediaFile({
+        hotelId: hotel.id,
+        file,
+        scopeType: 'room',
+        roomId: room.id,
+        category: 'room',
+      })
+      await saveGuestGuideMedia(hotel.id, {
+        scope_type: 'room',
+        room_type_id: null,
+        room_id: room.id,
+        section_id: null,
+        item_id: null,
+        media_key: `room_cover_${room.id}`,
+        category: 'room',
+        object_path: upload.objectPath,
+        mime_type: upload.mimeType,
+        title: `Room ${room.room_number}`,
+        caption: `${room.room_type_name || 'Hotel room'} photo`,
+        alt_text: `Room ${room.room_number} at ${hotel.hotel_name || 'the hotel'}`,
+        locale: null,
+        sort_order: 0,
+        is_active: true,
+        metadata: {
+          media_kind: 'image',
+          managed_from: 'rooms_inventory',
+        },
+      })
+      if (previous?.object_path && previous.object_path !== upload.objectPath) {
+        await removeGuestGuideMediaFile(previous.object_path).catch(() => undefined)
+      }
+      setSuccess(`Room ${room.room_number} photo updated.`)
+      setOpenRoomMenuId('')
+      await loadWorkspace(false)
+    } catch (uploadError) {
+      setError(uploadError?.message || 'Unable to upload the room photo.')
+    } finally {
+      setMediaBusyRoomId('')
+    }
+  }
+
+
   if (loading) {
     return <div className="day13-page">Loading authoritative room inventory…</div>
   }
 
   return (
-    <div className="day13-page">
-      <div className="day13-header">
+    <div className="day13-page rooms22-page">
+      <div className="rooms22-pagehead">
         <div>
-          <div className="day13-kicker">Room inventory</div>
-          <h1>Rooms & Inventory</h1>
-          <p>
-            Configure floors, room types and rooms through audited RPC operations.
-            Archived or offline inventory is automatically protected from reservations.
-          </p>
+          <div className="day13-kicker rooms22-kicker">Inventory</div>
+          <h1>Rooms</h1>
+          <p>Visual room cards keep status, guest access and room actions readable on every screen size.</p>
         </div>
-        <div className="day13-actions">
+        <div className="day13-actions rooms22-head-actions">
           <button className="day13-button" type="button" onClick={() => loadWorkspace()}>
             Refresh
           </button>
           <button
             className="day13-button day13-button-primary"
             type="button"
-            onClick={() => setActiveTab('room-form')}
+            onClick={() => {
+              setRoomForm(EMPTY_ROOM)
+              setActiveTab('room-form')
+            }}
           >
             Add room
           </button>
@@ -258,16 +387,25 @@ export default function Rooms({ hotel: hotelProp }) {
       {error && <div className="day13-alert">{error}</div>}
       {success && <div className="day13-success">{success}</div>}
 
-      <div className="day13-stats">
-        <Stat label="Active rooms" value={stats.total} />
-        <Stat label="Available" value={stats.available} />
-        <Stat label="Occupied" value={stats.occupied} />
-        <Stat label="Cleaning" value={stats.cleaning} />
-        <Stat label="Offline" value={stats.offline} />
-        <Stat label="Archived" value={stats.archived} />
+      <div className="rooms22-controlbar">
+        <div className="rooms22-search-wrap">
+          <span aria-hidden="true">⌕</span>
+          <input
+            className="day13-search rooms22-search"
+            placeholder="Search room, floor, type or status"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+        <div className="rooms22-summary" aria-label="Room inventory summary">
+          <span><b>{stats.total}</b> active</span>
+          <span><b>{stats.available}</b> available</span>
+          <span><b>{stats.cleaning}</b> cleaning</span>
+          {stats.archived > 0 && <span><b>{stats.archived}</b> archived</span>}
+        </div>
       </div>
 
-      <div className="day13-tabs">
+      <div className="day13-tabs rooms22-tabs" aria-label="Room management sections">
         {[
           ['rooms', 'Rooms'],
           ['room-form', roomForm.id ? 'Edit room' : 'Add room'],
@@ -288,135 +426,200 @@ export default function Rooms({ hotel: hotelProp }) {
       </div>
 
       {activeTab === 'rooms' && (
-        <div className="day13-panel">
-          <div className="day13-panel-header">
-            <div>
-              <h2>Room register</h2>
-              <div className="day13-muted day13-small">
-                Live commitments prevent unsafe edits and archives.
-              </div>
-            </div>
-            <input
-              className="day13-search"
-              style={{ maxWidth: 310 }}
-              placeholder="Search room, floor, type or status"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
-          <div className="day13-table-wrap room-register-table-wrap">
-            <table className="day13-table room-register-table">
-              <thead>
-                <tr>
-                  <th>Room</th>
-                  <th>Floor / Type</th>
-                  <th>Status</th>
-                  <th>Commitments</th>
-                  <th>Inventory</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRooms.map((room) => {
-                  const commitments = room.commitments || {}
-                  return (
-                    <tr key={room.id}>
-                      <td>
-                        <strong>{room.room_number}</strong>
-                        {!room.is_active && (
-                          <div className="day13-muted day13-small">Archived</div>
-                        )}
-                      </td>
-                      <td>
-                        {room.floor_name || '—'}
-                        <div className="day13-muted day13-small">
-                          {room.room_type_name || '—'}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`day13-status day13-status-${room.status}`}>
-                          {room.status}
-                        </span>
-                      </td>
-                      <td className="day13-small">
-                        Stays {commitments.active_stays || 0} · Reservations{' '}
-                        {commitments.active_reservations || 0} · Blocks{' '}
-                        {commitments.active_blocks || 0} · HK{' '}
-                        {commitments.pending_housekeeping || 0}
-                      </td>
-                      <td>
-                        <select
-                          value={room.status}
-                          disabled={!room.is_active || saving}
-                          onChange={(event) => requestStatus(room, event.target.value)}
-                        >
-                          <option value="available">Available</option>
-                          <option value="cleaning">Cleaning</option>
-                          <option value="maintenance">Maintenance</option>
-                          <option value="out_of_order">Out of order</option>
-                          {room.status === 'occupied' && (
-                            <option value="occupied">Occupied</option>
-                          )}
-                        </select>
-                      </td>
-                      <td>
-                        <div className="day13-inline-actions">
-                          <button
-                            type="button"
-                            className="day13-button"
-                            disabled={!room.is_active || saving}
-                            onClick={() => {
-                              setRoomForm({
-                                id: room.id,
-                                room_number: room.room_number,
-                                floor_id: room.floor_id,
-                                room_type_id: room.room_type_id,
-                                status: room.status,
-                                metadata: room.metadata || {},
-                              })
-                              setActiveTab('room-form')
+        <section className="rooms22-section" aria-label="Room inventory cards">
+          {filteredRooms.length === 0 ? (
+            <div className="day13-panel day13-empty">No rooms match this search.</div>
+          ) : (
+            <div className="rooms22-grid">
+              {filteredRooms.map((room) => {
+                const roomType = workspace.room_types.find((item) => item.id === room.room_type_id)
+                const commitments = room.commitments || {}
+                const commitmentCount =
+                  Number(commitments.active_stays || 0) +
+                  Number(commitments.active_reservations || 0) +
+                  Number(commitments.active_blocks || 0) +
+                  Number(commitments.pending_housekeeping || 0)
+                const media = roomMedia[room.id]
+                const photoUrl = media?.url || hotelFallbackMedia
+                const qrReady = qrRoomIds.has(room.id)
+                const statusLabel = String(room.status || 'available').replaceAll('_', ' ')
+                const rate = Number(roomType?.base_rate || 0)
+                const guestName =
+                  room.current_guest_name ||
+                  room.active_guest_name ||
+                  room.guest_name ||
+                  room.guest_full_name ||
+                  ''
+                const stayCopy = guestName
+                  ? guestName
+                  : room.status === 'occupied'
+                    ? 'Occupied · active stay'
+                    : room.status === 'cleaning'
+                      ? 'Housekeeping in progress'
+                      : ['maintenance', 'out_of_order'].includes(room.status)
+                        ? 'Temporarily unavailable'
+                        : 'Ready for check-in'
+                return (
+                  <article className={`rooms22-card ${!room.is_active ? 'is-archived' : ''}`} key={room.id}>
+                    <div
+                      className={`rooms22-photo ${photoUrl ? 'has-photo' : 'is-empty'}`}
+                      style={photoUrl ? { backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.68)), url("${photoUrl}")` } : undefined}
+                    >
+                      {!photoUrl && (
+                        <label className="rooms22-empty-photo-action">
+                          <span className="rooms22-camera" aria-hidden="true">▣</span>
+                          <span>{mediaBusyRoomId === room.id ? 'Uploading…' : 'Add room photo'}</span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            disabled={!room.is_active || Boolean(mediaBusyRoomId)}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0]
+                              event.target.value = ''
+                              if (file) void uploadRoomPhoto(room, file)
                             }}
-                          >
-                            Edit
-                          </button>
+                          />
+                        </label>
+                      )}
+                      <span className={`rooms22-status rooms22-status-${room.status}`}>{statusLabel}</span>
+                    </div>
+
+                    <div className="rooms22-body">
+                      <div className="rooms22-rhead">
+                        <div>
+                          <h3>Room {room.room_number}</h3>
+                          <p>{room.room_type_name || 'Room'}{room.floor_name ? ` · ${room.floor_name}` : ''}</p>
+                        </div>
+                        <div className="rooms22-menu-wrap">
                           <button
                             type="button"
-                            className="day13-button day13-button-danger"
-                            disabled={!room.is_active || saving}
-                            onClick={() =>
-                              requestArchive(`Room ${room.room_number}`, (reason) =>
-                                archiveRoom(hotel.id, room.id, reason)
-                              )
-                            }
+                            className="rooms22-more"
+                            aria-label={`Manage Room ${room.room_number}`}
+                            aria-expanded={openRoomMenuId === room.id}
+                            onClick={() => setOpenRoomMenuId((current) => current === room.id ? '' : room.id)}
                           >
-                            Archive
+                            •••
                           </button>
+                          {openRoomMenuId === room.id && (
+                            <div className="rooms22-menu" role="menu">
+                              <button type="button" role="menuitem" disabled={!room.is_active || saving} onClick={() => openRoomEditor(room)}>
+                                Edit room
+                              </button>
+                              <label className={mediaBusyRoomId === room.id ? 'is-disabled' : ''}>
+                                {mediaBusyRoomId === room.id ? 'Uploading…' : photoUrl ? 'Replace room photo' : 'Upload room photo'}
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  disabled={!room.is_active || Boolean(mediaBusyRoomId)}
+                                  onChange={(event) => {
+                                    const file = event.target.files?.[0]
+                                    event.target.value = ''
+                                    if (file) void uploadRoomPhoto(room, file)
+                                  }}
+                                />
+                              </label>
+                              <div className="rooms22-menu-status">
+                                <span>Room status</span>
+                                <select
+                                  value={room.status}
+                                  disabled={!room.is_active || saving}
+                                  onChange={(event) => {
+                                    setOpenRoomMenuId('')
+                                    requestStatus(room, event.target.value)
+                                  }}
+                                >
+                                  <option value="available">Available</option>
+                                  <option value="cleaning">Cleaning</option>
+                                  <option value="maintenance">Maintenance</option>
+                                  <option value="out_of_order">Out of order</option>
+                                  {room.status === 'occupied' && <option value="occupied">Occupied</option>}
+                                </select>
+                              </div>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                className="danger"
+                                disabled={!room.is_active || saving}
+                                onClick={() => {
+                                  setOpenRoomMenuId('')
+                                  requestArchive(`Room ${room.room_number}`, (reason) =>
+                                    archiveRoom(hotel.id, room.id, reason)
+                                  )
+                                }}
+                              >
+                                Archive room
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                      </div>
+
+                      <div className="rooms22-stay-copy">
+                        <strong>{stayCopy}</strong>
+                        <span>{room.is_active ? 'Live room inventory' : 'Archived room'}</span>
+                        {commitmentCount > 0 && (
+                          <span className="rooms22-commitments">
+                            Stay {commitments.active_stays || 0} · Reservations {commitments.active_reservations || 0} · HK {commitments.pending_housekeeping || 0}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="rooms22-foot">
+                        <b>{rate > 0 ? `₹${rate.toLocaleString('en-IN')}/night` : 'Rate not set'}</b>
+                        <span className={`rooms22-qr-pill ${qrReady ? 'is-ready' : ''}`}>
+                          {qrReady ? (room.status === 'occupied' ? 'QR active' : 'QR ready') : 'QR pending'}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
+        </section>
       )}
 
       {activeTab === 'room-form' && (
-        <div className="day13-panel">
+        <div className="day13-panel rooms22-form-panel">
           <div className="day13-panel-header">
-            <h2>{roomForm.id ? `Edit Room ${roomForm.room_number}` : 'Create room'}</h2>
+            <div>
+              <h2>{roomForm.id ? `Edit Room ${roomForm.room_number}` : 'Create room'}</h2>
+              <div className="day13-muted day13-small">Room identity, type, status and guest-facing room photo.</div>
+            </div>
           </div>
+          {roomForm.id && (
+            <div className="rooms22-form-photo">
+              <div
+                className={`rooms22-form-photo-preview ${roomMedia[roomForm.id]?.url || hotelFallbackMedia ? 'has-photo' : ''}`}
+                style={(roomMedia[roomForm.id]?.url || hotelFallbackMedia) ? { backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.55)), url("${roomMedia[roomForm.id]?.url || hotelFallbackMedia}")` } : undefined}
+              />
+              <div>
+                <strong>Room photo</strong>
+                <p>Used on the room card and remains scoped to this hotel room.</p>
+                <label className="day13-button rooms22-upload-button">
+                  {mediaBusyRoomId === roomForm.id ? 'Uploading…' : roomMedia[roomForm.id]?.url ? 'Replace photo' : 'Upload photo'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={Boolean(mediaBusyRoomId)}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      event.target.value = ''
+                      const room = rooms.find((item) => item.id === roomForm.id)
+                      if (file && room) void uploadRoomPhoto(room, file)
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+          )}
           <form className="day13-panel-body day13-form" onSubmit={submitRoom}>
             <Field label="Room number">
               <input
                 required
                 value={roomForm.room_number}
                 onChange={(event) =>
-                  setRoomForm((current) => ({
-                    ...current,
-                    room_number: event.target.value,
-                  }))
+                  setRoomForm((current) => ({ ...current, room_number: event.target.value }))
                 }
               />
             </Field>
@@ -429,13 +632,9 @@ export default function Rooms({ hotel: hotelProp }) {
                 }
               >
                 <option value="">Select floor</option>
-                {workspace.floors
-                  .filter((floor) => floor.is_active)
-                  .map((floor) => (
-                    <option key={floor.id} value={floor.id}>
-                      {floor.name} ({floor.code})
-                    </option>
-                  ))}
+                {workspace.floors.filter((floor) => floor.is_active).map((floor) => (
+                  <option key={floor.id} value={floor.id}>{floor.name} ({floor.code})</option>
+                ))}
               </select>
             </Field>
             <Field label="Room type">
@@ -443,20 +642,13 @@ export default function Rooms({ hotel: hotelProp }) {
                 required
                 value={roomForm.room_type_id}
                 onChange={(event) =>
-                  setRoomForm((current) => ({
-                    ...current,
-                    room_type_id: event.target.value,
-                  }))
+                  setRoomForm((current) => ({ ...current, room_type_id: event.target.value }))
                 }
               >
                 <option value="">Select type</option>
-                {workspace.room_types
-                  .filter((roomType) => roomType.is_active)
-                  .map((roomType) => (
-                    <option key={roomType.id} value={roomType.id}>
-                      {roomType.name} ({roomType.code})
-                    </option>
-                  ))}
+                {workspace.room_types.filter((roomType) => roomType.is_active).map((roomType) => (
+                  <option key={roomType.id} value={roomType.id}>{roomType.name} ({roomType.code})</option>
+                ))}
               </select>
             </Field>
             <Field label="Initial status">
@@ -471,9 +663,7 @@ export default function Rooms({ hotel: hotelProp }) {
                 <option value="cleaning">Cleaning</option>
                 <option value="maintenance">Maintenance</option>
                 <option value="out_of_order">Out of order</option>
-                {roomForm.status === 'occupied' && (
-                  <option value="occupied">Occupied (managed by stay)</option>
-                )}
+                {roomForm.status === 'occupied' && <option value="occupied">Occupied (managed by stay)</option>}
               </select>
             </Field>
             <div className="day13-field day13-field-full day13-inline-actions">
@@ -483,9 +673,12 @@ export default function Rooms({ hotel: hotelProp }) {
               <button
                 type="button"
                 className="day13-button"
-                onClick={() => setRoomForm(EMPTY_ROOM)}
+                onClick={() => {
+                  setRoomForm(EMPTY_ROOM)
+                  setActiveTab('rooms')
+                }}
               >
-                Clear
+                Cancel
               </button>
             </div>
           </form>
@@ -811,14 +1004,6 @@ function Field({ label, children, wide = false, full = false }) {
   )
 }
 
-function Stat({ label, value }) {
-  return (
-    <div className="day13-stat">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  )
-}
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString('en-IN') : '—'

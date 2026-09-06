@@ -1,0 +1,205 @@
+/* StayQR FINAL UI/UX REV22
+   Last visual review candidate after user feedback.
+   Authority: approved StayQR UIUX FINAL REV18 prototype.
+   Admin principle: black/blue-black surfaces; gold is an accent/text signal, never a large wash.
+   Guest-facing media and hotel imagery are preserved. */
+
+.app-shell{
+  --sq22-bg:#06080b;
+  --sq22-elev:#090c11;
+  --sq22-panel:#0f141a;
+  --sq22-panel2:#131920;
+  --sq22-panel3:#171e26;
+  --sq22-line:#27303a;
+  --sq22-line2:#36414d;
+  --sq22-text:#f7f8f9;
+  --sq22-muted:#b3bbc5;
+  --sq22-subtle:#87919c;
+  --sq22-accent:#e8bd45;
+  --sq22-accent-hi:#f7d76f;
+  --sq22-green:#55d59d;
+  --sq22-red:#ff7f82;
+  /* Remove REV21's remaining warm/brown token without touching guest pages. */
+  --sq21-accent-soft:var(--sq22-panel2);
+  --gold-subtle:var(--sq22-panel2);
+  --gold-glow:transparent;
+}
+
+/* ===== Admin shell: neutral surfaces everywhere ===== */
+.app-shell .app-main,.app-shell .app-content{background:var(--sq22-bg)!important;background-image:none!important}
+.app-shell .sidebar{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important}
+.app-shell .sidebar-hotel-badge{background:var(--sq22-panel)!important;background-image:none!important;border-color:var(--sq22-line)!important;color:var(--sq22-text)!important}
+.app-shell .sidebar-hotel-badge strong,.app-shell .sidebar-hotel-badge .hotel-name{color:var(--sq22-accent)!important}
+.app-shell .nav-item.active{background:var(--sq22-panel2)!important;background-image:none!important;border-color:var(--sq22-line2)!important;color:var(--sq22-accent)!important;box-shadow:none!important}
+.app-shell .nav-item:hover{background:var(--sq22-panel)!important;border-color:var(--sq22-line)!important}
+
+/* ===== Dashboard: no gold icon tiles / quick action washes ===== */
+/* REV22 FIX1: the current dashboard uses a stable analytics grid but card markup
+   differs from the earlier local prototype. Neutralise the whole metric row via
+   the grid hook instead of depending on one exact JSX tag shape. */
+.app-shell .dashboard-page .dash-analytics-grid > *{
+  background:var(--sq22-panel)!important;
+  background-image:none!important;
+  border-color:var(--sq22-line)!important;
+  box-shadow:none!important;
+}
+.app-shell .dashboard-page .dash-analytics-grid > *:hover{
+  background:var(--sq22-panel2)!important;
+  border-color:var(--sq22-line2)!important;
+}
+.app-shell .dashboard-page .dash-analytics-grid > * :is([style*="background"],[style*="Background"]){
+  background:var(--sq22-elev)!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+.app-shell .dashboard-page .dash-analytics-card{background:var(--sq22-panel)!important;border-color:var(--sq22-line)!important;box-shadow:none!important}
+.app-shell .dashboard-page .dash-analytics-icon{background:var(--sq22-elev)!important;border:1px solid var(--sq22-line)!important;box-shadow:none!important}
+.app-shell .dashboard-page .dash-analytics-title{color:var(--sq22-accent)!important}
+.app-shell .dashboard-page .quick-actions-wrap{background:var(--sq22-panel)!important;border-color:var(--sq22-line)!important}
+.app-shell .dashboard-page .qa-icon-wrap,
+.app-shell .dashboard-page .qa-btn,
+.app-shell .dashboard-page .qa-btn--gold,
+.app-shell .dashboard-page .qa-btn-icon,
+.app-shell .dashboard-page .qa-btn-icon--gold,
+.app-shell .dashboard-page .qa-btn-icon--default,
+.app-shell .dashboard-page .qa-btn-shortcut{
+  background:var(--sq22-elev)!important;
+  background-image:none!important;
+  border-color:var(--sq22-line)!important;
+  box-shadow:none!important;
+}
+.app-shell .dashboard-page .qa-icon-wrap,.app-shell .dashboard-page .qa-btn-icon--gold{color:var(--sq22-accent)!important}
+.app-shell .dashboard-page .qa-btn--gold .qa-btn-label,.app-shell .dashboard-page .qa-btn-label{color:var(--sq22-text)!important}
+.app-shell .dashboard-page .qa-btn--gold .qa-btn-label:hover,.app-shell .dashboard-page .qa-btn:hover .qa-btn-label{color:var(--sq22-accent)!important}
+.app-shell .dashboard-page .qa-btn:hover,.app-shell .dashboard-page .qa-btn--gold:hover{background:var(--sq22-panel2)!important;border-color:var(--sq22-line2)!important;box-shadow:none!important}
+.app-shell .dashboard-page .activation-card{background:var(--sq22-panel)!important;background-image:none!important;border-color:var(--sq22-line)!important}
+.app-shell .dashboard-page .activation-head>button,.app-shell .dashboard-page .activation-list button{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important;color:var(--sq22-text)!important}
+.app-shell .dashboard-page .activation-check:not(.complete .activation-check){background:var(--sq22-elev)!important;color:var(--sq22-accent)!important}
+.app-shell .dashboard-page .dash-support-actions button{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important;color:var(--sq22-accent)!important}
+.app-shell .dashboard-page .dash-support-actions button:hover{background:var(--sq22-panel2)!important}
+.app-shell .dashboard-page .room-status-cleaning,.app-shell .dashboard-page .room-status-occupied{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important;color:var(--sq22-accent)!important}
+
+/* ===== Housekeeping / Day13: clean controls and a real drawn checkmark ===== */
+.app-shell .day13-page,.app-shell .day13-panel,.app-shell .day13-card,.app-shell .day13-stat,.app-shell .day13-mobile-card{background:var(--sq22-bg)!important;background-image:none!important}
+.app-shell .day13-panel,.app-shell .day13-card,.app-shell .day13-stat,.app-shell .day13-mobile-card{background:var(--sq22-panel)!important;border-color:var(--sq22-line)!important;box-shadow:none!important}
+.app-shell .day13-tabs{background:var(--sq22-panel)!important;border-color:var(--sq22-line)!important}
+.app-shell .day13-tab{background:transparent!important;border-color:transparent!important;color:var(--sq22-muted)!important}
+.app-shell .day13-tab-active{background:var(--sq22-panel2)!important;border-color:var(--sq22-line2)!important;color:var(--sq22-accent)!important;box-shadow:none!important}
+.app-shell .day13-button,.app-shell .day13-button-primary,.app-shell .day13-select-all{background:var(--sq22-elev)!important;background-image:none!important;border-color:var(--sq22-line)!important;color:var(--sq22-text)!important;box-shadow:none!important}
+.app-shell .day13-button-primary,.app-shell .day13-select-all{color:var(--sq22-accent)!important}
+.app-shell .day13-button:hover,.app-shell .day13-button-primary:hover{background:var(--sq22-panel2)!important;border-color:var(--sq22-line2)!important}
+.app-shell .day13-check{border-color:#232c35!important}
+.app-shell .day13-card .day13-check input[type="checkbox"]{
+  -webkit-appearance:none!important;appearance:none!important;
+  width:17px!important;height:17px!important;min-width:17px!important;
+  margin:0!important;padding:0!important;
+  display:grid!important;place-items:center!important;
+  position:relative!important;
+  border:1px solid #596674!important;border-radius:5px!important;
+  background:var(--sq22-elev)!important;box-shadow:none!important;
+  cursor:pointer!important;
+}
+.app-shell .day13-card .day13-check input[type="checkbox"]:checked{background:var(--sq22-green)!important;border-color:var(--sq22-green)!important}
+.app-shell .day13-card .day13-check input[type="checkbox"]:checked::after{
+  content:""!important;display:block!important;width:5px!important;height:9px!important;
+  border:solid #06110c!important;border-width:0 2px 2px 0!important;
+  transform:translateY(-1px) rotate(45deg)!important;
+}
+.app-shell .day13-card .day13-check input[type="checkbox"]:disabled{cursor:not-allowed!important;opacity:.62!important}
+
+/* ===== Room QR Guides: retain QR assets, remove brown card / CTA fills ===== */
+.app-shell .secure-qr-page{background:var(--sq22-bg)!important;background-image:none!important}
+.app-shell .secure-qr-card,.app-shell .secure-qr-panel,.app-shell .secure-qr-permanent,.app-shell .secure-qr-guest-box,.app-shell .secure-qr-disabled-box,.app-shell .secure-qr-issued-pin{
+  background:var(--sq22-panel)!important;background-image:none!important;border-color:var(--sq22-line)!important;box-shadow:none!important
+}
+.app-shell .secure-qr-button,.app-shell .secure-qr-button.primary{background:var(--sq22-elev)!important;background-image:none!important;border:1px solid var(--sq22-line)!important;color:var(--sq22-text)!important;box-shadow:none!important}
+.app-shell .secure-qr-button.primary{color:var(--sq22-accent)!important}
+.app-shell .secure-qr-button:hover{background:var(--sq22-panel2)!important;border-color:var(--sq22-line2)!important}
+.app-shell .secure-qr-issued-pin,.app-shell .secure-qr-pill{color:var(--sq22-accent)!important}
+
+/* ===== Guest Guide Builder: hotel media stays; admin canvas is neutral ===== */
+.app-shell .simple-builder-page{background:var(--sq22-bg)!important;background-image:none!important}
+.app-shell .simple-builder-hero,.app-shell .simple-panel,.app-shell .simple-official-brand,.app-shell .simple-offer-editor,.app-shell .simple-publish-panel,.app-shell .simple-readiness-panel,.app-shell .simple-setup-card,.app-shell .simple-note-panel,.app-shell .simple-scope-explainer{
+  background:var(--sq22-panel)!important;background-image:none!important;border-color:var(--sq22-line)!important;box-shadow:none!important
+}
+.app-shell .simple-steps{background:var(--sq22-panel)!important;border-color:var(--sq22-line)!important}
+.app-shell .simple-steps button{background:transparent!important;color:var(--sq22-muted)!important;border-color:transparent!important}
+.app-shell .simple-steps button.active,.app-shell .simple-steps button[aria-current="step"]{background:var(--sq22-panel2)!important;border-color:var(--sq22-line2)!important;color:var(--sq22-accent)!important}
+.app-shell .simple-primary,.app-shell .simple-publish-button{background:var(--sq22-elev)!important;background-image:none!important;border:1px solid var(--sq22-line)!important;color:var(--sq22-accent)!important;box-shadow:none!important}
+.app-shell .simple-secondary{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important;color:var(--sq22-text)!important}
+.app-shell .simple-field input,.app-shell .simple-field select,.app-shell .simple-field textarea{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important;color:var(--sq22-text)!important}
+
+/* ===== Menu Management: neutral studio, photos preserved ===== */
+.app-shell .menu15-page{background:var(--sq22-bg)!important;background-image:none!important}
+.app-shell .menu15-panel,.app-shell .menu15-metric,.app-shell .menu15-offer-studio,.app-shell .menu15-language-studio,.app-shell .menu15-offer-preview,.app-shell .menu15-photo-uploader,.app-shell .menu15-translation-group,.app-shell .menu15-translation-item,.app-shell .menu15-item-grid article,.app-shell .menu15-modifier-group{
+  background:var(--sq22-panel)!important;background-image:none!important;border-color:var(--sq22-line)!important;box-shadow:none!important
+}
+.app-shell .menu15-panel input,.app-shell .menu15-panel select,.app-shell .menu15-panel textarea{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important;color:var(--sq22-text)!important}
+.app-shell .menu15-header>button,.app-shell .menu15-section-title>button,.app-shell .menu15-primary,.app-shell .menu15-upload-button,.app-shell .menu15-action-row button{
+  background:var(--sq22-elev)!important;background-image:none!important;border:1px solid var(--sq22-line)!important;color:var(--sq22-accent)!important;box-shadow:none!important
+}
+.app-shell .menu15-item-meta span{background:var(--sq22-elev)!important;color:var(--sq22-muted)!important;border:1px solid var(--sq22-line)!important}
+
+/* ===== Staff: remove the profile hero's golden/brown wash ===== */
+.app-shell .staff-page{background:var(--sq22-bg)!important;background-image:none!important}
+.app-shell .staff-self-profile,.app-shell .staff-stat-card,.app-shell .staff-control-card,.app-shell .staff-table-card,.app-shell .staff-modal,.app-shell .staff-loading-card{
+  background:var(--sq22-panel)!important;background-image:none!important;border-color:var(--sq22-line)!important;box-shadow:none!important
+}
+.app-shell .staff-stat-icon,.app-shell .staff-profile-photo{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important;color:var(--sq22-accent)!important}
+.app-shell .staff-primary-btn,.app-shell .staff-secondary-btn{background:var(--sq22-elev)!important;background-image:none!important;border:1px solid var(--sq22-line)!important;color:var(--sq22-text)!important;box-shadow:none!important}
+.app-shell .staff-primary-btn{color:var(--sq22-accent)!important}
+.app-shell .staff-search-box,.app-shell .staff-search-box input,.app-shell .staff-control-card select,.app-shell .staff-control-card button,.app-shell .staff-form-grid input,.app-shell .staff-form-grid select{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important;color:var(--sq22-text)!important}
+
+/* ===== Operations Centre: no warm page cast or warning-card wash ===== */
+.app-shell .d17-page{background:var(--sq22-bg)!important;background-image:none!important;color:var(--sq22-text)!important}
+.app-shell .d17-hero{border-color:var(--sq22-line)!important}
+.app-shell .d17-hero h1,.app-shell .d17-panel h2,.app-shell .d17-metric strong{font-family:"Poppins","Segoe UI",Arial,sans-serif!important;color:var(--sq22-text)!important}
+.app-shell .d17-metric,.app-shell .d17-tabs,.app-shell .d17-panel,.app-shell .d17-notification,.app-shell .d17-mini-card,.app-shell .d17-ticket,.app-shell .d17-announcement,.app-shell .d17-support-toolbar,.app-shell .d17-support-form,.app-shell .d18-health-banner{
+  background:var(--sq22-panel)!important;background-image:none!important;border-color:var(--sq22-line)!important;box-shadow:none!important
+}
+.app-shell .d17-tabs button,.app-shell .d17-hero button,.app-shell .d17-primary,.app-shell .d17-toolbar button,.app-shell .d17-filter-grid button,.app-shell .d17-table-wrap button,.app-shell .d17-support-toggle,.app-shell .d18-diagnostic-filters>button{
+  background:var(--sq22-elev)!important;background-image:none!important;border:1px solid var(--sq22-line)!important;color:var(--sq22-text)!important;box-shadow:none!important
+}
+.app-shell .d17-tabs button.active,.app-shell .d17-primary,.app-shell .d17-support-toggle{background:var(--sq22-panel2)!important;color:var(--sq22-accent)!important;border-color:var(--sq22-line2)!important}
+.app-shell .d17-role,.app-shell .d17-pill{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important}
+.app-shell .d17-notification.severity-warning,.app-shell .d17-announcement.severity-warning{background:var(--sq22-panel)!important}
+.app-shell .d18-health-banner.status-degraded{background:var(--sq22-panel)!important;border-color:var(--sq22-line)!important}
+
+/* ===== Onboarding / property setup: same neutral hierarchy as Subscription & Billing ===== */
+.app-shell .onboarding-shell,.app-shell .onboarding-shell.standalone{background:var(--sq22-bg)!important;background-image:none!important}
+.app-shell .onboarding-context-card,.app-shell .onboarding-panel,.app-shell .operations-card,.app-shell .config-card,.app-shell .setup-stat,.app-shell .readiness-banner,.app-shell .readiness-item,.app-shell .menu-setup-card,.app-shell .csv-reference,.app-shell .reference-block{
+  background:var(--sq22-panel)!important;background-image:none!important;border-color:var(--sq22-line)!important;box-shadow:none!important
+}
+.app-shell .onboarding-steps{background:transparent!important}
+.app-shell .onboarding-steps button{background:var(--sq22-panel)!important;border-color:var(--sq22-line)!important;color:var(--sq22-muted)!important}
+.app-shell .onboarding-steps button>span{background:var(--sq22-elev)!important;color:var(--sq22-muted)!important}
+.app-shell .onboarding-steps button.active{background:var(--sq22-panel2)!important;border-color:var(--sq22-line2)!important;color:var(--sq22-accent)!important}
+.app-shell .onboarding-steps button.active>span,.app-shell .onboarding-steps button.complete>span{background:var(--sq22-elev)!important;color:var(--sq22-accent)!important;border:1px solid var(--sq22-line)!important}
+.app-shell .primary-button,.app-shell .secondary-button,.app-shell .ghost-button{background:var(--sq22-elev)!important;background-image:none!important;border:1px solid var(--sq22-line)!important;color:var(--sq22-text)!important;box-shadow:none!important}
+.app-shell .primary-button{color:var(--sq22-accent)!important}
+.app-shell .onboarding-field input,.app-shell .onboarding-field select,.app-shell .onboarding-field textarea{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important;color:var(--sq22-text)!important}
+
+/* ===== Amenities / Gallery: neutral controls while retaining uploaded media ===== */
+.app-shell .amenities-page{background:var(--sq22-bg)!important;background-image:none!important}
+.app-shell .amenities-stat,.app-shell .amenities-form,.app-shell .amenity-card,.app-shell .amenity-instructions,.app-shell .amenity-gallery figure{
+  background:var(--sq22-panel)!important;background-image:none!important;border-color:var(--sq22-line)!important;box-shadow:none!important
+}
+.app-shell .amenities-form input,.app-shell .amenities-form textarea{background:var(--sq22-elev)!important;border-color:var(--sq22-line)!important;color:var(--sq22-text)!important}
+.app-shell .amenities-form .primary,.app-shell .amenity-upload,.app-shell .amenities-header button,.app-shell .amenity-actions button,.app-shell .amenity-gallery button{
+  background:var(--sq22-elev)!important;background-image:none!important;border:1px solid var(--sq22-line)!important;color:var(--sq22-text)!important;box-shadow:none!important
+}
+.app-shell .amenities-form .primary,.app-shell .amenity-upload{color:var(--sq22-accent)!important}
+
+/* ===== Generic legacy warm surfaces still visible in admin modules ===== */
+.app-shell :is(.glass-card.gold-border,.gold-border){background-color:var(--sq22-panel)!important;background-image:none!important;border-color:var(--sq22-line)!important;box-shadow:none!important}
+.app-shell :is(.warning,.warn,.pending)[class*="card"],.app-shell [class*="callout"][class*="warning"]{background-color:var(--sq22-panel)!important;background-image:none!important}
+
+/* Admin primary buttons: preserve shape/interactivity, replace big gold fills with dark + gold text. */
+.app-shell :is(.reservation-btn.primary,.reports-primary-button,.reports-pdf-button,.v11-btn.primary,.v11b-page button.primary){background:var(--sq22-elev)!important;background-image:none!important;border:1px solid var(--sq22-line)!important;color:var(--sq22-accent)!important;box-shadow:none!important}
+.app-shell .v11-tabs button.active{background:var(--sq22-panel2)!important;color:var(--sq22-accent)!important;border-color:var(--sq22-line2)!important}
+
+/* Hover: small luminance change only. */
+.app-shell button:not(:disabled){transition:background-color .14s ease,border-color .14s ease,color .14s ease,transform .14s ease!important}
+.app-shell button:not(:disabled):hover{filter:none!important}
+
+@media(prefers-reduced-motion:reduce){.app-shell button{transition:none!important;transform:none!important}}

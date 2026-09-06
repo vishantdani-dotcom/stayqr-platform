@@ -245,7 +245,7 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
       </section>
 
       <section className="dash-section">
-        <div style={analyticsGrid}>
+        <div className="dash-analytics-grid" style={analyticsGrid}>
           <AnalyticsCard title="Total Rooms" value={analytics.totalRooms} type="rooms" />
           <AnalyticsCard title="Available Rooms" value={analytics.availableRooms} type="available" />
           <AnalyticsCard title="Occupied Rooms" value={analytics.occupiedRooms} type="occupied" />
@@ -309,13 +309,13 @@ export default function Dashboard({ hotel = null, staff = null, onNavigate }) {
 
 function AnalyticsCard({ title, value, type, detail }) {
   return (
-    <article style={analyticsCard} className="dash-metric-card">
+    <article style={analyticsCard} className="dash-metric-card dash-analytics-card">
       <div style={analyticsIcon} className={`dash-metric-icon dash-metric-icon-${type || 'default'}`}>
         <MetricIcon type={type} />
       </div>
       <div className="dash-metric-copy">
-        <p style={analyticsTitle}>{title}</p>
-        <h3 style={analyticsValue}>{value}</h3>
+        <p className="dash-analytics-title" style={analyticsTitle}>{title}</p>
+        <h3 className="dash-analytics-value" style={analyticsValue}>{value}</h3>
         {detail && <small className="dash-metric-detail">{detail}</small>}
       </div>
     </article>

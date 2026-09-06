@@ -1,0 +1,440 @@
+/* StayQR FINAL UI/UX REV21
+   Final lock-candidate visual parity pass.
+   Visual authority: StayQR_UIUX_FINAL_REV18_PROTOTYPE.html.
+   Scope: remove remaining legacy warm/brown surfaces, restore exact approved
+   Poppins-based contrast system, brighten operational hierarchy, and polish
+   Reservations / Revenue Growth / Dashboard / Rooms / Housekeeping / Reports.
+   Imported LAST. No database/provider/business logic. */
+
+:root{
+  --sq21-bg:#06080b;
+  --sq21-bg-deep:#020204;
+  --sq21-bg-elev:#090c11;
+  --sq21-panel:#0f141a;
+  --sq21-panel-2:#131920;
+  --sq21-panel-3:#171e26;
+  --sq21-line:#27303a;
+  --sq21-line-strong:#36414d;
+  --sq21-text:#f7f8f9;
+  --sq21-muted:#b3bbc5;
+  --sq21-subtle:#87919c;
+  --sq21-accent:#e8bd45;
+  --sq21-accent-hi:#f7d76f;
+  --sq21-accent-ink:#171207;
+  --sq21-accent-soft:#241d0a;
+  --sq21-green:#55d59d;
+  --sq21-green-bg:#0d281d;
+  --sq21-blue:#78a8f7;
+  --sq21-blue-bg:#102039;
+  --sq21-red:#ff7f82;
+  --sq21-red-bg:#321518;
+  --sq21-radius:16px;
+  --sq21-radius-sm:11px;
+  --sq21-shadow:0 16px 38px rgba(0,0,0,.28);
+
+  /* Re-map legacy StayQR tokens to the APPROVED REV18 system so older modules
+     stop falling back to #111/#121212/brown-tinted surfaces. */
+  --surface-1:var(--sq21-bg-elev);
+  --surface-2:var(--sq21-panel);
+  --surface-3:var(--sq21-panel-2);
+  --glass-bg:rgba(15,20,26,.96);
+  --glass-border:var(--sq21-line);
+  --glass-hover:rgba(255,255,255,.035);
+  --text-primary:var(--sq21-text);
+  --text-secondary:var(--sq21-muted);
+  --text-muted:var(--sq21-subtle);
+  --gold:var(--sq21-accent);
+  --gold-light:var(--sq21-accent-hi);
+  --gold-dim:#c9a33d;
+  --gold-subtle:var(--sq21-accent-soft);
+  --gold-border:rgba(232,189,69,.34);
+  --gold-glow:rgba(232,189,69,.13);
+  --green:var(--sq21-green);
+  --font-body:"Poppins","Segoe UI Variable Text","Segoe UI",Arial,sans-serif;
+  --font-ui:"Poppins","Segoe UI Variable Text","Segoe UI",Arial,sans-serif;
+  --font-display:"Poppins","Segoe UI Variable Display","Segoe UI",Arial,sans-serif;
+  --radius:var(--sq21-radius);
+  --radius-sm:var(--sq21-radius-sm);
+}
+
+html,body,#root,.app-shell,.app-main,.app-content{
+  background:var(--sq21-bg)!important;
+  color:var(--sq21-text)!important;
+}
+html{background:var(--sq21-bg-deep)!important}
+body,button,input,select,textarea{
+  font-family:"Poppins","Segoe UI Variable Text","Segoe UI",Arial,sans-serif!important;
+  font-synthesis:none!important;
+  text-rendering:optimizeLegibility!important;
+  -webkit-font-smoothing:antialiased!important;
+  -moz-osx-font-smoothing:grayscale!important;
+}
+
+/* Keep small UI copy crisp. The approved prototype intentionally avoids
+   ultra-light 9px text on operational screens. */
+.nav-item,.navbar-breadcrumb,.navbar-date,.sidebar-hotel-badge,
+button,input,select,textarea,table{font-weight:500}
+.nav-item{font-size:12.5px!important;font-weight:600!important}
+.nav-group-label{font-size:10.5px!important;font-weight:700!important;color:#8f9aa6!important}
+.navbar-date{font-size:11.5px!important;color:#9ca7b2!important}
+.breadcrumb-home,.breadcrumb-current{font-size:12px!important}
+
+/* =========================================================
+   GLOBAL OPERATIONAL SURFACE CLEANUP
+   ========================================================= */
+:is(
+  .dashboard-page,.rooms-page,.reservations-page,.booking-calendar-page,
+  .reservation-operations-page,.checkin-page,.guests-page,.day13-page,
+  .charges-page,.payments-page,.folio-page,.reports-page,.staff-page,
+  .owner-billing-page,.v11-revenue-page,.v11b-page,.v11c-page,
+  .hotel-profile-page,.media-manager-page,.amenities-page,.d17-page,
+  .menu15-page,.service-day15-page,.simple-builder-page
+){
+  background:var(--sq21-bg)!important;
+  background-image:none!important;
+  color:var(--sq21-text)!important;
+}
+
+/* Large operational cards/panels: no legacy brown/olive wash. */
+:is(
+  .glass-card,.reservation-panel,.reservation-stat-card,
+  .operations-control-panel,.operations-list-panel,.operations-summary-card,
+  .reports-control-panel,.reports-secondary-filters,.reports-panel,
+  .reports-summary-block,.reports-export-dock,.reports-metric-card,
+  .owner-billing-summary article,.owner-billing-card,
+  .v11-card,.v11-metric,.v11-tabs,.v11-link-box,.v11-list-row,.v11-payer,
+  .v11b-card,.v11b-metric,.v11b-tabs,
+  .activation-card,.quick-actions-wrap
+){
+  background:var(--sq21-panel)!important;
+  background-image:none!important;
+  border-color:var(--sq21-line)!important;
+  box-shadow:none!important;
+}
+
+:is(.reservation-panel,.reports-panel,.owner-billing-card,.v11-card,.v11b-card):hover{
+  border-color:var(--sq21-line-strong)!important;
+}
+
+/* Primary title hierarchy exactly follows the prototype: clean Poppins,
+   high contrast, compact tracking, no serif fallback. */
+:is(
+  .dashboard-page,.rooms-page,.reservations-page,.booking-calendar-page,
+  .reservation-operations-page,.day13-page,.payments-page,.folio-page,
+  .reports-page,.staff-page,.owner-billing-page,.v11-revenue-page,.v11b-page
+) h1{
+  color:var(--sq21-text)!important;
+  font-family:"Poppins","Segoe UI Variable Display","Segoe UI",Arial,sans-serif!important;
+  font-weight:700!important;
+  letter-spacing:-.035em!important;
+}
+:is(
+  .dashboard-page,.rooms-page,.reservations-page,.booking-calendar-page,
+  .reservation-operations-page,.day13-page,.payments-page,.folio-page,
+  .reports-page,.staff-page,.owner-billing-page,.v11-revenue-page,.v11b-page
+) h2{
+  color:var(--sq21-text)!important;
+  font-family:"Poppins","Segoe UI Variable Text","Segoe UI",Arial,sans-serif!important;
+  font-weight:700!important;
+  letter-spacing:-.02em!important;
+}
+
+/* =========================================================
+   DASHBOARD — brighter prototype parity without removing media/logo assets
+   ========================================================= */
+.dashboard-page{padding:24px 24px 44px!important;gap:18px!important}
+.dashboard-page .dash-page-title{font-size:30px!important;font-weight:700!important;letter-spacing:-.035em!important}
+.dashboard-page .dash-page-sub{color:var(--sq21-muted)!important;font-size:12.5px!important;line-height:1.55!important}
+.dashboard-page .dash-refresh-btn{
+  min-height:42px!important;
+  background:var(--sq21-panel)!important;
+  border:1px solid var(--sq21-line)!important;
+  color:var(--sq21-text)!important;
+  box-shadow:none!important;
+}
+.dashboard-page .dash-refresh-btn:hover{background:var(--sq21-panel-2)!important;border-color:var(--sq21-line-strong)!important}
+.dashboard-page .dash-support-panel{
+  background:var(--sq21-panel)!important;
+  border:1px solid var(--sq21-line)!important;
+  border-radius:16px!important;
+  box-shadow:none!important;
+}
+.dashboard-page .dash-support-kicker{color:var(--sq21-accent)!important;font-size:10.5px!important}
+.dashboard-page .dash-support-panel>div>p:last-child{color:var(--sq21-muted)!important;font-size:12px!important;line-height:1.55!important}
+.dashboard-page .dash-support-actions button{
+  min-height:40px!important;
+  background:var(--sq21-bg-elev)!important;
+  border:1px solid rgba(232,189,69,.42)!important;
+  color:var(--sq21-accent-hi)!important;
+  box-shadow:none!important;
+}
+.dashboard-page .dash-support-actions button:hover{background:var(--sq21-accent-soft)!important}
+
+/* Keep hotel image/cover/logo. Only neutralise the old full-card gold wash. */
+.dashboard-page .hotel-overview-card{
+  background-color:var(--sq21-panel)!important;
+  border-color:var(--sq21-line)!important;
+  box-shadow:none!important;
+}
+.dashboard-page .hotel-overview-card:not(.has-cover){background-image:none!important}
+.dashboard-page .hotel-overview-card.has-cover::after{background:linear-gradient(90deg,rgba(6,8,11,.96),rgba(6,8,11,.72) 58%,rgba(6,8,11,.38))!important}
+.dashboard-page .hotel-card-top-bar{height:1px!important;opacity:.82!important}
+.dashboard-page .activation-card{
+  background:var(--sq21-panel)!important;
+  border-color:var(--sq21-line)!important;
+}
+.dashboard-page .activation-list button{background:var(--sq21-panel-2)!important;border-color:var(--sq21-line)!important;color:var(--sq21-text)!important}
+.dashboard-page .activation-head>button{background:var(--sq21-bg-elev)!important;border-color:rgba(232,189,69,.35)!important;color:var(--sq21-accent-hi)!important}
+.dashboard-page .quick-actions-wrap{background:var(--sq21-panel)!important;border-color:var(--sq21-line)!important}
+
+/* =========================================================
+   DASHBOARD ROOMS — real, visible working action button
+   ========================================================= */
+.dashboard-page .rooms-table{
+  padding:0!important;
+  overflow:hidden!important;
+  background:var(--sq21-panel)!important;
+  border:1px solid var(--sq21-line)!important;
+  border-radius:16px!important;
+}
+.dashboard-page .rooms-table-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  padding:16px 16px 11px!important;
+  border-bottom:1px solid var(--sq21-line)!important;
+}
+.dashboard-page .rooms-table-head h2{margin:0!important;font-size:18px!important}
+.dashboard-page .rooms-table-count{padding:5px 9px!important;border:1px solid var(--sq21-line)!important;border-radius:999px!important;color:var(--sq21-muted)!important;font-size:10.5px!important;font-weight:600!important}
+.dashboard-page .rooms-table table{width:100%!important;border-collapse:collapse!important}
+.dashboard-page .rooms-table th{
+  padding:11px 14px!important;
+  background:var(--sq21-bg-elev)!important;
+  border-bottom:1px solid var(--sq21-line)!important;
+  color:#8f9aa6!important;
+  font-size:10.5px!important;
+  font-weight:700!important;
+  letter-spacing:.065em!important;
+  text-transform:uppercase!important;
+}
+.dashboard-page .rooms-table td{
+  padding:12px 14px!important;
+  background:var(--sq21-panel)!important;
+  border-bottom:1px solid #222b34!important;
+  color:var(--sq21-text)!important;
+  font-size:12px!important;
+  vertical-align:middle!important;
+}
+.dashboard-page .rooms-table tbody tr:last-child td{border-bottom:0!important}
+.dashboard-page .rooms-table tbody tr:hover td{background:var(--sq21-panel-2)!important}
+.dashboard-page .room-status{display:inline-flex!important;align-items:center!important;min-height:27px!important;padding:4px 9px!important;border-radius:999px!important;font-size:10.5px!important;text-transform:capitalize!important}
+.dashboard-page .room-status-available{background:var(--sq21-green-bg)!important;border:1px solid rgba(85,213,157,.34)!important;color:#7be5b5!important}
+.dashboard-page .room-status-cleaning,.dashboard-page .room-status-occupied{background:var(--sq21-accent-soft)!important;border:1px solid rgba(232,189,69,.36)!important;color:var(--sq21-accent-hi)!important}
+.dashboard-page .rooms-table-view-btn{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  min-height:34px!important;
+  padding:0 11px!important;
+  border:1px solid var(--sq21-line)!important;
+  border-radius:9px!important;
+  background:var(--sq21-bg-elev)!important;
+  color:var(--sq21-text)!important;
+  font-size:10.5px!important;
+  font-weight:700!important;
+  cursor:pointer!important;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease!important;
+}
+.dashboard-page .rooms-table-view-btn:hover{background:var(--sq21-panel-2)!important;border-color:rgba(232,189,69,.48)!important;transform:translateY(-1px)!important}
+.dashboard-page .rooms-table-view-btn svg{width:13px!important;height:13px!important;color:var(--sq21-accent)!important}
+
+/* =========================================================
+   RESERVATIONS — remove brown card cast, raise hierarchy/contrast
+   ========================================================= */
+.reservations-page{padding:24px!important;background:var(--sq21-bg)!important;background-image:none!important}
+.reservations-header{margin-bottom:18px!important;align-items:flex-end!important}
+.reservations-header h1{font-size:32px!important;line-height:1.08!important;margin:3px 0 6px!important}
+.reservations-header p{color:var(--sq21-muted)!important;font-size:12.5px!important}
+.reservations-eyebrow{color:var(--sq21-accent)!important;font-size:10.5px!important;font-weight:700!important}
+.reservation-stat-grid{gap:10px!important;margin-bottom:14px!important}
+.reservation-stat-card{
+  min-height:84px!important;
+  padding:14px 15px!important;
+  background:var(--sq21-panel)!important;
+  background-image:none!important;
+  border:1px solid var(--sq21-line)!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+}
+.reservation-stat-icon{
+  width:38px!important;height:38px!important;border-radius:10px!important;
+  background:var(--sq21-bg-elev)!important;
+  border:1px solid rgba(232,189,69,.32)!important;
+  color:var(--sq21-accent)!important;
+}
+.reservation-stat-card p{color:var(--sq21-subtle)!important;font-size:10.5px!important;font-weight:600!important}
+.reservation-stat-card strong{color:var(--sq21-text)!important;font-size:21px!important;font-weight:700!important}
+.reservation-panel{background:var(--sq21-panel)!important;border:1px solid var(--sq21-line)!important;box-shadow:none!important}
+.reservation-filter-panel{padding:14px!important}
+.reservation-filters label>span,.reservation-field>span{color:var(--sq21-muted)!important;font-size:10.5px!important}
+.reservation-filters input,.reservation-filters select,.reservation-field input,.reservation-field select,.reservation-field textarea{
+  background:var(--sq21-bg-elev)!important;
+  border-color:var(--sq21-line)!important;
+  color:var(--sq21-text)!important;
+  min-height:42px!important;
+  border-radius:10px!important;
+  box-shadow:none!important;
+}
+.reservation-filters input:focus,.reservation-filters select:focus,.reservation-field input:focus,.reservation-field select:focus,.reservation-field textarea:focus{
+  border-color:rgba(232,189,69,.58)!important;
+  box-shadow:0 0 0 3px rgba(232,189,69,.09)!important;
+}
+.reservation-table th{background:var(--sq21-bg-elev)!important;color:#909ba6!important;border-color:var(--sq21-line)!important;font-size:10.5px!important}
+.reservation-table td{background:var(--sq21-panel)!important;color:var(--sq21-muted)!important;border-color:var(--sq21-line)!important;font-size:12px!important}
+.reservation-table tr:hover td{background:var(--sq21-panel-2)!important}
+.reservation-panel-heading{border-color:var(--sq21-line)!important}
+.reservation-modal,.reservation-room-modal,.reservation-drawer{background:var(--sq21-bg-elev)!important;border-color:var(--sq21-line)!important}
+.reservation-modal-header,.reservation-drawer-header{background:rgba(9,12,17,.97)!important;border-color:var(--sq21-line)!important}
+.reservation-form-section,.reservation-detail-section,.reservation-room-stay-summary,.reservation-rate-card{
+  background:var(--sq21-panel)!important;
+  border-color:var(--sq21-line)!important;
+}
+.reservation-mode-switch button,.reservation-subtabs button,.reservation-row-actions button,.reservation-icon-button{
+  background:var(--sq21-panel-2)!important;border-color:var(--sq21-line)!important;color:var(--sq21-muted)!important;
+}
+.reservation-mode-switch button.active,.reservation-subtabs button.active{
+  background:var(--sq21-accent-soft)!important;border-color:rgba(232,189,69,.38)!important;color:var(--sq21-accent-hi)!important;
+}
+
+/* =========================================================
+   REVENUE GROWTH / V1.1 — remove the old gold/brown hero and card tint
+   ========================================================= */
+.v11-revenue-page{gap:14px!important;padding:20px 18px 36px!important;background:var(--sq21-bg)!important}
+.v11-hero{
+  padding:20px!important;
+  border:1px solid var(--sq21-line)!important;
+  background:var(--sq21-panel)!important;
+  background-image:none!important;
+  border-radius:16px!important;
+  box-shadow:none!important;
+}
+.v11-hero h1{font-size:31px!important;font-weight:700!important;letter-spacing:-.035em!important;color:var(--sq21-text)!important}
+.v11-hero p{color:var(--sq21-muted)!important;font-size:12.5px!important}
+.v11-eyebrow{color:var(--sq21-accent)!important;font-size:10.5px!important}
+.v11-metrics{gap:10px!important}
+.v11-metric{background:var(--sq21-panel)!important;border-color:var(--sq21-line)!important;border-radius:14px!important;padding:14px!important}
+.v11-metric span{color:var(--sq21-subtle)!important;font-size:10.5px!important;font-weight:600!important}
+.v11-metric strong{color:var(--sq21-text)!important;font-size:21px!important;font-weight:700!important}
+.v11-tabs{background:var(--sq21-panel)!important;border-color:var(--sq21-line)!important;padding:5px!important}
+.v11-tabs button{color:var(--sq21-muted)!important;min-height:37px!important;font-size:11.5px!important}
+.v11-tabs button.active{background:var(--sq21-accent)!important;color:var(--sq21-accent-ink)!important}
+.v11-card{background:var(--sq21-panel)!important;border-color:var(--sq21-line)!important;border-radius:15px!important}
+.v11-card h2{color:var(--sq21-text)!important;font-size:16px!important}
+.v11-card header p{color:var(--sq21-muted)!important;font-size:11.5px!important}
+.v11-field>span{color:var(--sq21-muted)!important;font-size:10.5px!important}
+.v11-field input,.v11-field select,.v11-field textarea,.v11-split-line input,.v11-payment-row input,.v11-payment-row select{
+  background:var(--sq21-bg-elev)!important;border-color:var(--sq21-line)!important;color:var(--sq21-text)!important;border-radius:10px!important;
+}
+.v11-btn.secondary,.v11-row-actions button,.v11-list-row>button,.v11-payment-row button{background:var(--sq21-panel-2)!important;border-color:var(--sq21-line)!important;color:var(--sq21-text)!important}
+.v11-link-box{background:var(--sq21-bg-elev)!important;border-color:var(--sq21-line)!important}
+.v11-note{background:var(--sq21-bg-elev)!important;border-left-color:var(--sq21-accent)!important;color:var(--sq21-muted)!important}
+.v11-list-row,.v11-payer{background:var(--sq21-bg-elev)!important;border-color:var(--sq21-line)!important}
+.v11-balance-callout{background:var(--sq21-bg-elev)!important;border-color:var(--sq21-line)!important}
+
+/* Operations Automation uses the same visual family as Revenue Growth. */
+.v11b-page{background:var(--sq21-bg)!important;padding:20px 18px 36px!important}
+.v11b-hero{background:var(--sq21-panel)!important;background-image:none!important;border-color:var(--sq21-line)!important;box-shadow:none!important}
+.v11b-hero h1{color:var(--sq21-text)!important;font-weight:700!important;letter-spacing:-.035em!important}
+.v11b-hero p{color:var(--sq21-muted)!important}
+.v11b-metric,.v11b-card,.v11b-tabs{background:var(--sq21-panel)!important;border-color:var(--sq21-line)!important}
+.v11b-card input,.v11b-card select,.v11b-card textarea{background:var(--sq21-bg-elev)!important;border-color:var(--sq21-line)!important;color:var(--sq21-text)!important}
+
+/* =========================================================
+   REPORTS / BILLING / STAFF — neutral panels with approved accent only
+   ========================================================= */
+.reports-page{background:var(--sq21-bg)!important}
+.reports-hero{background:var(--sq21-panel)!important;background-image:none!important;border:1px solid var(--sq21-line)!important;border-radius:16px!important}
+.reports-hero h1{color:var(--sq21-text)!important;font-weight:700!important;letter-spacing:-.035em!important}
+.reports-hero p{color:var(--sq21-muted)!important}
+.reports-hero-meta{background:var(--sq21-bg-elev)!important;border-color:var(--sq21-line)!important}
+.reports-control-panel,.reports-secondary-filters,.reports-panel,.reports-summary-block,.reports-export-dock,.reports-metric-card{background:var(--sq21-panel)!important;border-color:var(--sq21-line)!important;box-shadow:none!important}
+.reports-date-fields input,.reports-secondary-filters select{background:var(--sq21-bg-elev)!important;border-color:var(--sq21-line)!important;color:var(--sq21-text)!important}
+.reports-table th{background:var(--sq21-bg-elev)!important;color:var(--sq21-subtle)!important;border-color:var(--sq21-line)!important}
+.reports-table td{background:var(--sq21-panel)!important;color:var(--sq21-muted)!important;border-color:var(--sq21-line)!important}
+
+.owner-billing-page{background:var(--sq21-bg)!important}
+.owner-billing-summary article,.owner-billing-card{background:var(--sq21-panel)!important;border-color:var(--sq21-line)!important}
+.owner-billing-details>div,.owner-billing-card textarea{background:var(--sq21-bg-elev)!important;border-color:var(--sq21-line)!important;color:var(--sq21-text)!important}
+.owner-plan-list>div,.owner-history-list>div{border-color:var(--sq21-line)!important;background:var(--sq21-panel)!important}
+.owner-plan-list>div.current{background:var(--sq21-bg-elev)!important;border-color:rgba(232,189,69,.38)!important}
+
+.staff-page{background:var(--sq21-bg)!important;background-image:none!important}
+.staff-page :is(.staff-card,.staff-panel,.staff-summary-card){background:var(--sq21-panel)!important;background-image:none!important;border-color:var(--sq21-line)!important;box-shadow:none!important}
+
+/* =========================================================
+   HOUSEKEEPING — prototype density + stable green checks
+   ========================================================= */
+.day13-page{background:var(--sq21-bg)!important}
+.day13-card,.day13-stat{background:var(--sq21-panel)!important;border-color:var(--sq21-line)!important;box-shadow:none!important}
+.day13-check{border-top-color:#232c35!important;color:var(--sq21-text)!important}
+.day13-card .day13-check input[type="checkbox"]{background:var(--sq21-bg-elev)!important;border-color:#606c78!important}
+.day13-card .day13-check input[type="checkbox"]:checked{background:var(--sq21-green)!important;border-color:var(--sq21-green)!important}
+.day13-card .day13-check input[type="checkbox"]:checked::after{color:#07150f!important}
+.day13-progress{background:#29323c!important}
+.day13-progress>span{background:var(--sq21-accent)!important}
+.day13-select-all{background:var(--sq21-bg-elev)!important;border-color:rgba(232,189,69,.4)!important;color:var(--sq21-accent-hi)!important}
+
+/* =========================================================
+   NAV / NOTIFICATIONS — crisp approved chrome, no warm dropdown cast
+   ========================================================= */
+.sidebar{background:var(--sq21-bg-elev)!important;border-right-color:var(--sq21-line)!important}
+.sidebar-logo,.sidebar-footer{border-color:var(--sq21-line)!important}
+.sidebar-hotel-badge{background:var(--sq21-panel)!important;border-color:rgba(232,189,69,.36)!important;color:var(--sq21-accent-hi)!important}
+.nav-item.active{background:var(--sq21-accent-soft)!important;border-color:rgba(232,189,69,.38)!important;color:var(--sq21-accent-hi)!important}
+.nav-item:hover{background:var(--sq21-panel)!important;border-color:var(--sq21-line)!important}
+.navbar{background:rgba(9,12,17,.94)!important;border-bottom-color:var(--sq21-line)!important}
+.navbar-icon-btn,.navbar-menu-btn{background:var(--sq21-panel)!important;border-color:var(--sq21-line)!important}
+.navbar-icon-btn:hover,.navbar-menu-btn:hover{background:var(--sq21-panel-2)!important;border-color:var(--sq21-line-strong)!important;color:var(--sq21-accent-hi)!important}
+.notif-dropdown{background:var(--sq21-panel)!important;background-image:none!important;border-color:var(--sq21-line)!important;box-shadow:0 20px 54px rgba(0,0,0,.54)!important}
+.notif-header{border-color:var(--sq21-line)!important}
+.notif-heading-copy small{font-size:10.5px!important;color:var(--sq21-muted)!important}
+
+/* =========================================================
+   BUTTON / INPUT POLISH — consistent prototype interaction language
+   ========================================================= */
+:is(.reservation-btn.primary,.reports-primary-button,.reports-pdf-button,.v11-btn.primary,.v11b-page button.primary){
+  background:var(--sq21-accent)!important;
+  background-image:none!important;
+  border-color:var(--sq21-accent)!important;
+  color:var(--sq21-accent-ink)!important;
+  box-shadow:none!important;
+}
+:is(button,input,select,textarea){outline:none}
+:is(button,input,select,textarea):focus-visible{outline:2px solid rgba(232,189,69,.72)!important;outline-offset:2px!important}
+
+/* Purposeful micro-interactions only; no blur-heavy motion. */
+:is(.reservation-stat-card,.v11-metric,.v11-card,.reports-metric-card,.dashboard-page .rooms-table-view-btn){
+  transition:border-color .16s ease,background-color .16s ease,transform .16s ease!important;
+}
+:is(.reservation-stat-card,.v11-metric,.reports-metric-card):hover{border-color:var(--sq21-line-strong)!important;transform:translateY(-1px)!important}
+
+@media(max-width:900px){
+  .dashboard-page,.reservations-page,.v11-revenue-page,.v11b-page{padding:18px 14px 88px!important}
+  .reservation-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .v11-metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+@media(max-width:620px){
+  .dashboard-page .rooms-table{border-radius:14px!important;overflow-x:auto!important}
+  .dashboard-page .rooms-table table{min-width:620px!important}
+  .reservation-stat-grid,.v11-metrics{grid-template-columns:1fr!important}
+  .reservations-header,.v11-hero{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
+  .reservations-header-actions{width:100%!important;display:grid!important;grid-template-columns:1fr 1fr!important}
+  .reservations-header-actions button{width:100%!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  :is(.reservation-stat-card,.v11-metric,.v11-card,.reports-metric-card,.dashboard-page .rooms-table-view-btn){transition:none!important;transform:none!important}
+}

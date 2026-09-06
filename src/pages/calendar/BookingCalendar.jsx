@@ -255,6 +255,7 @@ export default function BookingCalendar() {
   const [view, setView] = useState('week')
   const [anchorDate, setAnchorDate] = useState(dateInput(new Date()))
   const [roomTypeId, setRoomTypeId] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
   const [reservationStatuses, setReservationStatuses] = useState([])
   const [showHistoricalBlocks, setShowHistoricalBlocks] = useState(false)
   const [pageOffset, setPageOffset] = useState(0)
@@ -398,14 +399,6 @@ export default function BookingCalendar() {
     } else {
       setAnchorDate((current) => addDays(current, direction * (view === 'week' ? 7 : 1)))
     }
-  }
-
-  function toggleReservationStatus(status) {
-    setReservationStatuses((current) =>
-      current.includes(status)
-        ? current.filter((item) => item !== status)
-        : [...current, status]
-    )
   }
 
   async function handleDrop(event, roomId, arrivalDate) {
@@ -767,7 +760,28 @@ export default function BookingCalendar() {
   })
 
   const timelineMinWidth = Math.max(days.length * (view === 'month' ? 88 : 120), 700)
-  const activeFilterCount = (roomTypeId ? 1 : 0) + reservationStatuses.length + (showHistoricalBlocks ? 1 : 0)
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const visibleRooms = normalizedSearch
+    ? rooms.filter((room) => {
+        const roomText = [
+          room.room_number,
+          room.room_type_name,
+          room.status,
+          ...(eventsByRoom.get(room.id) || []).flatMap((item) => [
+            item.guest_name,
+            item.reservation_number,
+            eventTitle(item),
+          ]),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        return roomText.includes(normalizedSearch)
+      })
+    : rooms
+
+  const visibleRoomIds = new Set(visibleRooms.map((room) => room.id))
+  const visibleEvents = events.filter((item) => visibleRoomIds.has(item.room_id))
 
   return (
     <div className="booking-calendar-page">
@@ -826,6 +840,18 @@ export default function BookingCalendar() {
               >
                 Block a room
               </button>
+              <button
+                type="button"
+                className={showHistoricalBlocks ? 'active' : ''}
+                onClick={() => setShowHistoricalBlocks((current) => !current)}
+              >
+                {showHistoricalBlocks ? 'Hide historical blocks' : 'Show historical blocks'}
+              </button>
+              <div className="calendar-more-legend" aria-label="Booking calendar legend">
+                {LEGEND.map(([value, label]) => (
+                  <span key={value}><i className={`legend-dot ${value}`} />{label}</span>
+                ))}
+              </div>
             </div>
           </details>
         </div>
@@ -855,9 +881,20 @@ export default function BookingCalendar() {
         </div>
       </section>
 
-      <section className="calendar-compact-controls" aria-label="Calendar filters and legend">
-        <label className="calendar-quick-room-type">
-          <span>Room type</span>
+      <section className="calendar-approved-filterbar" aria-label="Booking calendar filters">
+        <label className="calendar-search-control">
+          <span className="calendar-control-label">Search</span>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search guest or room"
+            autoComplete="off"
+          />
+        </label>
+
+        <label className="calendar-room-type-control">
+          <span className="calendar-control-label">Room type</span>
           <select value={roomTypeId} onChange={(event) => setRoomTypeId(event.target.value)}>
             <option value="">All room types</option>
             {roomTypes.map((roomType) => (
@@ -866,70 +903,33 @@ export default function BookingCalendar() {
           </select>
         </label>
 
-        <details className="calendar-filter-menu">
-          <summary>
-            Filters
-            {activeFilterCount > 0 && <span className="calendar-filter-count">{activeFilterCount}</span>}
-          </summary>
-          <div className="calendar-filter-popover">
-            <label className="calendar-filter-date">
-              <span>Jump to date</span>
-              <input
-                type="date"
-                value={anchorDate}
-                onChange={(event) => setAnchorDate(event.target.value)}
-              />
-            </label>
-
-            <div className="calendar-status-filter">
-              <span>Reservation status</span>
-              <div>
-                {RESERVATION_STATUS_OPTIONS.map(([value, label]) => (
-                  <label key={value} className={reservationStatuses.includes(value) ? 'selected' : ''}>
-                    <input
-                      type="checkbox"
-                      checked={reservationStatuses.includes(value)}
-                      onChange={() => toggleReservationStatus(value)}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <label className="historical-block-filter">
-              <span>Room blocks</span>
-              <button
-                type="button"
-                className={showHistoricalBlocks ? 'active' : ''}
-                onClick={() => setShowHistoricalBlocks((current) => !current)}
-              >
-                {showHistoricalBlocks ? 'Showing all block statuses' : 'Active blocks only'}
-              </button>
-            </label>
-
-            <button
-              type="button"
-              className="calendar-clear-filters"
-              onClick={() => {
-                setRoomTypeId('')
-                setReservationStatuses([])
-                setShowHistoricalBlocks(false)
-              }}
-            >
-              Clear filters
-            </button>
-          </div>
-        </details>
-
-        <details className="calendar-legend-menu">
-          <summary>Legend</summary>
-          <div className="calendar-legend-popover">
-            {LEGEND.map(([value, label]) => (
-              <span key={value}><i className={`legend-dot ${value}`} />{label}</span>
+        <label className="calendar-status-control">
+          <span className="calendar-control-label">Status</span>
+          <select
+            value={reservationStatuses[0] || ''}
+            onChange={(event) => setReservationStatuses(event.target.value ? [event.target.value] : [])}
+          >
+            <option value="">All statuses</option>
+            {RESERVATION_STATUS_OPTIONS.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
             ))}
-          </div>
-        </details>
+          </select>
+        </label>
+
+        {(searchTerm || roomTypeId || reservationStatuses.length || showHistoricalBlocks) && (
+          <button
+            type="button"
+            className="calendar-filter-reset"
+            onClick={() => {
+              setSearchTerm('')
+              setRoomTypeId('')
+              setReservationStatuses([])
+              setShowHistoricalBlocks(false)
+            }}
+          >
+            Clear
+          </button>
+        )}
       </section>
 
       {pageError && <div className="calendar-inline-error">{pageError}</div>}
@@ -940,16 +940,16 @@ export default function BookingCalendar() {
             <span>ROOM PLAN</span>
             <h2>{formatDate(rangeStart, { year: true })}{rangeStart !== rangeEnd ? ` – ${formatDate(rangeEnd, { year: true })}` : ''}</h2>
           </div>
-          <strong>{events.length} event{events.length === 1 ? '' : 's'}</strong>
+          <strong>{visibleEvents.length} event{visibleEvents.length === 1 ? '' : 's'}</strong>
         </div>
-        {events.length === 0 ? (
+        {visibleEvents.length === 0 ? (
           <div className="calendar-mobile-empty">No reservations or room blocks match the selected filters.</div>
         ) : (
           <div className="calendar-mobile-agenda-list">
-            {[...events]
+            {[...visibleEvents]
               .sort((left, right) => String(left.start_date || '').localeCompare(String(right.start_date || '')))
               .map((calendarEvent) => {
-                const room = rooms.find((item) => item.id === calendarEvent.room_id)
+                const room = visibleRooms.find((item) => item.id === calendarEvent.room_id)
                 const eventStatus = calendarEvent.event_type === 'room_block'
                   ? calendarEvent.block_type
                   : calendarEvent.status || 'active'
@@ -1005,10 +1005,10 @@ export default function BookingCalendar() {
               </div>
             </div>
 
-            {rooms.length === 0 ? (
+            {visibleRooms.length === 0 ? (
               <div className="calendar-empty-row">No rooms match the selected filters.</div>
             ) : (
-              rooms.map((room) => {
+              visibleRooms.map((room) => {
                 const roomEvents = eventsByRoom.get(room.id) || []
                 const historicalLayout = historicalLayoutsByRoom.get(room.id) || {
                   laneByEventKey: new Map(),
@@ -1016,8 +1016,8 @@ export default function BookingCalendar() {
                 }
                 const historicalLaneCount = historicalLayout.laneCount
                 const trackRows = historicalLaneCount > 0
-                  ? `82px repeat(${historicalLaneCount}, 38px)`
-                  : '82px'
+                  ? `76px repeat(${historicalLaneCount}, 42px)`
+                  : '76px'
 
                 return (
                 <div className="calendar-room-row" key={room.id}>
@@ -1063,7 +1063,7 @@ export default function BookingCalendar() {
                               }),
                             })
                           }
-                          title={`Drop a reservation or double-click to block Room ${room.room_number} on ${formatDate(day, { year: true })}`}
+                          aria-label={`Room ${room.room_number} on ${formatDate(day, { year: true })}. Drop a reservation or double-click to block.`}
                         >
                           {isDragTarget && (
                             <span className="calendar-drop-target-label">

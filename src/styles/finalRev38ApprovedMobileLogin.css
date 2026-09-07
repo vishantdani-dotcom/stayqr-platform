@@ -1,0 +1,291 @@
+﻿/*
+ StayQR REV38 — APPROVED MOBILE LOGIN
+
+ Scope is intentionally MOBILE LOGIN ONLY.
+ Desktop login is unchanged.
+ All authenticated application pages are unchanged.
+
+ Approved direction:
+ - same desktop StayQR hero/message/motion language
+ - compact premium mobile composition
+ - auth form immediately follows the hero
+ - no experimental QR/keycard artwork
+ - no oversized vertical gap before sign-in
+*/
+
+@media (max-width:900px) {
+  /* Kill previous experimental mobile-only art. */
+  .sq36-mobile-login-overlay,
+  .sq35-login-motion {
+    display:none!important;
+    visibility:hidden!important;
+    opacity:0!important;
+  }
+
+  body.sq38-mobile-login-active {
+    overflow-x:hidden!important;
+    background:#06080b!important;
+  }
+
+  .sq-login-page.sq38-approved-mobile-login {
+    width:100%!important;
+    min-height:100dvh!important;
+    height:auto!important;
+    max-height:none!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    gap:0!important;
+    overflow-x:hidden!important;
+    overflow-y:visible!important;
+    padding:0!important;
+    background:#06080b!important;
+  }
+
+  .sq38-approved-hero {
+    position:relative!important;
+    inset:auto!important;
+    transform:none!important;
+    display:block!important;
+    width:100%!important;
+    max-width:none!important;
+    min-height:auto!important;
+    flex:none!important;
+    overflow:hidden!important;
+    padding:18px 18px 15px!important;
+    border:0!important;
+    border-bottom:1px solid #27303a!important;
+    border-radius:0!important;
+    background:linear-gradient(180deg,rgba(9,12,17,.98),rgba(6,8,11,.99))!important;
+    color:#f7f8f9!important;
+  }
+
+  .sq38-approved-hero .sq37-hero-content {
+    width:100%!important;
+    max-width:560px!important;
+    margin:0 auto!important;
+  }
+
+  .sq38-approved-hero .sq37-brand {
+    display:flex!important;
+    align-items:center!important;
+    gap:9px!important;
+    margin:0 0 22px!important;
+  }
+
+  .sq38-approved-hero .sq37-brand-mark {
+    width:34px!important;
+    height:34px!important;
+    flex:0 0 34px!important;
+    border-radius:8px!important;
+    font-size:12px!important;
+  }
+
+  .sq38-approved-hero .sq37-brand strong {
+    font-size:15px!important;
+    line-height:1.1!important;
+  }
+
+  .sq38-approved-hero .sq37-brand small {
+    margin-top:2px!important;
+    font-size:9px!important;
+  }
+
+  .sq38-approved-hero .sq37-eyebrow {
+    margin:0 0 7px!important;
+    color:#e8bd45!important;
+    font-size:9px!important;
+    font-weight:700!important;
+    letter-spacing:.115em!important;
+  }
+
+  .sq38-approved-hero h1 {
+    max-width:390px!important;
+    margin:0!important;
+    color:#f7f8f9!important;
+    font-size:clamp(29px,8vw,36px)!important;
+    line-height:.98!important;
+    letter-spacing:-.045em!important;
+  }
+
+  .sq38-approved-hero .sq37-lead {
+    max-width:470px!important;
+    margin:11px 0 13px!important;
+    color:#b3bbc5!important;
+    font-size:11px!important;
+    line-height:1.45!important;
+  }
+
+  /*
+   Compact 3-card row preserves the approved desktop story while avoiding
+   the huge mobile hero that previously pushed the login form below the fold.
+  */
+  .sq38-approved-hero .sq37-feature-grid {
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+    width:100%!important;
+    margin:0!important;
+  }
+
+  .sq38-approved-hero .sq37-feature {
+    min-width:0!important;
+    min-height:88px!important;
+    display:block!important;
+    padding:8px!important;
+    border:1px solid #27303a!important;
+    border-radius:9px!important;
+    background:rgba(15,20,26,.84)!important;
+  }
+
+  .sq38-approved-hero .sq37-feature-icon {
+    width:25px!important;
+    height:25px!important;
+    margin:0 0 6px!important;
+    display:grid!important;
+    place-items:center!important;
+    border-radius:7px!important;
+    font-size:11px!important;
+  }
+
+  .sq38-approved-hero .sq37-feature strong {
+    display:block!important;
+    color:#f7f8f9!important;
+    font-size:9px!important;
+    line-height:1.18!important;
+  }
+
+  .sq38-approved-hero .sq37-feature p {
+    margin:4px 0 0!important;
+    color:#87919c!important;
+    font-size:7.5px!important;
+    line-height:1.28!important;
+  }
+
+  /* Same restrained desktop line/orbit language. */
+  .sq38-approved-hero .sq37-motion {
+    position:absolute!important;
+    inset:0!important;
+    z-index:0!important;
+    display:block!important;
+    overflow:hidden!important;
+    pointer-events:none!important;
+  }
+
+  .sq38-approved-hero .sq37-hero-content {
+    position:relative!important;
+    z-index:1!important;
+  }
+
+  .sq38-approved-hero .sq37-orbit-a {
+    width:165px!important;
+    height:165px!important;
+    right:-62px!important;
+    top:27px!important;
+  }
+
+  .sq38-approved-hero .sq37-orbit-b {
+    width:122px!important;
+    height:122px!important;
+    right:-32px!important;
+    top:48px!important;
+  }
+
+  .sq38-approved-hero .sq37-orbit-dot {
+    right:58px!important;
+    top:58px!important;
+  }
+
+  /*
+   Auth is the real desktop auth component, simply compacted for mobile.
+   No duplicated logo / welcome intro, so fields are immediately reachable.
+  */
+  .sq38-approved-auth {
+    position:relative!important;
+    inset:auto!important;
+    transform:none!important;
+    width:100%!important;
+    max-width:none!important;
+    min-height:auto!important;
+    height:auto!important;
+    flex:none!important;
+    margin:0!important;
+    padding:16px 18px 20px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:#0f141a!important;
+  }
+
+  .sq38-mobile-hide {
+    display:none!important;
+  }
+
+  .sq38-approved-auth :is(input,select,textarea) {
+    width:100%!important;
+    max-width:100%!important;
+    min-height:44px!important;
+  }
+
+  .sq38-approved-auth :is(button,a[role="button"],[role="button"]) {
+    min-height:44px!important;
+  }
+
+  .sq38-approved-auth form {
+    margin-top:0!important;
+  }
+
+  .sq38-approved-auth label {
+    font-size:10px!important;
+  }
+
+  /*
+   If the tab row exists, keep it as the first visual element and match
+   the approved mockup instead of adding another heading above it.
+  */
+  .sq38-approved-auth [role="tablist"],
+  .sq38-approved-auth :is(.tabs,.tab-list,[class*="tabs"],[class*="tab-list"]) {
+    margin-top:0!important;
+    margin-bottom:12px!important;
+  }
+
+  .sq38-approved-auth :is(.form-actions,.actions,.button-row) {
+    margin-top:12px!important;
+  }
+
+  .sq38-approved-auth footer {
+    margin-top:14px!important;
+  }
+}
+
+@media (max-width:390px) {
+  .sq38-approved-hero {
+    padding-left:14px!important;
+    padding-right:14px!important;
+  }
+
+  .sq38-approved-auth {
+    padding-left:14px!important;
+    padding-right:14px!important;
+  }
+
+  .sq38-approved-hero .sq37-feature-grid {
+    grid-template-columns:repeat(3,minmax(96px,1fr))!important;
+    overflow-x:auto!important;
+    overscroll-behavior-inline:contain!important;
+    scrollbar-width:none!important;
+  }
+
+  .sq38-approved-hero .sq37-feature-grid::-webkit-scrollbar {
+    display:none!important;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .sq38-approved-hero .sq37-motion *,
+  .sq38-approved-hero .sq37-motion *::before,
+  .sq38-approved-hero .sq37-motion *::after {
+    animation:none!important;
+  }
+}
+

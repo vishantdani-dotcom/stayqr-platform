@@ -1,0 +1,204 @@
+﻿/*
+ StayQR REV28 - FINAL NEUTRAL SURFACE LOCK
+
+ Visual authority:
+ - Guest Bills
+ - Amenities
+ - Subscription & Billing
+
+ Purpose:
+ - Remove remaining warm/light-gold/brown panel fills.
+ - Keep approved Poppins typography and existing layout.
+ - Keep gold for text, small accents, statuses and intentional CTA buttons.
+ - Preserve all uploaded images, video thumbnails and background imagery.
+*/
+
+#root,
+#root * {
+  --panel:#0f141a!important;
+  --panel-2:#131920!important;
+  --panel-3:#171e26!important;
+  --card-bg:#0f141a!important;
+  --panel-bg:#0f141a!important;
+  --surface-card:#0f141a!important;
+  --surface-panel:#0f141a!important;
+
+  /* Warm/gold fill tokens are deliberately neutralized. */
+  --accent-soft:#131920!important;
+  --orange-bg:#131920!important;
+  --gold-bg:#131920!important;
+  --gold-soft:#131920!important;
+  --gold-subtle:#131920!important;
+  --warning-bg:#131920!important;
+  --warning-soft:#131920!important;
+  --surface-gold:#131920!important;
+}
+
+/* Core admin blocks: same neutral panel system as Guest Bills / Billing. */
+#root :is(
+  .card,
+  .card.flat,
+  .panel,
+  .metric,
+  .report,
+  .form-card,
+  .form-section,
+  .summary-card,
+  .stat-card,
+  .list-card,
+  .detail-card,
+  .workspace-card,
+  .surface,
+  .toolbar,
+  .filters,
+  .tablewrap
+) {
+  background-color:#0f141a!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+/* KPI/stat grids including Reports, Guests and Operations Automation. */
+#root .report-grid > *,
+#root .metrics > *,
+#root [class*="metric-grid"] > *,
+#root [class*="metrics-grid"] > *,
+#root [class*="stats-grid"] > *,
+#root [class*="stat-grid"] > *,
+#root [class*="summary-grid"] > *,
+#root [class*="kpi-grid"] > * {
+  background-color:#0f141a!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+/* Media Manager structural surfaces only. Image/video content is not removed. */
+#root :is(
+  .asset-card,
+  .media-asset,
+  .media-item,
+  .media-panel,
+  .media-library,
+  .media-toolbar,
+  .upload-panel,
+  .upload-card
+) {
+  background-color:#0f141a!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+/* Soft/warning/callout blocks: neutral background, gold text may remain. */
+#root :is(
+  .soft,
+  .accent-soft,
+  .gold-soft,
+  .gold-subtle,
+  .warning-soft,
+  .notice-soft,
+  .callout-soft,
+  .banner-soft
+) {
+  background-color:#131920!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+/*
+ Legacy inline surface colours observed in the remaining Guest, Media Manager,
+ Reports and Hotel Profile screenshots. Only background-color is changed so
+ images/background-image media remain intact.
+*/
+#root [style*="#0d0d0d"],
+#root [style*="#0e0e0e"],
+#root [style*="#0f0f0f"],
+#root [style*="#101010"],
+#root [style*="#111111"],
+#root [style*="#11110f"],
+#root [style*="#121211"],
+#root [style*="#121212"],
+#root [style*="#131312"],
+#root [style*="#141413"],
+#root [style*="#151711"],
+#root [style*="#16140d"],
+#root [style*="#17150f"],
+#root [style*="rgb(13, 13, 13)"],
+#root [style*="rgb(14, 14, 14)"],
+#root [style*="rgb(15, 15, 15)"],
+#root [style*="rgb(16, 16, 16)"],
+#root [style*="rgb(17, 17, 17)"],
+#root [style*="rgb(17, 17, 15)"],
+#root [style*="rgb(18, 18, 17)"],
+#root [style*="rgb(18, 18, 18)"],
+#root [style*="rgb(19, 19, 18)"],
+#root [style*="rgb(20, 20, 19)"],
+#root [style*="rgb(21, 23, 17)"],
+#root [style*="rgb(22, 20, 13)"] {
+  background-color:#0f141a!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+/* Explicit warm gold/brown callout fills seen in Hotel Profile / consent areas. */
+#root [style*="#151207"],
+#root [style*="#181405"],
+#root [style*="#241d0a"],
+#root [style*="#2a1d08"],
+#root [style*="#49390c"],
+#root [style*="rgb(21, 18, 7)"],
+#root [style*="rgb(24, 20, 5)"],
+#root [style*="rgb(36, 29, 10)"],
+#root [style*="rgba(232, 189, 69"],
+#root [style*="rgba(212, 175, 55"],
+#root [style*="rgba(247, 215, 111"] {
+  background-color:#131920!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+/*
+ Tabs: Operations Automation, Reports, Guests and Guest Bills all use one
+ treatment. No gold-filled/gold-bordered tab blocks. Selected state = dark
+ neutral fill + gold text only.
+*/
+#root [role="tab"],
+#root :is(.tabs,.tab-list,.billing-tabs,[class*="tabs"],[class*="tab-list"]) :is(button,.tab) {
+  background-color:#090c11!important;
+  background-image:none!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+#root [role="tab"][aria-selected="true"],
+#root :is(.tabs,.tab-list,.billing-tabs,[class*="tabs"],[class*="tab-list"]) :is(button,.tab).active,
+#root :is(.tabs,.tab-list,.billing-tabs,[class*="tabs"],[class*="tab-list"]) :is(button,.tab).selected,
+#root :is(.tabs,.tab-list,.billing-tabs,[class*="tabs"],[class*="tab-list"]) :is(button,.tab)[aria-selected="true"],
+#root :is(.tabs,.tab-list,.billing-tabs,[class*="tabs"],[class*="tab-list"]) :is(button,.tab)[aria-pressed="true"] {
+  background-color:#131920!important;
+  background-image:none!important;
+  border-color:#36414d!important;
+  color:#e8bd45!important;
+  box-shadow:none!important;
+}
+
+/* Reports: prevent a selected KPI (for example Occupancy) from becoming gold. */
+#root .report-grid > *.active,
+#root .report-grid > *.selected,
+#root .report-grid > *[aria-current="true"],
+#root .report-grid > *[aria-selected="true"] {
+  background-color:#0f141a!important;
+  border-color:#27303a!important;
+}
+
+/* Preserve intentional CTA buttons and all media imagery. */
+#root :is(img,video,picture,canvas) {
+  background-color:initial;
+}
+
+#root .primary,
+#root button.primary,
+#root a.primary {
+  /* The approved gold primary CTA remains intentional. */
+}
+
+/* No font/theme/layout overrides are introduced in REV28. */

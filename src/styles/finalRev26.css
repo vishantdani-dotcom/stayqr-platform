@@ -1,0 +1,159 @@
+﻿/* ========================================================================== */
+/* STAYQR FINAL UI/UX REV26 FIX1 â€” SURGICAL NEUTRAL-SURFACE LOCK              */
+/* Authority: approved REV18 prototype + accepted REV22 FIX4 + REV24 FIX1.    */
+/* Scope: ADMIN SHELL ONLY. No font family, no blue theme, no guest UI change. */
+/* Gold remains a restrained text/focus/border accent, never a large wash.     */
+/* ========================================================================== */
+
+/* Extend accepted neutral tokens inside admin only. */
+.app-shell{
+  --sq22-panel:#0f141a;
+  --sq22-panel2:#131920;
+  --sq22-panel3:#171e26;
+  --sq22-elev:#090c11;
+  --sq22-line:#27303a;
+  --sq22-line2:#36414d;
+  --sq22-accent:#e8bd45;
+  --sq22-accent-hi:#f7d76f;
+  --sq21-accent-soft:var(--sq22-panel2);
+  --gold-subtle:var(--sq22-panel2);
+  --gold-glow:transparent;
+  --accent-soft:var(--sq22-panel2);
+  --orange-bg:#161a20;
+}
+
+/* Remaining legacy warm/brown inline fills seen across Hotel Profile,
+   Media Manager, Reports, Operations, Charges, Service Requests,
+   Check-in/out, Arrivals and Booking Calendar. Exact fills only. */
+.app-shell .app-content [style*="background: rgb(36, 29, 10)"],
+.app-shell .app-content [style*="background:rgb(36, 29, 10)"],
+.app-shell .app-content [style*="background: #241d0a"],
+.app-shell .app-content [style*="background:#241d0a"],
+.app-shell .app-content [style*="background-color: #241d0a"],
+.app-shell .app-content [style*="background-color:#241d0a"],
+.app-shell .app-content [style*="background: rgb(28, 22, 8)"],
+.app-shell .app-content [style*="background:rgb(28, 22, 8)"],
+.app-shell .app-content [style*="background: #1c1608"],
+.app-shell .app-content [style*="background:#1c1608"],
+.app-shell .app-content [style*="background-color: #1c1608"],
+.app-shell .app-content [style*="background-color:#1c1608"],
+.app-shell .app-content [style*="background: rgb(42, 29, 8)"],
+.app-shell .app-content [style*="background:rgb(42, 29, 8)"],
+.app-shell .app-content [style*="background: #2a1d08"],
+.app-shell .app-content [style*="background:#2a1d08"],
+.app-shell .app-content [style*="background-color: #2a1d08"],
+.app-shell .app-content [style*="background-color:#2a1d08"],
+.app-shell .app-content [style*="background: #291f0a"],
+.app-shell .app-content [style*="background:#291f0a"],
+.app-shell .app-content [style*="background-color: #291f0a"],
+.app-shell .app-content [style*="background-color:#291f0a"],
+.app-shell .app-content [style*="background: #2b210b"],
+.app-shell .app-content [style*="background:#2b210b"],
+.app-shell .app-content [style*="background-color: #2b210b"],
+.app-shell .app-content [style*="background-color:#2b210b"]{
+  background:var(--sq22-panel)!important;
+  background-image:none!important;
+  border-color:var(--sq22-line)!important;
+  box-shadow:none!important;
+}
+
+/* Warm translucent gold washes: neutralise container fill, retain content. */
+.app-shell .app-content [style*="rgba(232, 189, 69"],
+.app-shell .app-content [style*="rgba(232,189,69"],
+.app-shell .app-content [style*="rgba(247, 215, 111"],
+.app-shell .app-content [style*="rgba(247,215,111"],
+.app-shell .app-content [style*="rgba(240, 195, 77"],
+.app-shell .app-content [style*="rgba(240,195,77"]{
+  background-color:var(--sq22-panel)!important;
+  background-image:none!important;
+}
+
+/* Explicit legacy utility/card washes only; media/photo backgrounds are not targeted. */
+.app-shell .app-content :is(
+  .bg-gold,.bg-warm,.warm-bg,.gold-bg,.accent-bg,.surface-gold,
+  .panel-gold,.card-gold,.highlight-gold,.highlight-warm
+){
+  background:var(--sq22-panel)!important;
+  background-image:none!important;
+  border-color:var(--sq22-line)!important;
+  box-shadow:none!important;
+}
+
+/* Active/selected controls use neutral elevation with gold signal, not gold fill. */
+.app-shell :is(
+  .navbtn.active,.tab.active,.tab.selected,.filter.active,.filter-chip.active,
+  .status.gold,.pill.gold,.badge.gold,.chip.gold
+){
+  background:var(--sq22-panel2)!important;
+  background-image:none!important;
+  color:var(--sq22-accent)!important;
+}
+
+/* Housekeeping: dark neutral checkbox + restrained gold check. */
+.app-shell .app-content .day13-page .day13-check input[type="checkbox"]{
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  accent-color:transparent!important;
+  box-sizing:border-box!important;
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+  min-height:18px!important;
+  flex:0 0 18px!important;
+  display:grid!important;
+  place-items:center!important;
+  position:relative!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid #596674!important;
+  border-radius:5px!important;
+  background:#090c11!important;
+  background-image:none!important;
+  color:transparent!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+}
+.app-shell .app-content .day13-page .day13-check input[type="checkbox"]:checked{
+  background:#131920!important;
+  background-image:none!important;
+  border-color:#e8bd45!important;
+}
+.app-shell .app-content .day13-page .day13-check input[type="checkbox"]:checked::before{
+  content:""!important;
+  display:block!important;
+  width:5px!important;
+  height:9px!important;
+  border:solid #f7d76f!important;
+  border-width:0 2px 2px 0!important;
+  transform:translateY(-1px) rotate(45deg)!important;
+}
+.app-shell .app-content .day13-page .day13-check input[type="checkbox"]:checked::after{
+  content:none!important;
+  display:none!important;
+}
+.app-shell .app-content .day13-page .day13-check input[type="checkbox"]:focus-visible{
+  outline:2px solid #f7d76f!important;
+  outline-offset:2px!important;
+}
+
+/* Keep accepted responsive/accessibility polish without redesigning layout. */
+@media(max-width:760px){
+  .app-shell .app-content :is(button,[role="button"],input:not([type="checkbox"]):not([type="radio"]),select){
+    min-height:44px!important;
+  }
+  .app-shell .app-content :is([class*="table-wrap"],[class*="table-container"],[class*="table-scroll"]){
+    max-width:100%!important;
+    overflow-x:auto!important;
+    -webkit-overflow-scrolling:touch;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .app-shell .app-content *,
+  .app-shell .app-content *::before,
+  .app-shell .app-content *::after{
+    transition-duration:.001ms!important;
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+  }
+}

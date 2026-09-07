@@ -601,7 +601,7 @@ function Textarea({ label, name, value, onChange }) {
 }
 
 const brandingGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginBottom: 22 }
-const brandingCard = { padding: 16, border: '1px solid #292929', borderRadius: 16, background: '#101010', display: 'grid', gap: 12, minWidth: 0 }
+const brandingCard = { padding: 16, border: '1px solid #292929', borderRadius: 16, background: '#0f141a', display: 'grid', gap: 12, minWidth: 0 }
 const brandingPreview = { minHeight: 130, borderRadius: 12, overflow: 'hidden', background: '#080808', display: 'grid', placeItems: 'center', color: '#777' }
 const brandingImage = { width: '100%', height: 180, objectFit: 'cover' }
 const brandingActions = { display: 'flex', gap: 8, flexWrap: 'wrap' }
@@ -671,7 +671,7 @@ const localeControl = {
 };
 
 const card = {
-  background: "#0f0f0f",
+  background: "#0f141a",
   border: "1px solid #222",
   borderRadius: "20px",
   padding: "28px",
@@ -733,7 +733,7 @@ const feedbackCard = {
   border: "1px solid #282828",
   borderRadius: "16px",
   padding: "18px",
-  background: "#0f0f0f",
+  background: "#0f141a",
 };
 
 const feedbackTop = {

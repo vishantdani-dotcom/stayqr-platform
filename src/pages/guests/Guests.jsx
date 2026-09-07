@@ -2424,7 +2424,7 @@ const stayExtensionModal = {
   padding: "28px",
   border: "1px solid #333",
   borderRadius: "20px",
-  background: "#0f0f0f",
+  background: "#0f141a",
   color: "#fff",
   boxShadow: "0 30px 90px rgba(0,0,0,.6)",
 };
@@ -2435,7 +2435,7 @@ const roomMoveModal = {
   padding: "28px",
   border: "1px solid #333",
   borderRadius: "20px",
-  background: "#0f0f0f",
+  background: "#0f141a",
   color: "#fff",
   boxShadow: "0 30px 90px rgba(0,0,0,.6)",
 };
@@ -2446,7 +2446,7 @@ const settlementModal = {
   padding: "28px",
   border: "1px solid #333",
   borderRadius: "20px",
-  background: "#0f0f0f",
+  background: "#0f141a",
   color: "#fff",
   boxShadow: "0 30px 90px rgba(0,0,0,.6)",
 };
@@ -2541,7 +2541,7 @@ const stayInfoBox = {
   marginTop: "15px",
   padding: "13px",
   borderRadius: "10px",
-  background: "rgba(212,175,55,.08)",
+  background: "#0f141a",
   color: "#d4af37",
   fontSize: "12px",
 };
@@ -2554,7 +2554,7 @@ const settlementSummary = {
   padding: "20px",
   border: "1px solid rgba(212,175,55,.3)",
   borderRadius: "15px",
-  background: "rgba(212,175,55,.06)",
+  background: "#0f141a",
 };
 
 const summaryRow = {
@@ -2589,7 +2589,7 @@ const confirmationBox = {
   padding: "15px",
   border: "1px solid rgba(212,175,55,.35)",
   borderRadius: "12px",
-  background: "rgba(212,175,55,.07)",
+  background: "#0f141a",
   color: "#fff",
   cursor: "pointer",
 };

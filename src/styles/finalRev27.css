@@ -1,0 +1,93 @@
+﻿/* StayQR REV27 - FINAL NEUTRAL SURFACE CORRECTION
+   Scope is deliberately narrow: admin content only.
+   Visual reference: Amenities + Subscription & Billing.
+   Gold is retained for text, border, status and intentional CTA accents.
+   Large warm/light-gold/neutral-gray panel washes are removed. */
+
+.app-shell{
+  --sq27-bg:#06080b;
+  --sq27-elev:#090c11;
+  --sq27-panel:#0f141a;
+  --sq27-panel2:#131920;
+  --sq27-line:#27303a;
+  --sq27-line2:#36414d;
+  --sq27-accent:#e8bd45;
+}
+
+/* Legacy admin token names used by older modules. These resolve to the same
+   neutral panel system already visible in Amenities and Subscription & Billing. */
+.app-shell .app-content{
+  --card-bg:#0f141a;
+  --panel-bg:#0f141a;
+  --surface-card:#0f141a;
+  --surface-panel:#0f141a;
+  --gold-soft:#131920;
+  --gold-subtle:#131920;
+  --accent-soft:#131920;
+}
+
+/* Catch legacy inline surface values that React/browser serialises to rgb().
+   These are the exact near-black warm/gray panel colours visible in the
+   supplied Guest, Service Operations, Charges, Hotel Profile and Media screenshots. */
+.app-shell .app-content [style*="background: rgb(15, 15, 15)"],
+.app-shell .app-content [style*="background-color: rgb(15, 15, 15)"],
+.app-shell .app-content [style*="background:rgb(15, 15, 15)"],
+.app-shell .app-content [style*="background-color:rgb(15, 15, 15)"],
+.app-shell .app-content [style*="background: rgb(16, 16, 16)"],
+.app-shell .app-content [style*="background-color: rgb(16, 16, 16)"],
+.app-shell .app-content [style*="background:rgb(16, 16, 16)"],
+.app-shell .app-content [style*="background-color:rgb(16, 16, 16)"],
+.app-shell .app-content [style*="background: rgb(19, 19, 18)"],
+.app-shell .app-content [style*="background-color: rgb(19, 19, 18)"],
+.app-shell .app-content [style*="background:rgb(19, 19, 18)"],
+.app-shell .app-content [style*="background-color:rgb(19, 19, 18)"],
+.app-shell .app-content [style*="background: rgb(22, 20, 13)"],
+.app-shell .app-content [style*="background-color: rgb(22, 20, 13)"],
+.app-shell .app-content [style*="background:rgb(22, 20, 13)"],
+.app-shell .app-content [style*="background-color:rgb(22, 20, 13)"],
+.app-shell .app-content [style*="background: #0f0f0f"],
+.app-shell .app-content [style*="background-color: #0f0f0f"],
+.app-shell .app-content [style*="background:#0f0f0f"],
+.app-shell .app-content [style*="background-color:#0f0f0f"],
+.app-shell .app-content [style*="background: #101010"],
+.app-shell .app-content [style*="background-color: #101010"],
+.app-shell .app-content [style*="background:#101010"],
+.app-shell .app-content [style*="background-color:#101010"],
+.app-shell .app-content [style*="background: #131312"],
+.app-shell .app-content [style*="background-color: #131312"],
+.app-shell .app-content [style*="background:#131312"],
+.app-shell .app-content [style*="background-color:#131312"],
+.app-shell .app-content [style*="background: #16140d"],
+.app-shell .app-content [style*="background-color: #16140d"],
+.app-shell .app-content [style*="background:#16140d"],
+.app-shell .app-content [style*="background-color:#16140d"]{
+  background:#0f141a!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+
+/* Keep panels visually aligned to accepted Subscription & Billing hierarchy. */
+.app-shell .app-content [style*="background: rgb(15, 15, 15)"],
+.app-shell .app-content [style*="background: rgb(16, 16, 16)"],
+.app-shell .app-content [style*="background: rgb(19, 19, 18)"],
+.app-shell .app-content [style*="background: rgb(22, 20, 13)"]{
+  border-color:#27303a!important;
+}
+
+/* Do not recolour uploaded media, images, video surfaces, or primary gold CTAs. */
+.app-shell .app-content :is(img,video,picture,canvas){
+  background-color:initial;
+}
+
+/* Selected tabs use the prototype pattern: dark surface + gold signal.
+   This also covers the Guest History / Contact & Consent selector row without
+   changing gold primary action buttons elsewhere. */
+.app-shell .app-content [role="tab"][aria-selected="true"],
+.app-shell .app-content :is(.tabs,.tab-list,[class*="tabs"],[class*="tab-list"]) :is(button,.tab).active,
+.app-shell .app-content :is(.tabs,.tab-list,[class*="tabs"],[class*="tab-list"]) :is(button,.tab).selected{
+  background:#131920!important;
+  background-image:none!important;
+  border-color:#36414d!important;
+  color:#e8bd45!important;
+  box-shadow:none!important;
+}

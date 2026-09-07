@@ -223,7 +223,7 @@ const statsGrid = {
 };
 
 const statCard = {
-  background: "#0f0f0f",
+  background: "#0f141a",
   border: "1px solid #222",
   borderRadius: "16px",
   padding: "20px",
@@ -240,7 +240,7 @@ const statValue = {
 };
 
 const formCard = {
-  background: "#0f0f0f",
+  background: "#0f141a",
   border: "1px solid #222",
   borderRadius: "16px",
   padding: "25px",
@@ -268,7 +268,7 @@ const button = {
 };
 
 const tableCard = {
-  background: "#0f0f0f",
+  background: "#0f141a",
   border: "1px solid #222",
   borderRadius: "16px",
   overflowX: "auto",

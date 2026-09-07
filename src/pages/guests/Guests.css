@@ -20,7 +20,7 @@
 }
 
 .rooms-card {
-  background: #0f0f0f;
+  background: #0f141a;
   border: 1px solid #222;
   border-radius: 20px;
   overflow: hidden;
@@ -45,7 +45,7 @@
 }
 
 .rooms-table tr:hover {
-  background: rgba(212,175,55,0.05);
+  background: #0f141a;
 }
 
 .checkout-btn {
@@ -62,7 +62,7 @@
   opacity: 0.9;
 }
 .guest-session-focused {
-  background: rgba(212, 175, 55, 0.16) !important;
+  background: #0f141a !important;
   outline: 2px solid rgba(212, 175, 55, 0.7);
   outline-offset: -2px;
 }
@@ -164,7 +164,7 @@
 }
 
 .guest-move-btn:hover {
-  background: rgba(212, 175, 55, 0.1);
+  background: #0f141a;
 }
 
 .guest-move-summary {

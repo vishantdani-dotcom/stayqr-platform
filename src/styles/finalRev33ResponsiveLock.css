@@ -1,0 +1,236 @@
+﻿/*
+ StayQR REV33 - FINAL RESPONSIVE UI/UX LOCK
+
+ Authority:
+ - approved REV22 / REV24 visual system
+ - approved REV32 consistency corrections
+ - Guest Bills / Amenities / Subscription & Billing neutral panel language
+
+ This file intentionally avoids redesigning the accepted desktop UI.
+ It only finishes control consistency and cross-device behavior.
+*/
+
+/* ---------- FINAL CONTROL CONSISTENCY ---------- */
+
+/* Native non-switch checkboxes anywhere in the authenticated app:
+   dark neutral surface, restrained gold border/tick, no browser-blue boxes. */
+#root input[type="checkbox"]:not([role="switch"]) {
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+  flex:0 0 18px!important;
+  margin:0!important;
+  border:1px solid #36414d!important;
+  border-radius:4px!important;
+  background:#090c11!important;
+  display:inline-grid!important;
+  place-content:center!important;
+  vertical-align:middle!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+}
+
+#root input[type="checkbox"]:not([role="switch"])::before {
+  content:""!important;
+  width:8px!important;
+  height:4px!important;
+  border-left:2px solid #f7d76f!important;
+  border-bottom:2px solid #f7d76f!important;
+  transform:rotate(-45deg) scale(0)!important;
+  transform-origin:center!important;
+  transition:transform .12s ease!important;
+}
+
+#root input[type="checkbox"]:not([role="switch"]):checked {
+  background:#131920!important;
+  border-color:#e8bd45!important;
+}
+
+#root input[type="checkbox"]:not([role="switch"]):checked::before {
+  transform:rotate(-45deg) scale(1)!important;
+}
+
+#root input[type="checkbox"]:not([role="switch"]):disabled {
+  opacity:.52!important;
+  cursor:not-allowed!important;
+}
+
+#root input[type="checkbox"]:not([role="switch"]):focus-visible {
+  outline:2px solid rgba(232,189,69,.42)!important;
+  outline-offset:2px!important;
+}
+
+/* Inputs remain consistent across pages without changing typography/layout. */
+#root :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+  max-width:100%;
+  min-width:0;
+}
+
+#root :is(input,select,textarea,button,a,[role="button"],[role="tab"]) {
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* Prevent long labels/content from forcing desktop or mobile overflow. */
+#root :is(.card,.panel,.metric,.report,.summary-card,.stat-card,.form-card,.form-section,.workspace-card) {
+  min-width:0;
+}
+
+#root :is(img,video,picture,canvas,svg) {
+  max-width:100%;
+}
+
+/* ---------- TABLET ---------- */
+@media (max-width:1180px) {
+  #root :is(
+    .grid3,.grid4,
+    .metrics,.metric-grid,.metrics-grid,
+    .report-grid,.reports-grid,
+    .summary-grid,.stat-grid,.stats-grid,
+    .form-grid,.settings-grid,
+    .dashboard-grid,.cards-grid
+  ) {
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+
+  #root :is(.tabs,.tab-list,.billing-tabs,[role="tablist"],[class*="tabs"],[class*="tab-list"]) {
+    max-width:100%;
+    overflow-x:auto;
+    overscroll-behavior-inline:contain;
+    scrollbar-width:thin;
+  }
+
+  #root :is(.tabs,.tab-list,.billing-tabs,[role="tablist"],[class*="tabs"],[class*="tab-list"]) > * {
+    flex:0 0 auto;
+  }
+}
+
+/* ---------- MOBILE / SMALL TABLET ---------- */
+@media (max-width:900px) {
+  html,body,#root {
+    max-width:100%;
+    overflow-x:hidden;
+  }
+
+  /* Touch targets: only on smaller screens, preserving accepted desktop density. */
+  #root :is(
+    button,
+    a[role="button"],
+    [role="button"],
+    [role="tab"],
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea
+  ) {
+    min-height:44px;
+  }
+
+  #root input[type="checkbox"]:not([role="switch"]) {
+    width:20px!important;
+    height:20px!important;
+    min-width:20px!important;
+    flex-basis:20px!important;
+  }
+
+  #root :is(
+    .grid2,.grid3,.grid4,
+    .metrics,.metric-grid,.metrics-grid,
+    .report-grid,.reports-grid,
+    .summary-grid,.stat-grid,.stats-grid,
+    .form-grid,.settings-grid,
+    .dashboard-grid,.cards-grid,
+    .two-col,.three-col,.four-col
+  ) {
+    grid-template-columns:1fr!important;
+  }
+
+  /* Forms: labels and controls should never clip or force horizontal scroll. */
+  #root :is(form,.form,.form-card,.form-section) :is(input,select,textarea) {
+    width:100%;
+    max-width:100%;
+  }
+
+  /* Tab/navigation rows stay usable instead of compressing unreadably. */
+  #root :is(.tabs,.tab-list,.billing-tabs,[role="tablist"],[class*="tabs"],[class*="tab-list"]) {
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    gap:6px!important;
+    width:100%;
+    overflow-x:auto!important;
+    padding-bottom:2px;
+  }
+
+  #root :is(.tabs,.tab-list,.billing-tabs,[role="tablist"],[class*="tabs"],[class*="tab-list"]) :is(button,a,[role="tab"]) {
+    flex:0 0 auto!important;
+    white-space:nowrap!important;
+  }
+
+  /* Tables: preserve all columns through horizontal scrolling rather than crushing them. */
+  #root :is(.tablewrap,.table-wrap,.table-container,[class*="table-wrap"],[class*="table-container"]) {
+    width:100%;
+    max-width:100%;
+    overflow-x:auto!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-inline:contain;
+  }
+
+  #root :is(.tablewrap,.table-wrap,.table-container,[class*="table-wrap"],[class*="table-container"]) table {
+    min-width:720px;
+  }
+
+  /* Modal/drawer surfaces fit small screens safely. */
+  #root :is(.modal,.dialog,[role="dialog"]) {
+    max-width:calc(100vw - 24px)!important;
+    max-height:calc(100dvh - 24px)!important;
+  }
+
+  #root :is(.drawer,.side-drawer) {
+    max-width:min(92vw,440px)!important;
+  }
+
+  /* Cards keep enough breathing room without desktop-sized padding. */
+  #root :is(.card,.panel,.form-card,.form-section,.workspace-card,.summary-card,.stat-card) {
+    max-width:100%;
+  }
+
+  /* Button groups can wrap instead of overflowing. */
+  #root :is(.actions,.button-row,.button-group,.toolbar-actions,.page-actions) {
+    flex-wrap:wrap!important;
+    max-width:100%;
+  }
+}
+
+/* ---------- PHONE ---------- */
+@media (max-width:640px) {
+  #root :is(.card,.panel,.form-card,.form-section,.workspace-card,.summary-card,.stat-card) {
+    border-radius:12px;
+  }
+
+  #root :is(.actions,.button-row,.button-group,.toolbar-actions,.page-actions) > * {
+    max-width:100%;
+  }
+
+  /* Full-width primary form actions are easier to use on phones when they
+     already occupy a dedicated action row; inline/chip actions remain compact. */
+  #root :is(.form-actions,.modal-actions,.drawer-actions) :is(button,a[role="button"]) {
+    min-height:44px;
+  }
+}
+
+/* ---------- ACCESSIBILITY ---------- */
+#root :is(button,a,input,select,textarea,[role="button"],[role="tab"]):focus-visible {
+  outline:2px solid rgba(232,189,69,.42);
+  outline-offset:2px;
+}
+
+@media (prefers-reduced-motion:reduce) {
+  #root *,
+  #root *::before,
+  #root *::after {
+    scroll-behavior:auto!important;
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+  }
+}

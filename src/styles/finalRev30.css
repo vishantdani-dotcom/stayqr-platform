@@ -1,0 +1,36 @@
+﻿/*
+ StayQR REV30 - EXACT final correction for ONLY the remaining screenshots.
+
+ The previous remaining blocks were not plain background-colour blocks:
+ some use legacy background gradients/background-image, so colour-only matching
+ could not remove the warm cast safely.
+
+ REV30 does not globally recolour the application. JavaScript marks only the
+ exact Guest / Media containers identified by their own visible content.
+*/
+
+.rev30-exact-neutral {
+  background:#0f141a!important;
+  background-color:#0f141a!important;
+  background-image:none!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+/* Keep selected Guest tabs dark with gold text only. */
+.rev30-guests [role="tab"][aria-selected="true"],
+.rev30-guests :is(.tabs,.tab-list,[class*="tabs"],[class*="tab-list"])
+  :is(button,.tab).active,
+.rev30-guests :is(.tabs,.tab-list,[class*="tabs"],[class*="tab-list"])
+  :is(button,.tab).selected {
+  background:#131920!important;
+  background-image:none!important;
+  border-color:#36414d!important;
+  color:#e8bd45!important;
+  box-shadow:none!important;
+}
+
+/* Never alter the actual uploaded media. */
+.rev30-media :is(img,video,picture,canvas,svg) {
+  background-color:initial;
+}

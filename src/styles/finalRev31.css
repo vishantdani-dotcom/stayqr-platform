@@ -1,0 +1,70 @@
+﻿/*
+ StayQR REV31 - FINAL MINOR POLISH
+
+ Exact screenshots only:
+ - Contact & Consent actions regain intentional action styling.
+ - Invoice tabs use the same neutral tab language as the rest of the app.
+ - Operations Centre Preferences selected state is dark-neutral + gold text.
+ - Check-In warm Scan ID/action surfaces match the neutral Upload ID surface.
+
+ No font, layout, media, global theme, or unrelated page changes.
+*/
+
+.rev31-action-primary {
+  background:#e8bd45!important;
+  background-image:linear-gradient(180deg,#f7d76f,#e8bd45)!important;
+  border-color:#e8bd45!important;
+  color:#171207!important;
+  box-shadow:none!important;
+}
+
+.rev31-action-secondary {
+  background:#090c11!important;
+  background-image:none!important;
+  border-color:#e8bd45!important;
+  color:#e8bd45!important;
+  box-shadow:none!important;
+}
+
+.rev31-action-chip {
+  background:#090c11!important;
+  background-image:none!important;
+  border-color:#36414d!important;
+  color:#f7f8f9!important;
+  box-shadow:none!important;
+}
+
+.rev31-tab-control {
+  background:#090c11!important;
+  background-image:none!important;
+  border:1px solid #27303a!important;
+  color:#f7f8f9!important;
+  box-shadow:none!important;
+}
+
+.rev31-tab-active {
+  background:#131920!important;
+  background-image:none!important;
+  border-color:#36414d!important;
+  color:#e8bd45!important;
+  box-shadow:none!important;
+}
+
+.rev31-checkin-neutral-action {
+  background:#131920!important;
+  background-color:#131920!important;
+  background-image:none!important;
+  border-color:#36414d!important;
+  box-shadow:none!important;
+}
+
+/* Disabled actions stay visibly disabled; REV31 never turns them gold. */
+.rev31-action-disabled,
+.rev31-action-disabled:disabled {
+  background:#101318!important;
+  background-image:none!important;
+  border-color:#27303a!important;
+  color:#68717c!important;
+  opacity:.72!important;
+  box-shadow:none!important;
+}

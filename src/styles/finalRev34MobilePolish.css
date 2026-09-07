@@ -1,0 +1,229 @@
+﻿/*
+ StayQR REV34 - FINAL MOBILE POLISH LOCK
+ Strict final scope:
+ - mobile login motion parity
+ - Contact & Consent mobile neutral surface
+ - Guest Guide Builder Languages
+ - Guest Guide Review / Publish
+ - Service Request Catalogue
+ All approved desktop/tablet styling remains unchanged unless explicitly scoped below.
+*/
+
+.rev34-neutral-panel,
+.rev34-language-card,
+.rev34-guide-row,
+.rev34-catalogue-card {
+  background:#0f141a!important;
+  background-color:#0f141a!important;
+  background-image:none!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+.rev34-secondary-action {
+  background:#090c11!important;
+  background-image:none!important;
+  border:1px solid #36414d!important;
+  color:#e8bd45!important;
+  box-shadow:none!important;
+}
+
+.rev34-primary-action {
+  background:linear-gradient(180deg,#f7d76f,#e8bd45)!important;
+  background-color:#e8bd45!important;
+  border:1px solid #e8bd45!important;
+  color:#171207!important;
+  box-shadow:none!important;
+}
+
+/* Role-based checkbox widgets that are not native inputs. */
+.rev34-role-checkbox {
+  background:#090c11!important;
+  border:1px solid #36414d!important;
+  color:#f7d76f!important;
+  box-shadow:none!important;
+}
+
+.rev34-role-checkbox[aria-checked="true"] {
+  background:#131920!important;
+  border-color:#e8bd45!important;
+  color:#f7d76f!important;
+}
+
+/* ---------- MOBILE LOGIN MOTION PARITY ---------- */
+@media (max-width:900px) {
+  .sq-login-page {
+    position:relative!important;
+    isolation:isolate;
+    overflow:hidden!important;
+    background:#06080b!important;
+  }
+
+  .sq-login-page::before,
+  .sq-login-page::after {
+    content:"";
+    position:fixed;
+    pointer-events:none;
+    z-index:-1;
+    border-radius:50%;
+    filter:blur(8px);
+    opacity:.9;
+    will-change:transform,opacity;
+  }
+
+  .sq-login-page::before {
+    width:72vw;
+    height:72vw;
+    max-width:420px;
+    max-height:420px;
+    top:-18vw;
+    right:-22vw;
+    background:radial-gradient(circle,rgba(232,189,69,.16) 0%,rgba(232,189,69,.07) 38%,rgba(232,189,69,0) 72%);
+    animation:sq34-login-float-a 11s ease-in-out infinite alternate;
+  }
+
+  .sq-login-page::after {
+    width:64vw;
+    height:64vw;
+    max-width:360px;
+    max-height:360px;
+    left:-24vw;
+    bottom:-14vw;
+    background:radial-gradient(circle,rgba(232,189,69,.10) 0%,rgba(232,189,69,.04) 42%,rgba(232,189,69,0) 74%);
+    animation:sq34-login-float-b 14s ease-in-out infinite alternate;
+  }
+
+  .sq-login-page > * {
+    position:relative;
+    z-index:1;
+  }
+
+  @keyframes sq34-login-float-a {
+    from { transform:translate3d(0,0,0) scale(1); opacity:.72; }
+    to   { transform:translate3d(-8vw,10vh,0) scale(1.12); opacity:1; }
+  }
+
+  @keyframes sq34-login-float-b {
+    from { transform:translate3d(0,0,0) scale(.96); opacity:.62; }
+    to   { transform:translate3d(10vw,-8vh,0) scale(1.10); opacity:.92; }
+  }
+}
+
+/* ---------- CONTACT & CONSENT ---------- */
+.rev34-contact-consent .rev34-neutral-panel {
+  background:#0f141a!important;
+  border-color:#27303a!important;
+}
+
+@media (max-width:900px) {
+  .rev34-contact-consent .rev34-mobile-table-wrap {
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:auto!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-inline:contain;
+  }
+
+  .rev34-contact-consent .rev34-mobile-table-wrap table {
+    min-width:720px!important;
+  }
+}
+
+/* ---------- LANGUAGES ---------- */
+.rev34-language-section {
+  min-width:0;
+}
+
+.rev34-language-card {
+  min-height:56px;
+}
+
+@media (max-width:900px) {
+  .rev34-language-section {
+    width:100%!important;
+  }
+
+  .rev34-language-card {
+    width:100%!important;
+    min-height:58px!important;
+    padding:12px!important;
+  }
+
+  .rev34-language-card :is(input[type="checkbox"],[role="checkbox"]) {
+    flex:0 0 auto;
+  }
+}
+
+/* ---------- REVIEW & PUBLISH ---------- */
+.rev34-guide-section,
+.rev34-catalogue-panel {
+  min-width:0;
+}
+
+.rev34-guide-row {
+  min-width:0;
+}
+
+@media (max-width:900px) {
+  .rev34-guide-row {
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+    width:100%!important;
+    padding:12px!important;
+  }
+
+  .rev34-guide-row :is(input,select,textarea) {
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .rev34-guide-row .rev34-secondary-action {
+    width:100%!important;
+    min-height:44px!important;
+  }
+}
+
+/* ---------- SERVICE REQUEST CATALOGUE ---------- */
+.rev34-catalogue-card {
+  min-width:0;
+}
+
+@media (max-width:900px) {
+  .rev34-catalogue-panel,
+  .rev34-catalogue-card {
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .rev34-catalogue-card {
+    padding:12px!important;
+  }
+
+  .rev34-catalogue-card :is(input,select,textarea) {
+    width:100%!important;
+    max-width:100%!important;
+    min-height:44px!important;
+  }
+
+  .rev34-catalogue-card .rev34-primary-action {
+    width:100%!important;
+    min-height:44px!important;
+  }
+
+  .rev34-catalogue-card label {
+    min-height:36px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+  }
+}
+
+/* Accessibility / motion preference */
+@media (prefers-reduced-motion:reduce) {
+  .sq-login-page::before,
+  .sq-login-page::after {
+    animation:none!important;
+  }
+}
+

@@ -1,0 +1,374 @@
+﻿/*
+ StayQR REV37 - MOBILE = DESKTOP LOGIN PARITY
+
+ User-approved desktop login is the visual authority.
+ Mobile uses the SAME composition and message:
+   desktop hero first, authentication panel second.
+
+ REV36 custom QR/keycard overlay is explicitly hidden.
+ No authenticated application page is changed.
+*/
+
+@media (max-width:900px) {
+  /* Remove the custom REV35/REV36 mobile artwork. */
+  .sq36-mobile-login-overlay,
+  .sq35-login-motion {
+    display:none!important;
+    visibility:hidden!important;
+    opacity:0!important;
+  }
+
+  body.sq37-login-parity-active {
+    overflow-x:hidden!important;
+    background:#06080b!important;
+  }
+
+  .sq-login-page.sq37-login-parity-page {
+    width:100%!important;
+    min-height:100dvh!important;
+    height:auto!important;
+    max-height:none!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    gap:0!important;
+    overflow-x:hidden!important;
+    overflow-y:visible!important;
+    padding:0!important;
+    background:#06080b!important;
+  }
+
+  .sq37-mobile-desktop-hero {
+    position:relative!important;
+    display:block!important;
+    visibility:visible!important;
+    opacity:1!important;
+    width:100%!important;
+    min-height:auto!important;
+    max-width:none!important;
+    flex:none!important;
+    overflow:hidden!important;
+    padding:28px 22px 24px!important;
+    border:0!important;
+    border-bottom:1px solid #27303a!important;
+    background:
+      linear-gradient(180deg,rgba(9,12,17,.96),rgba(6,8,11,.99))!important;
+    color:#f7f8f9!important;
+  }
+
+  .sq37-mobile-desktop-hero > * {
+    position:relative;
+    z-index:2;
+  }
+
+  /* Native desktop hero, when present in DOM, must not retain desktop-only
+     absolute/grid positioning when displayed on phone. */
+  .sq37-native-hero {
+    inset:auto!important;
+    left:auto!important;
+    right:auto!important;
+    top:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+  }
+
+  .sq37-generated-hero .sq37-hero-content {
+    width:100%;
+    max-width:520px;
+    margin:0 auto;
+  }
+
+  .sq37-brand {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:52px;
+  }
+
+  .sq37-brand-mark {
+    width:38px;
+    height:38px;
+    display:grid;
+    place-items:center;
+    border:1px solid #36414d;
+    border-radius:9px;
+    background:#090c11;
+    color:#f7f8f9;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:-.04em;
+  }
+
+  .sq37-brand strong {
+    display:block;
+    color:#f7f8f9;
+    font-size:17px;
+    line-height:1.15;
+  }
+
+  .sq37-brand small {
+    display:block;
+    margin-top:2px;
+    color:#b3bbc5;
+    font-size:10px;
+    line-height:1.2;
+  }
+
+  .sq37-eyebrow {
+    margin-bottom:10px;
+    color:#e8bd45;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.12em;
+  }
+
+  .sq37-generated-hero h1 {
+    max-width:390px;
+    margin:0;
+    color:#f7f8f9;
+    font-size:clamp(30px,9vw,44px);
+    line-height:.98;
+    letter-spacing:-.045em;
+  }
+
+  .sq37-lead {
+    max-width:450px;
+    margin:18px 0 22px;
+    color:#b3bbc5;
+    font-size:13px;
+    line-height:1.55;
+  }
+
+  .sq37-feature-grid {
+    display:grid;
+    grid-template-columns:1fr!important;
+    gap:8px;
+    width:100%;
+  }
+
+  .sq37-feature {
+    min-width:0;
+    display:flex;
+    align-items:flex-start;
+    gap:11px;
+    padding:12px;
+    border:1px solid #27303a;
+    border-radius:10px;
+    background:rgba(15,20,26,.82);
+  }
+
+  .sq37-feature-icon {
+    width:29px;
+    height:29px;
+    flex:0 0 29px;
+    display:grid;
+    place-items:center;
+    border:1px solid rgba(232,189,69,.38);
+    border-radius:8px;
+    background:#131920;
+    color:#f7d76f;
+    font-size:13px;
+  }
+
+  .sq37-feature strong {
+    display:block;
+    color:#f7f8f9;
+    font-size:12px;
+    line-height:1.3;
+  }
+
+  .sq37-feature p {
+    margin:3px 0 0;
+    color:#87919c;
+    font-size:10px;
+    line-height:1.42;
+  }
+
+  /* Subtle desktop-like line/orbit motion, not a different visual concept. */
+  .sq37-motion {
+    position:absolute!important;
+    inset:0!important;
+    z-index:1!important;
+    overflow:hidden!important;
+    pointer-events:none!important;
+  }
+
+  .sq37-wave {
+    position:absolute;
+    left:-18%;
+    width:136%;
+    height:2px;
+    border-radius:50%;
+    background:linear-gradient(
+      90deg,
+      transparent,
+      rgba(120,168,247,.16),
+      rgba(232,189,69,.22),
+      transparent
+    );
+    transform-origin:center;
+    filter:blur(.2px);
+  }
+
+  .sq37-wave-a {
+    top:21%;
+    transform:rotate(28deg);
+    animation:sq37-wave-a 9s ease-in-out infinite alternate;
+  }
+
+  .sq37-wave-b {
+    top:43%;
+    transform:rotate(-31deg);
+    opacity:.72;
+    animation:sq37-wave-b 11s ease-in-out infinite alternate;
+  }
+
+  .sq37-wave-c {
+    bottom:17%;
+    transform:rotate(24deg);
+    opacity:.52;
+    animation:sq37-wave-c 13s ease-in-out infinite alternate;
+  }
+
+  .sq37-orbit {
+    position:absolute;
+    border-radius:50%;
+    border:1px solid rgba(232,189,69,.26);
+  }
+
+  .sq37-orbit-a {
+    width:180px;
+    height:180px;
+    right:-62px;
+    top:42px;
+    animation:sq37-orbit-pulse 7s ease-in-out infinite alternate;
+  }
+
+  .sq37-orbit-b {
+    width:136px;
+    height:136px;
+    right:-34px;
+    top:64px;
+    border-color:rgba(120,168,247,.17);
+    animation:sq37-orbit-pulse 9s ease-in-out infinite alternate-reverse;
+  }
+
+  .sq37-orbit-dot {
+    position:absolute;
+    width:6px;
+    height:6px;
+    right:63px;
+    top:75px;
+    border-radius:50%;
+    background:#f7d76f;
+    box-shadow:0 0 14px rgba(247,215,111,.72);
+    animation:sq37-dot 3.2s ease-in-out infinite alternate;
+  }
+
+  .sq37-glow {
+    position:absolute;
+    width:220px;
+    height:220px;
+    right:-120px;
+    top:-70px;
+    border-radius:50%;
+    background:radial-gradient(
+      circle,
+      rgba(232,189,69,.11),
+      rgba(232,189,69,.03) 45%,
+      transparent 72%
+    );
+    animation:sq37-glow 8s ease-in-out infinite alternate;
+  }
+
+  /*
+    The actual authentication area remains the same component/logic as desktop,
+    simply flowing underneath the desktop hero on mobile.
+  */
+  .sq37-mobile-auth-panel {
+    position:relative!important;
+    inset:auto!important;
+    left:auto!important;
+    right:auto!important;
+    top:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+    width:100%!important;
+    max-width:none!important;
+    min-height:auto!important;
+    height:auto!important;
+    flex:none!important;
+    margin:0!important;
+    padding:24px 22px 30px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:#0f141a!important;
+  }
+
+  .sq37-mobile-auth-panel :is(input,select,textarea) {
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .sq37-mobile-auth-panel :is(button,a[role="button"]) {
+    min-height:44px;
+  }
+
+  .sq37-hide-duplicate-brand {
+    display:none!important;
+  }
+
+  @keyframes sq37-wave-a {
+    from { translate:-3% -8px; opacity:.30; }
+    to   { translate:4% 12px; opacity:.66; }
+  }
+
+  @keyframes sq37-wave-b {
+    from { translate:4% 8px; opacity:.24; }
+    to   { translate:-4% -12px; opacity:.54; }
+  }
+
+  @keyframes sq37-wave-c {
+    from { translate:-2% 6px; opacity:.18; }
+    to   { translate:3% -9px; opacity:.42; }
+  }
+
+  @keyframes sq37-orbit-pulse {
+    from { transform:scale(.96); opacity:.45; }
+    to   { transform:scale(1.06); opacity:.86; }
+  }
+
+  @keyframes sq37-dot {
+    from { transform:translate3d(-4px,3px,0) scale(.8); opacity:.56; }
+    to   { transform:translate3d(6px,-5px,0) scale(1.18); opacity:1; }
+  }
+
+  @keyframes sq37-glow {
+    from { transform:translate3d(0,0,0) scale(.94); opacity:.58; }
+    to   { transform:translate3d(-22px,24px,0) scale(1.08); opacity:.92; }
+  }
+}
+
+@media (max-width:520px) {
+  .sq37-mobile-desktop-hero {
+    padding:24px 18px 22px!important;
+  }
+
+  .sq37-brand {
+    margin-bottom:42px;
+  }
+
+  .sq37-mobile-auth-panel {
+    padding:22px 18px 28px!important;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .sq37-motion *,
+  .sq37-motion *::before,
+  .sq37-motion *::after {
+    animation:none!important;
+  }
+}
+

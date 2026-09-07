@@ -1,0 +1,304 @@
+﻿/*
+ StayQR REV35 - FINAL TWO-FIX LOCK
+
+ Exact final scope:
+ 1. Mobile login gets visible premium motion using the same restrained
+    StayQR gold motion grammar used by the approved desktop experience.
+ 2. Guest Guide Builder "Setup summary" cards are neutral dark, not warm/gold.
+
+ No other page, typography, CTA, layout, media or business logic is redesigned.
+*/
+
+/* =========================================================
+   1) MOBILE LOGIN — VISIBLE PREMIUM MOTION
+   ========================================================= */
+
+@media (max-width:900px) {
+  .sq-login-page.sq35-login-mobile-motion-ready {
+    position:relative!important;
+    isolation:isolate!important;
+    overflow:hidden!important;
+    background:#06080b!important;
+  }
+
+  .sq-login-page.sq35-login-mobile-motion-ready > :not(.sq35-login-motion) {
+    position:relative;
+    z-index:2;
+  }
+
+  .sq35-login-motion {
+    position:absolute;
+    inset:0;
+    z-index:1;
+    overflow:hidden;
+    pointer-events:none;
+    user-select:none;
+  }
+
+  .sq35-grid {
+    position:absolute;
+    inset:-18%;
+    opacity:.28;
+    background-image:
+      linear-gradient(rgba(232,189,69,.08) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(232,189,69,.08) 1px,transparent 1px);
+    background-size:28px 28px;
+    mask-image:linear-gradient(to bottom,transparent 0%,#000 24%,#000 76%,transparent 100%);
+    transform:perspective(700px) rotateX(62deg) translateY(28%);
+    transform-origin:center bottom;
+    animation:sq35-grid-drift 14s linear infinite;
+  }
+
+  .sq35-glow {
+    position:absolute;
+    border-radius:50%;
+    filter:blur(4px);
+    opacity:.72;
+    will-change:transform,opacity;
+  }
+
+  .sq35-glow-a {
+    width:260px;
+    height:260px;
+    right:-105px;
+    top:7%;
+    background:radial-gradient(circle,rgba(247,215,111,.16) 0%,rgba(232,189,69,.08) 35%,rgba(232,189,69,0) 72%);
+    animation:sq35-glow-a 7.2s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq35-glow-b {
+    width:220px;
+    height:220px;
+    left:-110px;
+    bottom:5%;
+    background:radial-gradient(circle,rgba(232,189,69,.12) 0%,rgba(232,189,69,.05) 38%,rgba(232,189,69,0) 72%);
+    animation:sq35-glow-b 9.4s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq35-scene {
+    position:absolute;
+    pointer-events:none;
+    perspective:800px;
+    will-change:transform;
+  }
+
+  .sq35-scene-top {
+    width:150px;
+    height:112px;
+    right:-12px;
+    top:58px;
+    animation:sq35-scene-float 6s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq35-scene-bottom {
+    width:150px;
+    height:92px;
+    left:-16px;
+    bottom:70px;
+    animation:sq35-scene-float-b 7.4s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq35-orbit {
+    position:absolute;
+    border:1px solid rgba(232,189,69,.34);
+    border-radius:50%;
+  }
+
+  .sq35-orbit-a {
+    inset:18px 20px 18px 12px;
+    animation:sq35-orbit-spin 14s linear infinite;
+  }
+
+  .sq35-orbit-b {
+    inset:34px 4px 4px 52px;
+    border-color:rgba(247,215,111,.20);
+    animation:sq35-orbit-spin 20s linear infinite reverse;
+  }
+
+  .sq35-orbit-a::after {
+    content:"";
+    position:absolute;
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:#f7d76f;
+    top:-4px;
+    left:47%;
+    box-shadow:0 0 14px rgba(247,215,111,.68);
+  }
+
+  .sq35-orb {
+    position:absolute;
+    width:42px;
+    height:42px;
+    right:48px;
+    top:35px;
+    border-radius:50%;
+    background:radial-gradient(circle at 32% 28%,#fff8cf 0 8%,#e8bd45 20%,#6d561e 52%,#141008 76%);
+    box-shadow:0 14px 34px rgba(0,0,0,.44),inset -7px -9px 16px rgba(0,0,0,.32);
+    animation:sq35-orb-float 4.8s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq35-qr {
+    position:absolute;
+    left:4px;
+    top:8px;
+    width:44px;
+    height:44px;
+    border:1px solid rgba(232,189,69,.34);
+    border-radius:10px;
+    background:rgba(9,12,17,.72);
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    grid-template-rows:repeat(2,1fr);
+    gap:4px;
+    padding:7px;
+    box-shadow:0 12px 28px rgba(0,0,0,.34);
+    transform:rotate(-6deg);
+    animation:sq35-qr-float 5.4s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq35-qr i {
+    display:block;
+    border:1px solid #e8bd45;
+    border-radius:2px;
+    opacity:.88;
+  }
+
+  .sq35-keycard {
+    position:absolute;
+    left:8px;
+    bottom:6px;
+    width:126px;
+    padding:11px 12px;
+    border:1px solid rgba(232,189,69,.30);
+    border-radius:12px;
+    background:linear-gradient(145deg,rgba(15,20,26,.92),rgba(9,12,17,.90));
+    box-shadow:0 16px 34px rgba(0,0,0,.36);
+    transform:rotateY(9deg) rotateZ(-3deg);
+    animation:sq35-card-float 6.2s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq35-keycard span,
+  .sq35-keycard small {
+    display:block;
+    color:#87919c;
+    font-size:8px;
+    line-height:1.25;
+  }
+
+  .sq35-keycard b {
+    display:block;
+    margin:4px 0 3px;
+    color:#f7d76f;
+    font-size:11px;
+    letter-spacing:.05em;
+  }
+
+  .sq35-scanline {
+    position:absolute;
+    left:7%;
+    right:7%;
+    height:1px;
+    top:20%;
+    opacity:.38;
+    background:linear-gradient(90deg,transparent,#f7d76f,transparent);
+    box-shadow:0 0 12px rgba(247,215,111,.38);
+    animation:sq35-scan 6.2s ease-in-out infinite;
+  }
+
+  @keyframes sq35-grid-drift {
+    from { background-position:0 0,0 0; }
+    to   { background-position:0 56px,56px 0; }
+  }
+
+  @keyframes sq35-glow-a {
+    from { transform:translate3d(0,0,0) scale(.96); opacity:.55; }
+    to   { transform:translate3d(-28px,34px,0) scale(1.10); opacity:.86; }
+  }
+
+  @keyframes sq35-glow-b {
+    from { transform:translate3d(0,0,0) scale(.94); opacity:.48; }
+    to   { transform:translate3d(32px,-26px,0) scale(1.08); opacity:.76; }
+  }
+
+  @keyframes sq35-scene-float {
+    from { transform:translate3d(0,3px,0) rotate(-2deg); }
+    to   { transform:translate3d(-8px,-7px,0) rotate(3deg); }
+  }
+
+  @keyframes sq35-scene-float-b {
+    from { transform:translate3d(0,4px,0) rotate(1deg); }
+    to   { transform:translate3d(10px,-6px,0) rotate(-2deg); }
+  }
+
+  @keyframes sq35-orbit-spin {
+    to { transform:rotate(360deg); }
+  }
+
+  @keyframes sq35-orb-float {
+    from { transform:translate3d(-2px,3px,10px) rotate(-3deg); }
+    to   { transform:translate3d(5px,-5px,22px) rotate(4deg); }
+  }
+
+  @keyframes sq35-qr-float {
+    from { transform:translate3d(0,2px,8px) rotate(-6deg); }
+    to   { transform:translate3d(7px,-5px,18px) rotate(3deg); }
+  }
+
+  @keyframes sq35-card-float {
+    from { transform:translate3d(0,3px,10px) rotateY(9deg) rotateZ(-3deg); }
+    to   { transform:translate3d(7px,-6px,22px) rotateY(3deg) rotateZ(1deg); }
+  }
+
+  @keyframes sq35-scan {
+    0%,100% { top:18%; opacity:.18; }
+    50%     { top:82%; opacity:.48; }
+  }
+}
+
+/* =========================================================
+   2) REVIEW & PUBLISH — SETUP SUMMARY
+   ========================================================= */
+
+.rev35-setup-summary {
+  background:#0f141a!important;
+  background-color:#0f141a!important;
+  background-image:none!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+.rev35-setup-stat {
+  background:#0f141a!important;
+  background-color:#0f141a!important;
+  background-image:none!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+.rev35-setup-stat :is(strong,b,[class*="value"],[class*="number"]) {
+  color:#f7f8f9;
+}
+
+@media (max-width:900px) {
+  .rev35-setup-summary {
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .rev35-setup-stat {
+    min-height:72px!important;
+    padding:12px!important;
+  }
+}
+
+/* Accessibility: animation is optional, not required for comprehension. */
+@media (prefers-reduced-motion:reduce) {
+  .sq35-login-motion *,
+  .sq35-login-motion *::before,
+  .sq35-login-motion *::after {
+    animation:none!important;
+  }
+}
+

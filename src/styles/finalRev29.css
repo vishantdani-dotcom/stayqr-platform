@@ -1,0 +1,33 @@
+﻿/*
+ StayQR REV29
+ Strict scope: Guests + Media Manager only.
+
+ Runtime JS adds .rev29-neutral-surface only on the two requested pages
+ after inspecting the ACTUAL computed background colour rendered by the browser.
+ This avoids changing any other accepted REV28 page.
+*/
+
+.rev29-neutral-surface {
+  background-color:#0f141a!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+/* Selected Guest tab remains dark/neutral with gold text only. */
+.rev29-page-guests [role="tab"][aria-selected="true"],
+.rev29-page-guests :is(.tabs,.tab-list,[class*="tabs"],[class*="tab-list"])
+  :is(button,.tab).active,
+.rev29-page-guests :is(.tabs,.tab-list,[class*="tabs"],[class*="tab-list"])
+  :is(button,.tab).selected {
+  background-color:#131920!important;
+  background-image:none!important;
+  border-color:#36414d!important;
+  color:#e8bd45!important;
+  box-shadow:none!important;
+}
+
+/* Do not alter media itself or approved gold CTA buttons. */
+.rev29-page-media-manager :is(img,video,picture,canvas,svg),
+.rev29-page-guests :is(img,video,picture,canvas,svg) {
+  background-color:initial;
+}

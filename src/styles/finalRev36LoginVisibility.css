@@ -1,0 +1,392 @@
+﻿/*
+ StayQR REV36 - MOBILE LOGIN VISIBILITY FIX
+
+ The REV35 runtime was active, but its decorative layer lived inside the
+ login stacking context and remained visually covered by opaque login layers.
+
+ REV36 places the mobile motion scene at BODY level with a fixed overlay.
+ It is pointer-events:none, contains no controls, and is hidden outside login.
+ Desktop styling is untouched.
+*/
+
+.sq36-mobile-login-overlay {
+  display:none;
+}
+
+@media (max-width:900px) {
+  body.sq36-login-active {
+    position:relative;
+  }
+
+  body.sq36-login-active #root {
+    position:relative;
+    z-index:1;
+  }
+
+  /*
+    The overlay is deliberately ABOVE the opaque login background.
+    Decorations are kept on the outer edges/top/bottom so the sign-in
+    content remains readable. pointer-events:none prevents interaction issues.
+  */
+  .sq36-mobile-login-overlay {
+    position:fixed;
+    inset:0;
+    z-index:50;
+    display:block;
+    overflow:hidden;
+    pointer-events:none;
+    user-select:none;
+    contain:layout paint style;
+  }
+
+  .sq36-ambient {
+    position:absolute;
+    border-radius:50%;
+    filter:blur(8px);
+    will-change:transform,opacity;
+  }
+
+  .sq36-ambient-a {
+    width:280px;
+    height:280px;
+    right:-145px;
+    top:-55px;
+    background:radial-gradient(
+      circle,
+      rgba(247,215,111,.22) 0%,
+      rgba(232,189,69,.12) 30%,
+      rgba(232,189,69,.045) 52%,
+      rgba(232,189,69,0) 74%
+    );
+    animation:sq36-ambient-a 6.4s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq36-ambient-b {
+    width:245px;
+    height:245px;
+    left:-145px;
+    bottom:-58px;
+    background:radial-gradient(
+      circle,
+      rgba(232,189,69,.16) 0%,
+      rgba(232,189,69,.07) 36%,
+      rgba(232,189,69,0) 72%
+    );
+    animation:sq36-ambient-b 8s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq36-grid {
+    position:absolute;
+    inset:-12%;
+    opacity:.22;
+    background-image:
+      linear-gradient(rgba(232,189,69,.105) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(232,189,69,.105) 1px,transparent 1px);
+    background-size:30px 30px;
+    mask-image:linear-gradient(
+      to bottom,
+      rgba(0,0,0,.72) 0%,
+      rgba(0,0,0,.13) 34%,
+      transparent 57%,
+      rgba(0,0,0,.10) 74%,
+      rgba(0,0,0,.62) 100%
+    );
+    animation:sq36-grid-move 12s linear infinite;
+  }
+
+  .sq36-scan {
+    position:absolute;
+    left:5%;
+    right:5%;
+    top:13%;
+    height:1px;
+    opacity:.78;
+    background:linear-gradient(
+      90deg,
+      transparent,
+      rgba(232,189,69,.18),
+      #f7d76f,
+      rgba(232,189,69,.18),
+      transparent
+    );
+    box-shadow:0 0 18px rgba(247,215,111,.56);
+    animation:sq36-scan 5.8s ease-in-out infinite;
+  }
+
+  .sq36-visual {
+    position:absolute;
+    perspective:900px;
+    will-change:transform;
+  }
+
+  .sq36-visual-top {
+    top:42px;
+    right:5px;
+    width:142px;
+    height:132px;
+    animation:sq36-float-top 5.2s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq36-ring {
+    position:absolute;
+    border-radius:50%;
+    border:1px solid rgba(232,189,69,.54);
+    box-shadow:0 0 16px rgba(232,189,69,.08);
+  }
+
+  .sq36-ring-1 {
+    width:92px;
+    height:92px;
+    right:8px;
+    top:18px;
+    animation:sq36-spin 10s linear infinite;
+  }
+
+  .sq36-ring-2 {
+    width:62px;
+    height:62px;
+    right:23px;
+    top:33px;
+    border-style:dashed;
+    border-color:rgba(247,215,111,.36);
+    animation:sq36-spin 7.5s linear infinite reverse;
+  }
+
+  .sq36-ring-1::after {
+    content:"";
+    position:absolute;
+    width:7px;
+    height:7px;
+    left:42px;
+    top:-4px;
+    border-radius:50%;
+    background:#f7d76f;
+    box-shadow:0 0 16px rgba(247,215,111,.85);
+  }
+
+  .sq36-core {
+    position:absolute;
+    width:34px;
+    height:34px;
+    right:37px;
+    top:47px;
+    border-radius:50%;
+    background:radial-gradient(
+      circle at 31% 28%,
+      #fff9d7 0 7%,
+      #f7d76f 10%,
+      #e8bd45 29%,
+      #6b541d 57%,
+      #171207 78%
+    );
+    box-shadow:
+      0 0 24px rgba(232,189,69,.30),
+      0 13px 25px rgba(0,0,0,.36);
+    animation:sq36-core-float 3.7s ease-in-out infinite alternate;
+  }
+
+  .sq36-qr {
+    position:absolute;
+    left:0;
+    top:4px;
+    width:44px;
+    height:44px;
+    padding:7px;
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    grid-template-rows:repeat(2,1fr);
+    gap:4px;
+    border:1px solid rgba(232,189,69,.52);
+    border-radius:10px;
+    background:rgba(9,12,17,.93);
+    box-shadow:
+      0 10px 28px rgba(0,0,0,.48),
+      0 0 18px rgba(232,189,69,.10);
+    animation:sq36-qr-float 4.3s ease-in-out infinite alternate;
+  }
+
+  .sq36-qr i {
+    display:block;
+    border:1px solid #f7d76f;
+    border-radius:2px;
+    opacity:.95;
+  }
+
+  .sq36-dot {
+    position:absolute;
+    border-radius:50%;
+    background:#e8bd45;
+    box-shadow:0 0 12px rgba(232,189,69,.72);
+  }
+
+  .sq36-dot-1 {
+    width:5px;
+    height:5px;
+    left:42px;
+    bottom:14px;
+    animation:sq36-dot 2.4s ease-in-out infinite alternate;
+  }
+
+  .sq36-dot-2 {
+    width:3px;
+    height:3px;
+    right:4px;
+    bottom:1px;
+    animation:sq36-dot 3.2s ease-in-out infinite alternate-reverse;
+  }
+
+  .sq36-visual-bottom {
+    left:4px;
+    bottom:38px;
+    width:154px;
+    height:108px;
+    animation:sq36-float-bottom 6s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+
+  .sq36-keycard {
+    position:absolute;
+    left:0;
+    bottom:4px;
+    width:134px;
+    padding:11px 12px 10px;
+    border:1px solid rgba(232,189,69,.46);
+    border-radius:12px;
+    background:linear-gradient(
+      145deg,
+      rgba(19,25,32,.97),
+      rgba(9,12,17,.97)
+    );
+    box-shadow:
+      0 18px 34px rgba(0,0,0,.48),
+      0 0 18px rgba(232,189,69,.08);
+    transform:rotateY(8deg) rotateZ(-3deg);
+    animation:sq36-card 5s ease-in-out infinite alternate;
+  }
+
+  .sq36-keycard-brand {
+    font-size:8px;
+    font-weight:700;
+    letter-spacing:.16em;
+    color:#b3bbc5;
+  }
+
+  .sq36-keycard-room {
+    margin-top:5px;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.06em;
+    color:#f7d76f;
+  }
+
+  .sq36-keycard-line {
+    width:72%;
+    height:1px;
+    margin:7px 0 6px;
+    background:linear-gradient(90deg,#e8bd45,transparent);
+  }
+
+  .sq36-keycard-copy {
+    font-size:7px;
+    letter-spacing:.08em;
+    color:#87919c;
+  }
+
+  .sq36-pulse {
+    position:absolute;
+    width:24px;
+    height:24px;
+    right:1px;
+    top:0;
+    border:1px solid rgba(232,189,69,.56);
+    border-radius:50%;
+    animation:sq36-pulse 2.5s ease-out infinite;
+  }
+
+  .sq36-particle {
+    position:absolute;
+    width:4px;
+    height:4px;
+    border-radius:50%;
+    background:#f7d76f;
+    box-shadow:0 0 10px rgba(247,215,111,.8);
+    opacity:.7;
+  }
+
+  .sq36-p1 { left:6%; top:16%; animation:sq36-particle 5.4s ease-in-out infinite alternate; }
+  .sq36-p2 { right:7%; top:34%; animation:sq36-particle 7s ease-in-out infinite alternate-reverse; }
+  .sq36-p3 { left:10%; bottom:31%; animation:sq36-particle 6.1s ease-in-out infinite alternate; }
+  .sq36-p4 { right:9%; bottom:18%; animation:sq36-particle 4.8s ease-in-out infinite alternate-reverse; }
+
+  @keyframes sq36-grid-move {
+    from { background-position:0 0,0 0; }
+    to   { background-position:0 60px,60px 0; }
+  }
+
+  @keyframes sq36-scan {
+    0%,100% { top:12%; opacity:.34; }
+    50% { top:88%; opacity:.82; }
+  }
+
+  @keyframes sq36-ambient-a {
+    from { transform:translate3d(0,0,0) scale(.93); opacity:.64; }
+    to   { transform:translate3d(-34px,38px,0) scale(1.12); opacity:1; }
+  }
+
+  @keyframes sq36-ambient-b {
+    from { transform:translate3d(0,0,0) scale(.92); opacity:.56; }
+    to   { transform:translate3d(40px,-30px,0) scale(1.10); opacity:.90; }
+  }
+
+  @keyframes sq36-spin {
+    to { transform:rotate(360deg); }
+  }
+
+  @keyframes sq36-core-float {
+    from { transform:translate3d(-2px,3px,12px) rotate(-2deg); }
+    to   { transform:translate3d(4px,-5px,28px) rotate(4deg); }
+  }
+
+  @keyframes sq36-qr-float {
+    from { transform:translate3d(0,3px,8px) rotate(-7deg); }
+    to   { transform:translate3d(8px,-5px,22px) rotate(3deg); }
+  }
+
+  @keyframes sq36-card {
+    from { transform:translate3d(0,3px,10px) rotateY(8deg) rotateZ(-3deg); }
+    to   { transform:translate3d(9px,-7px,28px) rotateY(1deg) rotateZ(2deg); }
+  }
+
+  @keyframes sq36-float-top {
+    from { transform:translate3d(0,2px,0); }
+    to   { transform:translate3d(-9px,-8px,0); }
+  }
+
+  @keyframes sq36-float-bottom {
+    from { transform:translate3d(0,4px,0); }
+    to   { transform:translate3d(10px,-7px,0); }
+  }
+
+  @keyframes sq36-dot {
+    from { transform:translateY(2px) scale(.8); opacity:.42; }
+    to   { transform:translateY(-5px) scale(1.28); opacity:1; }
+  }
+
+  @keyframes sq36-pulse {
+    0% { transform:scale(.55); opacity:.76; }
+    100% { transform:scale(2.1); opacity:0; }
+  }
+
+  @keyframes sq36-particle {
+    from { transform:translate3d(0,8px,0); opacity:.22; }
+    to   { transform:translate3d(10px,-14px,0); opacity:.86; }
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .sq36-mobile-login-overlay *,
+  .sq36-mobile-login-overlay *::before,
+  .sq36-mobile-login-overlay *::after {
+    animation:none!important;
+  }
+}
+

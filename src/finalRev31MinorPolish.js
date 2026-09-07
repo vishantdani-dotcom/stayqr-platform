@@ -1,6 +1,13 @@
 ﻿const ROOT = () => document.getElementById("root");
 let queued = false;
 
+const TAB = "rev32-tab-control";
+const TAB_ACTIVE = "rev32-tab-active";
+const NEUTRAL = "rev32-neutral-card";
+const PRIMARY = "rev32-primary-action";
+const SECONDARY = "rev32-secondary-action";
+const CHIP = "rev32-chip-action";
+
 function txt(el) {
   return String(el?.textContent || "").replace(/\s+/g, " ").trim();
 }
@@ -9,17 +16,7 @@ function lower(el) {
   return txt(el).toLowerCase();
 }
 
-function exactHeading(value) {
-  const root = ROOT();
-  if (!root) return null;
-
-  const wanted = value.toLowerCase();
-
-  return [...root.querySelectorAll("h1,h2,h3")]
-    .find((el) => lower(el) === wanted) || null;
-}
-
-function exactText(value, selector = "button,a,[role='button'],span,div") {
+function exactText(value, selector = "button,a,[role='button'],[role='tab'],h1,h2,h3,h4,p,span,div,label") {
   const root = ROOT();
   if (!root) return null;
 
@@ -30,7 +27,7 @@ function exactText(value, selector = "button,a,[role='button'],span,div") {
     .sort((a, b) => a.childElementCount - b.childElementCount)[0] || null;
 }
 
-function exactAll(value, selector = "button,a,[role='button']") {
+function allExact(value, selector = "button,a,[role='button'],[role='tab'],span,div,label") {
   const root = ROOT();
   if (!root) return [];
 
@@ -43,350 +40,354 @@ function exactAll(value, selector = "button,a,[role='button']") {
 function clickable(el) {
   if (!el) return null;
 
-  if (el.matches("button,a,[role='button'],label")) {
+  if (el.matches("button,a,[role='button'],[role='tab'],label")) {
     return el;
   }
 
-  return el.closest("button,a,[role='button'],label") || el;
+  return el.closest("button,a,[role='button'],[role='tab'],label") || el;
 }
 
-function clearClasses(el) {
+function setOnly(el, classes) {
   if (!el) return;
 
-  el.classList.remove(
+  for (const cls of [
     "rev31-action-primary",
     "rev31-action-secondary",
     "rev31-action-chip",
     "rev31-action-disabled",
     "rev31-tab-control",
     "rev31-tab-active",
-    "rev31-checkin-neutral-action"
-  );
+    "rev31-checkin-neutral-action",
+    TAB,
+    TAB_ACTIVE,
+    NEUTRAL,
+    PRIMARY,
+    SECONDARY,
+    CHIP
+  ]) {
+    if (!classes.includes(cls)) {
+      el.classList.remove(cls);
+    }
+  }
+
+  for (const cls of classes) {
+    el.classList.add(cls);
+  }
 }
 
-function activeSignal(el) {
+function nativeActive(el) {
   if (!el) return false;
 
   const nodes = [el, el.parentElement, el.parentElement?.parentElement].filter(Boolean);
 
   return nodes.some((node) => {
-    const cls = String(node.className || "").toLowerCase();
+    const raw = String(node.className || "")
+      .split(/\s+/)
+      .filter((c) => c && !c.startsWith("rev31") && !c.startsWith("rev32"))
+      .join(" ")
+      .toLowerCase();
 
     return (
       node.getAttribute?.("aria-selected") === "true" ||
       node.getAttribute?.("aria-current") === "page" ||
       node.getAttribute?.("aria-pressed") === "true" ||
-      /\b(active|selected|current)\b/.test(cls)
+      node.getAttribute?.("data-state") === "active" ||
+      /\b(active|selected|current)\b/.test(raw)
     );
   });
 }
 
-function styleGuestConsent() {
-  if (!exactHeading("Guests")) return false;
-  if (!exactText("Guest contact preferences", "h2,h3,div,span")) return false;
+function exactDescendant(container, label) {
+  const wanted = label.toLowerCase();
 
-  const refresh = clickable(exactText("Refresh", "button,a,[role='button'],span"));
-  if (refresh && !refresh.disabled) {
-    clearClasses(refresh);
-    refresh.classList.add("rev31-action-primary");
-  }
+  return [...container.querySelectorAll("button,a,[role='tab'],[role='button'],span,div")]
+    .find((el) => lower(el) === wanted) || null;
+}
 
-  for (const el0 of exactAll("Opt out")) {
-    const el = clickable(el0);
-    if (!el || el.disabled) continue;
-    clearClasses(el);
-    el.classList.add("rev31-action-secondary");
-  }
+function findTabRow(labels) {
+  const root = ROOT();
+  if (!root) return null;
 
-  for (const label of ["Stay updates +", "Marketing +"]) {
-    for (const el0 of exactAll(label)) {
-      const el = clickable(el0);
-      if (!el || el.disabled) continue;
-      clearClasses(el);
-      el.classList.add("rev31-action-chip");
+  const candidates = [...root.querySelectorAll("nav,div,section,header")].filter((el) => {
+    const rect = el.getBoundingClientRect();
+
+    if (rect.width < 420 || rect.height < 28 || rect.height > 95) {
+      return false;
     }
-  }
 
-  for (const el0 of exactAll("Open WhatsApp")) {
-    const el = clickable(el0);
-    if (!el) continue;
+    return labels.every((label) => !!exactDescendant(el, label));
+  });
 
-    clearClasses(el);
+  candidates.sort((a, b) => {
+    const ar = a.getBoundingClientRect();
+    const br = b.getBoundingClientRect();
+    return ar.width * ar.height - br.width * br.height;
+  });
 
-    if (el.disabled || el.getAttribute("aria-disabled") === "true") {
-      el.classList.add("rev31-action-disabled");
-    } else {
-      el.classList.add("rev31-action-secondary");
+  return candidates[0] || null;
+}
+
+function styleTabRow(labels, activeFallback = null) {
+  const row = findTabRow(labels);
+  if (!row) return false;
+
+  for (const label of labels) {
+    const raw = exactDescendant(row, label);
+    const control = clickable(raw);
+    if (!control) continue;
+
+    const active = nativeActive(control) || label === activeFallback;
+    setOnly(control, active ? [TAB, TAB_ACTIVE] : [TAB]);
+
+    for (const child of control.querySelectorAll("*")) {
+      child.classList.toggle("rev32-tab-label-active", active);
+      child.classList.toggle("rev32-tab-label", !active);
     }
   }
 
   return true;
 }
 
-function findInvoiceTab(label) {
-  const root = ROOT();
-  if (!root) return null;
+function climb(el, predicate, maxDepth = 10) {
+  let current = el;
 
-  const wanted = label.toLowerCase();
-
-  const candidates = [...root.querySelectorAll(
-    "button,a,[role='tab'],[role='button'],span,div"
-  )].filter((el) => lower(el) === wanted);
-
-  for (const candidate of candidates) {
-    const hit = clickable(candidate);
-    if (hit) return hit;
+  for (let i = 0; current && i <= maxDepth; i += 1) {
+    if (current instanceof HTMLElement && predicate(current)) {
+      return current;
+    }
+    current = current.parentElement;
   }
 
   return null;
 }
 
+function markNeutral(el) {
+  if (!el || !(el instanceof HTMLElement)) return false;
+  el.classList.add(NEUTRAL);
+  return true;
+}
+
+function styleGuestConsent() {
+  const guestTitle = exactText("Guests", "h1,h2,h3");
+  const contactTitle = exactText("Guest contact preferences", "h1,h2,h3,div,span");
+
+  if (!guestTitle || !contactTitle) return false;
+
+  styleTabRow(["Active stays", "Guest directory & history", "Contact & consent"], "Contact & consent");
+
+  const refresh = clickable(exactText("Refresh", "button,a,[role='button'],span"));
+  if (refresh && !refresh.disabled) {
+    setOnly(refresh, [PRIMARY]);
+  }
+
+  for (const raw of allExact("Opt out", "button,a,[role='button'],span")) {
+    const el = clickable(raw);
+    if (el && !el.disabled) {
+      setOnly(el, [SECONDARY]);
+    }
+  }
+
+  for (const label of ["Stay updates +", "Marketing +"]) {
+    for (const raw of allExact(label, "button,a,[role='button'],span")) {
+      const el = clickable(raw);
+      if (el && !el.disabled) {
+        setOnly(el, [CHIP]);
+      }
+    }
+  }
+
+  return true;
+}
+
 function styleInvoices() {
-  if (!exactHeading("Invoice, Cashier & Night Audit")) return false;
+  const heading = exactText("Invoice, Cashier & Night Audit", "h1,h2,h3");
+  if (!heading) return false;
 
-  const labels = [
-    "Invoices",
-    "Receipts",
-    "Cashier Shifts",
-    "Night Audit",
-    "GST / Tax Setup"
-  ];
+  const root = ROOT();
 
-  const tabs = labels
-    .map((label) => ({ label, el: findInvoiceTab(label) }))
-    .filter((item) => item.el);
-
-  if (!tabs.length) return false;
-
-  for (const { el } of tabs) {
-    clearClasses(el);
-    el.classList.add("rev31-tab-control");
-
-    if (activeSignal(el)) {
-      el.classList.add("rev31-tab-active");
-    }
+  // Remove REV31 tab styling from any accidental KPI labels such as "Receipts".
+  for (const el of root.querySelectorAll(".rev31-tab-control,.rev31-tab-active")) {
+    el.classList.remove("rev31-tab-control", "rev31-tab-active");
   }
 
-  /*
-   Fallback for the current Invoices view seen in the supplied screenshot.
-   The earlier global neutralization removed its gold fill but left the
-   selected label dark. "Invoice register" uniquely identifies this tab body.
-  */
-  const invoiceRegister = exactText("Invoice register", "h2,h3,h4,div,span");
+  const labels = ["Invoices", "Receipts", "Cashier Shifts", "Night Audit", "GST / Tax Setup"];
 
-  if (invoiceRegister) {
-    const invoiceTab = tabs.find((item) => item.label === "Invoices")?.el;
-    if (invoiceTab) {
-      invoiceTab.classList.add("rev31-tab-active");
-    }
-  }
+  let fallback = null;
+  if (exactText("Invoice register", "h1,h2,h3,h4,div,span")) fallback = "Invoices";
+  else if (exactText("Receipt register", "h1,h2,h3,h4,div,span")) fallback = "Receipts";
+
+  styleTabRow(labels, fallback);
 
   return true;
 }
 
 function styleOperationsCentre() {
-  const heading =
-    exactHeading("Operations Centre") ||
-    exactText("Operations Centre", "h1,h2,h3,div,span");
+  const breadcrumb = exactText("Operations Centre", "h1,h2,h3,div,span");
+  const preferenceBody = exactText("My Notification Preferences", "h1,h2,h3,div,span");
+  const systemSave = exactText("Save system settings", "button,a,[role='button'],span");
 
-  if (!heading) return false;
+  if (!breadcrumb && !preferenceBody && !systemSave) return false;
 
-  const labels = [
-    "Notifications",
-    "Activity",
-    "Preferences",
-    "Templates",
-    "Support",
-    "Announcements",
-    "Delivery",
-    "Diagnostics",
-    "System settings"
-  ];
+  let fallback = null;
+  if (preferenceBody) fallback = "Preferences";
+  if (systemSave) fallback = "System settings";
 
-  const tabs = labels
-    .map((label) => ({ label, el: findInvoiceTab(label) }))
-    .filter((item) => item.el);
+  styleTabRow(
+    ["Notifications", "Activity", "Preferences", "Templates", "Support", "Announcements", "Delivery", "Diagnostics", "System settings"],
+    fallback
+  );
 
-  for (const { el } of tabs) {
-    clearClasses(el);
-    el.classList.add("rev31-tab-control");
+  // Notification preference cards.
+  for (const label of ["In-app notifications", "Email notifications", "Manual WhatsApp"]) {
+    const textEl = exactText(label, "label,span,div,strong");
+    if (!textEl) continue;
 
-    if (activeSignal(el)) {
-      el.classList.add("rev31-tab-active");
-    }
+    const card = climb(textEl, (el) => {
+      const rect = el.getBoundingClientRect();
+      return !!el.querySelector('input[type="checkbox"]') && rect.width >= 180 && rect.height >= 45 && rect.height <= 110;
+    });
+
+    markNeutral(card);
   }
 
-  /*
-   Exact current screenshot: Preferences body.
-   Force only the selected Preferences tab to the accepted dark-neutral state.
-  */
-  if (exactText("My Notification Preferences", "h1,h2,h3,div,span")) {
-    const pref = tabs.find((item) => item.label === "Preferences")?.el;
-
-    if (pref) {
-      pref.classList.add("rev31-tab-active");
-    }
+  // System Settings warm "Prices include tax" card.
+  const prices = exactText("Prices include tax", "label,span,div,strong");
+  if (prices) {
+    const card = climb(prices, (el) => {
+      const rect = el.getBoundingClientRect();
+      return !!el.querySelector('input[type="checkbox"]') && rect.width >= 180 && rect.height >= 45 && rect.height <= 110;
+    });
+    markNeutral(card);
   }
 
   return true;
-}
-
-function parseRgb(value) {
-  const m = String(value || "").match(
-    /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/i
-  );
-
-  if (!m) return null;
-
-  return {
-    r: Number(m[1]),
-    g: Number(m[2]),
-    b: Number(m[3]),
-    a: m[4] == null ? 1 : Number(m[4])
-  };
-}
-
-function warmDark(el) {
-  const style = getComputedStyle(el);
-  const c = parseRgb(style.backgroundColor);
-
-  if (!c || c.a < .05) return false;
-
-  const max = Math.max(c.r, c.g, c.b);
-  const min = Math.min(c.r, c.g, c.b);
-
-  const warm =
-    c.r >= c.g - 1 &&
-    c.g >= c.b - 2 &&
-    c.r - c.b >= 3;
-
-  return max < 85 && warm && (max - min) >= 3;
-}
-
-function findScanIdAction() {
-  const root = ROOT();
-  if (!root) return null;
-
-  const scanText = exactText("Scan ID", "button,a,[role='button'],label,div,span,strong");
-  if (!scanText) return null;
-
-  const direct = clickable(scanText);
-
-  if (
-    direct &&
-    direct.getBoundingClientRect().width >= 180 &&
-    direct.getBoundingClientRect().height >= 60
-  ) {
-    return direct;
-  }
-
-  let current = scanText;
-
-  for (let i = 0; current && i < 8; i += 1) {
-    if (current instanceof HTMLElement) {
-      const rect = current.getBoundingClientRect();
-      const body = lower(current);
-
-      if (
-        rect.width >= 220 &&
-        rect.height >= 70 &&
-        rect.height <= 180 &&
-        body.includes("scan id") &&
-        body.includes("use camera")
-      ) {
-        return current;
-      }
-    }
-
-    current = current.parentElement;
-  }
-
-  return direct;
 }
 
 function styleCheckInOut() {
-  if (!exactHeading("Guest Check-in")) return false;
+  const heading = exactText("Guest Check-in", "h1,h2,h3");
+  if (!heading) return false;
 
-  const scan = findScanIdAction();
+  const primaryText = exactText("Enter primary guest name above", "div,span,p,strong");
+  if (primaryText) {
+    const card = climb(primaryText, (el) => {
+      const body = lower(el);
+      const rect = el.getBoundingClientRect();
 
-  if (scan) {
-    clearClasses(scan);
-    scan.classList.add("rev31-checkin-neutral-action");
+      return (
+        body.includes("primary guest") &&
+        body.includes("enter primary guest name above") &&
+        rect.width >= 360 &&
+        rect.height >= 45 &&
+        rect.height <= 120
+      );
+    });
+    markNeutral(card);
   }
 
-  /*
-   Catch only additional warm-dark INTERACTIVE controls on this page.
-   Bright approved gold primary CTAs are intentionally excluded.
-  */
-  const root = ROOT();
-
-  for (const el of root.querySelectorAll("button,[role='button'],label")) {
-    if (!(el instanceof HTMLElement)) continue;
-    if (el.disabled || el.getAttribute("aria-disabled") === "true") continue;
-
-    const text = lower(el);
-
-    if (
-      text.includes("complete check-in") ||
-      text === "check in" ||
-      text.includes("save &")
-    ) {
-      continue;
-    }
-
-    if (warmDark(el)) {
-      clearClasses(el);
-      el.classList.add("rev31-checkin-neutral-action");
-    }
+  const addGuest = clickable(exactText("Add another guest", "button,a,[role='button'],span,div"));
+  if (addGuest) {
+    setOnly(addGuest, [SECONDARY]);
   }
 
   return true;
 }
 
-function applyRev31() {
+function styleGuestGuideBuilder() {
+  const guideSections = exactText("Guide sections", "h1,h2,h3,h4,div,span");
+  if (!guideSections) return false;
+
+  const root = ROOT();
+
+  for (const checkbox of root.querySelectorAll('input[type="checkbox"]:not([role="switch"])')) {
+    const row = climb(checkbox, (el) => {
+      const rect = el.getBoundingClientRect();
+      const save = [...el.querySelectorAll("button,a,[role='button']")]
+        .some((b) => lower(b) === "save");
+
+      return save && rect.width >= 520 && rect.height >= 45 && rect.height <= 110;
+    });
+
+    markNeutral(row);
+  }
+
+  return true;
+}
+
+function styleHotelSetup() {
+  const stillRequired = exactText("Still required", "h1,h2,h3,h4,div,span");
+  if (!stillRequired) return false;
+
+  const panel = climb(stillRequired, (el) => {
+    const rect = el.getBoundingClientRect();
+    const body = lower(el);
+
+    return body.includes("still required") && body.includes("subscription") &&
+      rect.width >= 420 && rect.height >= 55 && rect.height <= 150;
+  });
+
+  markNeutral(panel);
+  return true;
+}
+
+function setCheckboxScope() {
+  const root = ROOT();
+  if (!root) return;
+
+  const shouldUseGoldCheckboxes =
+    !!exactText("Guide sections", "h1,h2,h3,h4,div,span") ||
+    !!exactText("My Notification Preferences", "h1,h2,h3,div,span") ||
+    !!exactText("Save system settings", "button,a,[role='button'],span");
+
+  root.classList.toggle("rev32-gold-checkbox-scope", shouldUseGoldCheckboxes);
+}
+
+function applyRev32() {
   queued = false;
 
+  setCheckboxScope();
   styleGuestConsent();
   styleInvoices();
   styleOperationsCentre();
   styleCheckInOut();
+  styleGuestGuideBuilder();
+  styleHotelSetup();
 }
 
-function scheduleRev31() {
+function scheduleRev32() {
   if (queued) return;
-
   queued = true;
-  requestAnimationFrame(applyRev31);
+  requestAnimationFrame(applyRev32);
 }
 
-function bootRev31() {
-  scheduleRev31();
+function bootRev32() {
+  scheduleRev32();
 
-  setTimeout(scheduleRev31, 100);
-  setTimeout(scheduleRev31, 350);
-  setTimeout(scheduleRev31, 900);
-  setTimeout(scheduleRev31, 1800);
+  setTimeout(scheduleRev32, 120);
+  setTimeout(scheduleRev32, 450);
+  setTimeout(scheduleRev32, 1000);
+  setTimeout(scheduleRev32, 1800);
 
   const root = ROOT();
 
   if (root) {
-    const observer = new MutationObserver(scheduleRev31);
+    const observer = new MutationObserver(scheduleRev32);
 
     observer.observe(root, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["class", "style", "aria-selected", "aria-current", "aria-pressed", "disabled"]
+      attributeFilter: ["class", "aria-selected", "aria-current", "aria-pressed", "data-state", "disabled"]
     });
   }
 
-  window.addEventListener("popstate", scheduleRev31);
-  window.addEventListener("hashchange", scheduleRev31);
-  window.addEventListener("resize", scheduleRev31);
+  window.addEventListener("popstate", scheduleRev32);
+  window.addEventListener("hashchange", scheduleRev32);
+  window.addEventListener("resize", scheduleRev32);
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", bootRev31, { once: true });
+  document.addEventListener("DOMContentLoaded", bootRev32, { once: true });
 } else {
-  bootRev31();
+  bootRev32();
 }
+

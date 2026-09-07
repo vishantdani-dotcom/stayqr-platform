@@ -1,70 +1,129 @@
 ﻿/*
- StayQR REV31 - FINAL MINOR POLISH
+ StayQR REV32 - FINAL UI CONSISTENCY LOCK
 
- Exact screenshots only:
- - Contact & Consent actions regain intentional action styling.
- - Invoice tabs use the same neutral tab language as the rest of the app.
- - Operations Centre Preferences selected state is dark-neutral + gold text.
- - Check-In warm Scan ID/action surfaces match the neutral Upload ID surface.
+ Visual authority:
+ - approved REV22/REV24 dark + restrained-gold system
+ - Guest Bills / Amenities / Subscription & Billing panel treatment
 
- No font, layout, media, global theme, or unrelated page changes.
+ This file only fixes the remaining inconsistencies visible in the final screenshots:
+ - native blue checkboxes -> dark/gold checkboxes
+ - Invoices tab row -> one consistent tab system
+ - Operations Centre checkbox cards -> neutral panel
+ - Check-In primary guest/add-guest controls -> neutral panel/action
+ - Hotel Setup "Still required" -> neutral panel
+ - Contact & Consent action colours restored
 */
 
-.rev31-action-primary {
-  background:#e8bd45!important;
-  background-image:linear-gradient(180deg,#f7d76f,#e8bd45)!important;
-  border-color:#e8bd45!important;
+.rev32-neutral-card {
+  background:#0f141a!important;
+  background-color:#0f141a!important;
+  background-image:none!important;
+  border-color:#27303a!important;
+  box-shadow:none!important;
+}
+
+.rev32-primary-action {
+  background:linear-gradient(180deg,#f7d76f,#e8bd45)!important;
+  background-color:#e8bd45!important;
+  border:1px solid #e8bd45!important;
   color:#171207!important;
   box-shadow:none!important;
 }
 
-.rev31-action-secondary {
+.rev32-secondary-action {
   background:#090c11!important;
   background-image:none!important;
-  border-color:#e8bd45!important;
+  border:1px solid #36414d!important;
   color:#e8bd45!important;
   box-shadow:none!important;
 }
 
-.rev31-action-chip {
+.rev32-chip-action {
   background:#090c11!important;
   background-image:none!important;
-  border-color:#36414d!important;
+  border:1px solid #36414d!important;
   color:#f7f8f9!important;
   box-shadow:none!important;
 }
 
-.rev31-tab-control {
+.rev32-tab-control {
   background:#090c11!important;
   background-image:none!important;
   border:1px solid #27303a!important;
   color:#f7f8f9!important;
   box-shadow:none!important;
+  min-height:34px!important;
+  padding:7px 12px!important;
+  border-radius:8px!important;
 }
 
-.rev31-tab-active {
+.rev32-tab-control * ,
+.rev32-tab-label {
+  color:#f7f8f9!important;
+}
+
+.rev32-tab-active {
   background:#131920!important;
   background-image:none!important;
   border-color:#36414d!important;
   color:#e8bd45!important;
+}
+
+.rev32-tab-active *,
+.rev32-tab-label-active {
+  color:#e8bd45!important;
+}
+
+/* Gold/dark checkbox system — scoped only to the pages that still showed native blue/gray controls. */
+.rev32-gold-checkbox-scope input[type="checkbox"]:not([role="switch"]) {
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+  margin:0!important;
+  border:1px solid #36414d!important;
+  border-radius:4px!important;
+  background:#090c11!important;
+  display:inline-grid!important;
+  place-content:center!important;
+  vertical-align:middle!important;
+  cursor:pointer!important;
   box-shadow:none!important;
 }
 
-.rev31-checkin-neutral-action {
+.rev32-gold-checkbox-scope input[type="checkbox"]:not([role="switch"])::before {
+  content:""!important;
+  width:8px!important;
+  height:4px!important;
+  border-left:2px solid #f7d76f!important;
+  border-bottom:2px solid #f7d76f!important;
+  transform:rotate(-45deg) scale(0)!important;
+  transform-origin:center!important;
+  transition:transform .12s ease!important;
+}
+
+.rev32-gold-checkbox-scope input[type="checkbox"]:not([role="switch"]):checked {
   background:#131920!important;
-  background-color:#131920!important;
-  background-image:none!important;
-  border-color:#36414d!important;
-  box-shadow:none!important;
+  border-color:#e8bd45!important;
 }
 
-/* Disabled actions stay visibly disabled; REV31 never turns them gold. */
-.rev31-action-disabled,
-.rev31-action-disabled:disabled {
-  background:#101318!important;
-  background-image:none!important;
-  border-color:#27303a!important;
-  color:#68717c!important;
-  opacity:.72!important;
-  box-shadow:none!important;
+.rev32-gold-checkbox-scope input[type="checkbox"]:not([role="switch"]):checked::before {
+  transform:rotate(-45deg) scale(1)!important;
 }
+
+.rev32-gold-checkbox-scope input[type="checkbox"]:not([role="switch"]):focus-visible {
+  outline:2px solid rgba(232,189,69,.45)!important;
+  outline-offset:2px!important;
+}
+
+/* Keep intentional error/success/status colors in text/badges; only panel fills are neutralized. */
+.rev32-neutral-card .status,
+.rev32-neutral-card .badge,
+.rev32-neutral-card [class*="status"],
+.rev32-neutral-card [class*="badge"] {
+  background-color:revert-layer;
+}
+
+/* No font-family, typography scale, spacing system, media, or layout redesign in REV32. */
+

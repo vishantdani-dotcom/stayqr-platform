@@ -1,0 +1,147 @@
+﻿/*
+ StayQR REV40 — MOBILE LOGIN FINAL POLISH
+ Mobile login only. Desktop login and every authenticated page remain unchanged.
+
+ Final screenshot-driven corrections:
+ - remove the SECOND StayQR logo above sign-in
+ - make the three hero cards true mini cards
+ - reduce hero vertical footprint
+ - bring sign-in controls much higher on phone screens
+*/
+
+@media (max-width:900px) {
+  .sq40-mobile-login-final .sq40-hero-final {
+    padding:10px 12px 8px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-brand {
+    margin:0 0 8px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-brand-mark {
+    width:28px !important;
+    height:28px !important;
+    flex:0 0 28px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-brand strong {
+    font-size:13px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-brand small {
+    font-size:7.5px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-eyebrow {
+    margin:0 0 4px !important;
+    font-size:7.5px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final h1 {
+    max-width:305px !important;
+    margin:0 !important;
+    font-size:clamp(21px,7.4vw,27px) !important;
+    line-height:.96 !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-lead {
+    max-width:330px !important;
+    margin:7px 0 8px !important;
+    font-size:9px !important;
+    line-height:1.35 !important;
+  }
+
+  /*
+   These are intentionally mini-cards now:
+   icon + short label only. The descriptive paragraph is hidden on phone
+   because it was the main reason the hero stayed too tall.
+  */
+  .sq40-mobile-login-final .sq40-hero-final .sq37-feature-grid {
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:4px !important;
+    margin:0 !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-feature {
+    min-height:42px !important;
+    height:auto !important;
+    display:flex !important;
+    align-items:center !important;
+    gap:5px !important;
+    padding:5px 6px !important;
+    border-radius:7px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-feature-icon {
+    width:20px !important;
+    height:20px !important;
+    flex:0 0 20px !important;
+    margin:0 !important;
+    font-size:9px !important;
+    border-radius:5px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-feature strong {
+    font-size:6.8px !important;
+    line-height:1.12 !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-feature p {
+    display:none !important;
+  }
+
+  .sq40-mobile-login-final .sq40-auth-final {
+    padding:8px 12px 16px !important;
+    margin:0 !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hide-duplicate-brand {
+    display:none !important;
+    visibility:hidden !important;
+    height:0 !important;
+    min-height:0 !important;
+    max-height:0 !important;
+    margin:0 !important;
+    padding:0 !important;
+    overflow:hidden !important;
+  }
+
+  .sq40-mobile-login-final .sq40-auth-final [role="tablist"],
+  .sq40-mobile-login-final .sq40-auth-final .tabs,
+  .sq40-mobile-login-final .sq40-auth-final .tab-list,
+  .sq40-mobile-login-final .sq40-auth-final [class*="tabs"],
+  .sq40-mobile-login-final .sq40-auth-final [class*="tab-list"] {
+    margin-top:0 !important;
+    margin-bottom:10px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-auth-final :is(input,select,textarea) {
+    min-height:42px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-auth-final :is(button,[role="button"],a[role="button"]) {
+    min-height:42px !important;
+  }
+}
+
+@media (max-width:390px) {
+  .sq40-mobile-login-final .sq40-hero-final {
+    padding-left:10px !important;
+    padding-right:10px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-auth-final {
+    padding-left:10px !important;
+    padding-right:10px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-feature {
+    padding:4px 5px !important;
+  }
+
+  .sq40-mobile-login-final .sq40-hero-final .sq37-feature strong {
+    font-size:6.4px !important;
+  }
+}
+

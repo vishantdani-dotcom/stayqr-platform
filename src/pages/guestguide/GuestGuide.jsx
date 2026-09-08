@@ -711,6 +711,10 @@ export default function GuestGuide() {
     allMedia.find((media) => media.category === 'property') ||
     allMedia.find((media) => media.category === 'room') ||
     null
+  const logoMedia =
+    allMedia.find((media) => media.category === 'logo') ||
+    allMedia.find((media) => media.category === 'profile') ||
+    null
   const heroImageUrl = heroMedia ? getGuestGuideMediaUrl(heroMedia.object_path) : ''
   const wifiMedia = allMedia.find((media) => media.category === 'wifi') || null
 
@@ -734,11 +738,6 @@ export default function GuestGuide() {
     action_value: offerConfig.action_value || 'google_review',
     image_media_id: offerConfig.image_media_id || null,
   }
-  const offerMedia =
-    mediaById.get(offer.image_media_id) ||
-    allMedia.find((media) => media.media_key === 'offer_banner') ||
-    allMedia.find((media) => media.category === 'custom' && /offer/i.test(media.media_key || '')) ||
-    null
 
   function itemsForSection(section) {
     return allItems.filter(
@@ -1034,11 +1033,28 @@ export default function GuestGuide() {
   }
 
   function Heading({ section }) {
+    const prototypeHeading = {
+      stay: ['Your stay', 'Stay at a Glance', 'All the important details in one place.'],
+      actions: ['Quick access', 'Your Digital Concierge', 'Everything you need, at your fingertips.'],
+      wifi: ['Wi-Fi', 'Stay Connected', 'Fast. Secure. Always on.'],
+      facilities: ['Explore', 'Hotel Facilities', 'Thoughtful amenities for a comfortable stay.'],
+      dining: ['Dining & Room Service', 'Great Food. Greater Stays.', 'Explore our menu and order directly to your room.'],
+      services: ['Need something?', 'Guest Services', 'Our team is here to help.'],
+      safety: ['Your safety matters', 'Safety & Emergency', 'Get immediate help when you need it.'],
+      payment: ['Billing & payments', 'Payment Assistance', 'Need help with your bill or payment?'],
+      feedback: ['Your opinion counts', 'Share Your Feedback', 'Help us make every stay better.'],
+      review: ['Share the love', 'Leave a Review, Get Rewarded', 'Share your experience and unlock future guest benefits.'],
+    }[section.section_type]
+    const eyebrow = prototypeHeading?.[0] || section.label || ''
+    const title = prototypeHeading?.[1] || section.title || ''
+    const body = prototypeHeading?.[2] || section.subtitle || ''
     return (
       <header className="ag-section-head">
-        {section.label && <p>{section.label}</p>}
-        {section.title && <h2>{section.title}</h2>}
-        {section.subtitle && <span>{section.subtitle}</span>}
+        <div>
+          {eyebrow && <div className="ag-section-eyebrow">{eyebrow}</div>}
+          {title && <h2>{title}</h2>}
+          {body && <p>{body}</p>}
+        </div>
       </header>
     )
   }
@@ -1055,12 +1071,10 @@ export default function GuestGuide() {
           <Heading section={section} />
           <div className="ag-glance-grid">
             {[
-              ['bed', copy.roomNumber, room.room_number || '—'],
-              ['sparkles', copy.roomType, room.room_type || copy.guestRoom],
-              ['document', copy.checkIn, displayInfo.checkin_time || copy.askReception],
-              ['checkout', copy.checkOut, displayInfo.checkout_time || copy.askReception],
-              ['wifi', copy.wifi, displayInfo.wifi_name ? copy.available : copy.askReception],
-              ['service', copy.reception, copy.available247],
+              ['bed', 'Room Number', room.room_number || '—'],
+              ['sparkles', 'Room Type', room.room_type || 'Guest Room'],
+              ['document', 'Check-in', displayInfo.checkin_time || 'Ask reception'],
+              ['checkout', 'Check-out', displayInfo.checkout_time || 'Ask reception'],
             ].map(([icon, label, value]) => (
               <article key={label}>
                 <span className="ag-icon"><GuideIcon name={icon} size={19} /></span>
@@ -1080,22 +1094,48 @@ export default function GuestGuide() {
     }
 
     if (section.section_type === 'actions') {
-      const actionItems = items.length > 0 ? items : DEFAULT_QUICK_ACTIONS.map((item) => ({ ...item, item_key: item.key }))
+      const prototypeDescriptions = {
+        wifi: 'Get connected securely.',
+        room_guide: 'View room instructions.',
+        service: 'Ask the hotel team.',
+        food: 'Browse and order.',
+        payment: 'View payment details.',
+        reception: 'Call the front desk.',
+      }
+      const actionItems = DEFAULT_QUICK_ACTIONS.slice(0, 6).map((prototypeItem) => {
+        const configured = items.find((item) => item.item_key === prototypeItem.key || item.key === prototypeItem.key)
+        return {
+          ...prototypeItem,
+          ...(configured || {}),
+          item_key: prototypeItem.key,
+          title: prototypeItem.title,
+          description: prototypeDescriptions[prototypeItem.key],
+          subtitle: prototypeDescriptions[prototypeItem.key],
+          icon: prototypeItem.icon,
+          action_type: configured?.action_type || prototypeItem.action_type,
+          action_value: configured?.action_value ?? prototypeItem.action_value,
+        }
+      })
       return (
         <section className="ag-section" id={sectionId} key={section.id}>
           <Heading section={section} />
           <div className="ag-action-grid">
-            {actionItems.map((item) => {
-              const defaults = getFullItemCopy(item.item_key, locale)
-              return (
-                <button type="button" key={item.id || item.item_key} onClick={() => void runItemAction(item)} disabled={requestLoading}>
-                  <span className="ag-icon"><GuideIcon name={item.icon || item.item_key} size={21} /></span>
-                  <strong>{item.title || defaults.title || item.item_key}</strong>
-                  <small>{item.description || item.subtitle || defaults.description || copy.open}</small>
-                </button>
-              )
-            })}
+            {actionItems.map((item) => (
+              <button type="button" key={item.id || item.item_key} onClick={() => void runItemAction(item)} disabled={requestLoading}>
+                <span className="ag-icon"><GuideIcon name={item.icon || item.item_key} size={21} /></span>
+                <strong>{item.title}</strong>
+                <small>{item.description}</small>
+              </button>
+            ))}
           </div>
+          <article className="ag-prototype-easier">
+            <div>
+              <span>Scan. Tap. Relax.</span>
+              <strong>Your Stay Made Easier</strong>
+              <p>Fast access to services, room details, food and support.</p>
+            </div>
+            <div className="ag-prototype-easier-photo" />
+          </article>
         </section>
       )
     }
@@ -1210,22 +1250,17 @@ export default function GuestGuide() {
     }
 
     if (section.section_type === 'dining') {
-      const diningMedia = allMedia.filter((media) => media.category === 'dining')
       return (
-        <section className="ag-section" id={sectionId} key={section.id}>
-          <Heading section={section} />
-          {diningMedia.length > 0 && (
-            <div className="ag-gallery">
-              {diningMedia.slice(0, 6).map((media) => (
-                <button type="button" key={media.id} onClick={() => setSelectedMedia(media)}>
-                  <GuideMedia media={media} alt={media.alt_text || media.title || copy.food} />
-                  {(media.title || media.caption) && <span><strong>{media.title}</strong><small>{media.caption}</small></span>}
-                </button>
-              ))}
+        <section className="ag-section ag-prototype-dining-section" id={sectionId} key={section.id}>
+          <article className="ag-prototype-dining">
+            <div className="ag-prototype-dining-photo" />
+            <div className="ag-prototype-dining-copy">
+              <div className="ag-section-eyebrow">Dining &amp; Room Service</div>
+              <strong>Great Food. Greater Stays.</strong>
+              <p>Explore our menu and order directly to your room.</p>
+              <button type="button" onClick={() => void openFoodMenu()}>View Menu &amp; Order →</button>
             </div>
-          )}
-          {renderCardItems(items)}
-          <button type="button" className="ag-wide-cta" onClick={() => void openFoodMenu()}><GuideIcon name="food" size={19} />{copy.viewMenuOrder}</button>
+          </article>
         </section>
       )
     }
@@ -1242,7 +1277,7 @@ export default function GuestGuide() {
             ['Housekeeping', copy.housekeeping, 'housekeeping'],
             ['Water', copy.drinkingWater, 'water'],
             ['Towel', copy.freshTowels, 'towels'],
-            ['Toiletries', copy.toiletries, 'sparkles'],
+            ['Checkout Request', 'Checkout Request', 'checkout'],
           ]
       return (
         <section className="ag-section" id={sectionId} key={section.id}>
@@ -1358,7 +1393,7 @@ export default function GuestGuide() {
               <fieldset><legend>{copy.rateStay}</legend><div>{[1,2,3,4,5].map((rating) => <button type="button" key={rating} className={feedbackRating >= rating ? 'active' : ''} onClick={() => setFeedbackRating(rating)} aria-label={`${rating} stars`}>★</button>)}</div></fieldset>
               <label>{copy.messageHotel}<textarea value={feedbackMessage} onChange={(event) => setFeedbackMessage(event.target.value)} maxLength={4000} placeholder={copy.feedbackPlaceholder} /></label>
               <label className="ag-consent"><input type="checkbox" checked={feedbackConsent} onChange={(event) => setFeedbackConsent(event.target.checked)} />{copy.consent}</label>
-              <button type="submit" disabled={feedbackSubmitting}>{feedbackSubmitting ? copy.sending : copy.sendFeedback}</button>
+              <button type="submit" disabled={feedbackSubmitting}>{feedbackSubmitting ? copy.sending : 'Submit Feedback →'}</button>
             </form>
           )}
         </section>
@@ -1369,7 +1404,7 @@ export default function GuestGuide() {
       return (
         <section className="ag-section" id={sectionId} key={section.id}>
           <Heading section={section} />
-          <article className="ag-review-card"><span className="ag-icon"><GuideIcon name="star" size={24} /></span><div><span className="ag-offer-label">{copy.offerBadge}</span><h3>{displayInfo.reward_title || copy.offerDefaultTitle}</h3><p>{displayInfo.reward_description || copy.offerDefaultBody}</p><button type="button" onClick={() => void openGoogleReview()} disabled={!displayInfo.google_review_url}>{displayInfo.google_review_url ? copy.leaveReview : copy.reviewUnavailable}</button></div></article>
+          <article className="ag-review-card"><span className="ag-icon"><GuideIcon name="star" size={24} /></span><div><span className="ag-offer-label">{copy.offerBadge}</span><h3>{displayInfo.reward_title || copy.offerDefaultTitle}</h3><p>{displayInfo.reward_description || copy.offerDefaultBody}</p><button type="button" onClick={() => void openGoogleReview()} disabled={!displayInfo.google_review_url}>{displayInfo.google_review_url ? 'Write a Review →' : copy.reviewUnavailable}</button></div></article>
         </section>
       )
     }
@@ -1390,7 +1425,7 @@ export default function GuestGuide() {
         <section className="ag-thankyou" id={sectionId} key={section.id}>
           <p>{section.label}</p><h2>{section.title || copy.thankYou}</h2><span>{section.subtitle || displayInfo.footer_message || copy.thankYouBody}</span>
           <div><button type="button" onClick={() => callPhone(displayInfo.reception_phone)}><GuideIcon name="phone" size={18} />{copy.callReception}</button><button type="button" className="outline" onClick={() => openWhatsApp(displayInfo.reception_phone)}><GuideIcon name="whatsapp" size={18} />{copy.whatsapp}</button></div>
-          <article className="ag-stayqr-signature"><img src="/assets/stayqr-official-logo.png" alt="StayQR — Simplifying check-in" /><div><p>{copy.poweredBy}</p><span>{copy.stayqrTagline}</span></div></article>
+          <article className="ag-stayqr-signature"><img src="/assets/stayqr-official-logo.png" alt="StayQR — Simplifying Checkinn" /><div><p>{copy.poweredBy}</p><span>{copy.stayqrTagline}</span></div></article>
         </section>
       )
     }
@@ -1412,39 +1447,45 @@ export default function GuestGuide() {
   const guestName = String(guest.full_name || '').trim() || copy.guest
   const receptionPhone = displayInfo.reception_phone || ''
   const whatsappItem = allItems.find((item) => item.action_type === 'whatsapp')
-  const mapsItem = allItems.find((item) => item.action_type === 'maps' && item.item_type !== 'local_convenience')
-  const heroEyebrow = legacyTranslation.welcome_kicker || displayInfo.welcome_kicker || copy.digitalGuide
-  const heroMessage = legacyTranslation.welcome_message || displayInfo.welcome_message || copy.offerDefaultBody
-  const rawHeroTitle = legacyTranslation.welcome_title || displayInfo.welcome_title || hotelName
-  const heroTitle = String(rawHeroTitle).replace(/^welcome\s+to\s+/i, '').trim() || hotelName
+  const heroEyebrow = 'A smarter stay awaits'
+  const heroMessage = 'Comfort. Convenience. At your fingertips — everything for your stay, beautifully simplified.'
+  const heroTitle = hotelName
 
   return (
-    <main className="ag-page" style={pageStyle}>
+    <main className="ag-page" style={pageStyle} data-stayqr-ui-revision="stayqr-rev44-prototype-exact" data-prototype-guide-sha256="da87fe6f4d185d0efa7cd9f5e91e2f4fc21a3e657a7e06d47523d078b6b4e644">
       <div className="ag-progress" style={{ width: `${scrollProgress}%` }} />
-      <header className="ag-topbar"><div className="ag-topbar-inner"><div className="ag-brand"><img className="ag-stayqr-wordmark" src="/assets/stayqr-official-logo.png" alt="StayQR" /><div><strong>{hotelName}</strong><small>{displayInfo.address || hotel.location || copy.digitalGuide}</small></div></div><div className="ag-top-actions">{enabledLocales.length > 1 && <select aria-label="Guest guide language" value={locale} onChange={(event) => void handleLocaleChange(event.target.value)}>{enabledLocales.map((code) => <option key={code} value={code}>{getLocaleLabel(code)}</option>)}</select>}<span>{copy.room} {room.room_number || '—'}</span><span className="ag-active-pill">● Active</span></div></div></header>
+      <header className="ag-topbar"><div className="ag-topbar-inner"><div className="ag-brand">{logoMedia ? <img src={getGuestGuideMediaUrl(logoMedia.object_path)} alt={`${hotelName} logo`} /> : <span>{hotelName.charAt(0).toUpperCase()}</span>}<div><strong>{hotelName}</strong><small>{displayInfo.address || hotel.location || copy.digitalGuide}</small></div></div><div className="ag-top-actions">{enabledLocales.length > 1 && <select aria-label="Guest guide language" value={locale} onChange={(event) => void handleLocaleChange(event.target.value)}>{enabledLocales.map((code) => <option key={code} value={code}>{getLocaleLabel(code)}</option>)}</select>}<span>{copy.room} {room.room_number || '—'}</span></div></div></header>
 
       <section className="ag-hero" style={heroImageUrl ? { backgroundImage: `url(${heroImageUrl})` } : undefined}>
         <div className="ag-hero-overlay" /><div className="ag-hero-glow" />
         <div className="ag-hero-content">
           <div className="ag-hero-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR" /><span>{copy.digitalGuide}</span></div>
           <p className="ag-eyebrow">{heroEyebrow}</p>
-          <h1><span>{copy.welcomeTo}</span><strong>{heroTitle}</strong></h1>
-          <div className="ag-room-chip"><small>{copy.yourRoom}</small><b>{room.room_number || '—'}</b><span>{room.room_type || copy.guestRoom}</span></div>
+          <h1><span>Welcome to</span><strong>{heroTitle}</strong></h1>
           <p className="ag-hero-message">{heroMessage}</p>
-          <p className="ag-personal-greeting">{greetingText}{copy.greetingNameSeparator} <strong>{guestName}</strong></p>
-          <div className="ag-hero-actions"><button type="button" onClick={() => callPhone(receptionPhone)}><GuideIcon name="phone" size={18} />{copy.callReception}</button><button type="button" className="outline" onClick={() => openWhatsApp(whatsappItem?.action_value || receptionPhone, `${greetingText} ${hotelName}, ${copy.room} ${room.room_number || ''}.`)}><GuideIcon name="whatsapp" size={18} />{copy.whatsapp}</button>{mapsItem && <button type="button" className="outline" onClick={() => void runItemAction(mapsItem)}><GuideIcon name="map" size={18} />{copy.location}</button>}</div>
-          <small className="ag-access">{copy.secureAccessUntil} {formatDateTime(session.extended_until || session.checkout_time)}</small>
+          <div className="ag-room-chip"><small>Your room</small><b>▣ Room {room.room_number || '—'}</b><span>✦ {room.room_type || 'Guest Room'}</span></div>
+          <p className="ag-personal-greeting">{greetingText}{copy.greetingNameSeparator} <strong>{guestName}</strong> 👋</p>
+          <div className="ag-hero-actions"><button type="button" onClick={() => callPhone(receptionPhone)}><GuideIcon name="phone" size={18} />Call Reception</button><button type="button" className="outline" onClick={() => openWhatsApp(whatsappItem?.action_value || receptionPhone, `${greetingText} ${hotelName}, Room ${room.room_number || ''}.`)}><GuideIcon name="whatsapp" size={18} />WhatsApp</button></div>
+          <small className="ag-access">🔒 Secure access until {formatDateTime(session.extended_until || session.checkout_time)}</small>
         </div>
         <div className="ag-scroll-cue"><span /></div>
       </section>
 
-      {offer.enabled && <section className="ag-offer-band"><article>{offerMedia && <img src={getGuestGuideMediaUrl(offerMedia.object_path)} alt={offerMedia.alt_text || offer.title} />}<div><span>{offer.badge}</span><h2>{offer.title}</h2><p>{offer.description}</p></div><button type="button" onClick={() => void runOfferAction()}>{offer.button_label}<b>→</b></button></article></section>}
+      {offer.enabled && <section className="ag-offer-band"><article><div><span>Exclusive for our guests</span><h2>Guest Reward</h2><p>Ask reception about today’s special guest benefit and offers.</p></div><button type="button" onClick={() => void runOfferAction()}>View Offer <b>→</b></button></article></section>}
 
       <div className="ag-content">{sections.map((section) => renderSection(section))}</div>
 
-      <footer className="ag-footer"><div className="ag-footer-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR — Simplifying check-in" /><div><span>{copy.poweredBy}</span><p>{copy.stayqrTagline}</p></div></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}><a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Privacy Policy</a><a href="/terms" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Terms of Service</a><a href="/legal" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Legal &amp; Policies</a><small>{hotelName}</small></div></footer>
+      <footer className="ag-footer">
+        <div className="ag-footer-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR" /></div>
+        <div className="ag-prototype-footer-copy">Powered securely by StayQR · <a href="/privacy" target="_blank" rel="noreferrer">Privacy</a> · <a href="/terms" target="_blank" rel="noreferrer">Terms</a> · Support</div>
+      </footer>
 
-      <nav className="ag-sticky" aria-label="Guest quick actions"><button type="button" onClick={() => callPhone(receptionPhone)}><GuideIcon name="phone" size={18} /><span>{copy.call}</span></button><button type="button" onClick={() => openWhatsApp(whatsappItem?.action_value || receptionPhone)}><GuideIcon name="whatsapp" size={18} /><span>{copy.whatsapp}</span></button><button type="button" onClick={() => scrollToSection('wifi')}><GuideIcon name="wifi" size={18} /><span>{copy.wifi}</span></button><button type="button" onClick={() => scrollToSection('guest_services')}><GuideIcon name="service" size={18} /><span>{copy.services}</span></button></nav>
+      <nav className="ag-sticky" aria-label="Guest quick actions">
+        <button type="button" className="active" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>⌂<span>Home</span></button>
+        <button type="button" onClick={() => document.querySelector('.ag-action-grid')?.closest('section')?.scrollIntoView({ behavior: 'smooth' })}>▣<span>Guide</span></button>
+        <button type="button" onClick={() => void openFoodMenu()}>♨<span>Dining</span></button>
+        <button type="button" onClick={() => scrollToSection('guest_services')}>♜<span>Services</span></button>
+      </nav>
 
       {selectedMedia && <div className="ag-lightbox" role="dialog" aria-modal="true" aria-label="Media preview"><button type="button" onClick={() => setSelectedMedia(null)} aria-label="Close media preview">×</button><GuideMedia media={selectedMedia} alt={selectedMedia.alt_text || selectedMedia.title || hotelName} />{(selectedMedia.title || selectedMedia.caption) && <div><strong>{selectedMedia.title}</strong><p>{selectedMedia.caption}</p></div>}</div>}
       {toast && <div className="ag-toast" role="status">✓ {toast}</div>}

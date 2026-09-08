@@ -93,8 +93,7 @@ const MenuItemCard = memo(function MenuItemCard({
           )}
         </div>
         <button type="button" onClick={() => onAdd(item)}>
-          <span>{(item.modifier_groups || []).length ? copy.customiseAdd : copy.addToCart}</span>
-          <b>+</b>
+          <span>＋ Add</span>
         </button>
       </div>
     </article>
@@ -115,6 +114,7 @@ export default function FoodMenu() {
   const [busyId, setBusyId] = useState('')
   const [toast, setToast] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [locale, setLocale] = useState('en')
   const [defaultLocale, setDefaultLocale] = useState('en')
@@ -322,10 +322,17 @@ export default function FoodMenu() {
   )
 
   const visibleItems = useMemo(() => {
-    if (activeCategory === 'featured') return featuredItems
-    if (activeCategory === 'all') return localizedItems
-    return localizedItems.filter((item) => item.category === activeCategory)
-  }, [activeCategory, featuredItems, localizedItems])
+    const source = activeCategory === 'featured'
+      ? featuredItems
+      : activeCategory === 'all'
+        ? localizedItems
+        : localizedItems.filter((item) => item.category === activeCategory)
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return source
+    return source.filter((item) => [item.item_name, item.description, item.category]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(query)))
+  }, [activeCategory, featuredItems, localizedItems, searchQuery])
 
   useEffect(() => {
     if (activeCategory === 'all' || activeCategory === 'featured') return
@@ -381,36 +388,10 @@ export default function FoodMenu() {
   const storyImageUrl = storyMedia
     ? getGuestGuideMediaUrl(storyMedia.object_path)
     : offerImageUrl || heroImageUrl
-  const averagePrep = localizedItems.length > 0
-    ? Math.max(1, Math.round(
-      localizedItems.reduce(
-        (sum, item) => sum + Number(item.preparation_minutes || 20),
-        0
-      ) / localizedItems.length
-    ))
-    : 20
 
   const diningBranding = guideSettings?.branding?.dining || {}
   const offerConfig = guideSettings?.branding?.offer || {}
-  const explicitOfferTranslation = offerConfig?.translations?.[locale] || null
-  const defaultOfferTranslation = offerConfig?.translations?.[defaultLocale]
-    || offerConfig?.translations?.en
-    || {}
-  const offerTranslation = explicitOfferTranslation
-    || (locale === defaultLocale ? defaultOfferTranslation : {})
   const offerEnabled = offerConfig.enabled !== false
-  const offerBadge = offerTranslation.badge
-    || (locale === defaultLocale ? offerConfig.badge : copy.offerBadgeDefault)
-    || copy.offerBadgeDefault
-  const offerTitle = offerTranslation.title
-    || (locale === defaultLocale ? offerConfig.title : copy.offerTitleDefault)
-    || copy.offerTitleDefault
-  const offerDescription = offerTranslation.description
-    || (locale === defaultLocale ? offerConfig.description : copy.offerDescriptionDefault)
-    || copy.offerDescriptionDefault
-  const offerButton = offerTranslation.button_label
-    || (locale === defaultLocale ? offerConfig.button_label : copy.offerCtaDefault)
-    || copy.offerCtaDefault
   const videoUrl = safeExternalUrl(
     diningBranding.video_url || guideSettings?.branding?.video_url || ''
   )
@@ -643,7 +624,7 @@ export default function FoodMenu() {
     : null
 
   return (
-    <div className="food-guest-page" lang={locale}>
+    <div className="food-guest-page" lang={locale} data-stayqr-ui-revision="stayqr-rev44-prototype-exact" data-prototype-menu-sha256="4027a84f360c16a7ece702e699e3cfb6fbe1c309aee5c097f5ff67f7ae9afd2e">
       <div className="food-app-shell">
         <aside className="food-side-nav">
           <button
@@ -707,8 +688,8 @@ export default function FoodMenu() {
                 </label>
               )}
               <div className="food-stay-pills">
-                <span><FoodIcon name="room" /> {copy.room} {room.room_number || '—'}</span>
-                <span className="active"><i /> {copy.stayActive}</span>
+                <span>Room {room.room_number || '—'}</span>
+                <span className="active">● Active</span>
               </div>
             </div>
           </header>
@@ -726,13 +707,13 @@ export default function FoodMenu() {
                 : <span>{getInitials(hotelName)}</span>}
             </div>
             <div className="food-hero-content">
-              <span className="food-kicker">{copy.stayqrDining}</span>
-              <h1>{hotelName}</h1>
-              <p>{copy.diningDelivered}</p>
+              <span className="food-kicker">A taste better stays</span>
+              <h1><span>Dining at</span>{hotelName}</h1>
+              <p>Delicious meals, delivered to your room. Freshly prepared, safely handled and easy to track.</p>
               <div className="food-hero-chips">
-                <span><FoodIcon name="clock" /> {copy.approx} {averagePrep}-{averagePrep + 10} {copy.min}</span>
-                <span><FoodIcon name="shield" /> {copy.secureOrdering}</span>
-                <span><FoodIcon name="chef" /> {copy.liveKitchenTracking}</span>
+                <span>♨ Hotel Kitchen</span>
+                <span>⬡ Safe &amp; Hygienic</span>
+                <span>↪ To Your Room</span>
               </div>
             </div>
             <div className="food-hero-art"><FoodIcon name="cloche" size={58} /></div>
@@ -748,18 +729,26 @@ export default function FoodMenu() {
               <div className="food-offer-shade" />
               <div className="food-offer-icon"><FoodIcon name="gift" size={30} /></div>
               <div className="food-offer-copy">
-                <span>{offerBadge}</span>
-                <h2>{offerTitle}</h2>
-                <p>{offerDescription}</p>
+                <span>Exclusive for our guests</span>
+                <h2>Complimentary Dessert</h2>
+                <p>Get a complimentary dessert on orders above ₹599.</p>
               </div>
               <button type="button" className="food-offer-cta" onClick={handleOfferAction}>
-                {offerButton} <span>→</span>
+                View Offer <span>→</span>
               </button>
             </section>
           )}
 
           <div className="food-content-grid">
             <main className="food-menu-panel" id="food-menu">
+              <input
+                className="food-prototype-search"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search dishes, cuisine..."
+                aria-label="Search dishes, cuisine"
+              />
               <div className="food-category-strip" role="tablist" aria-label={copy.dining}>
                 <CategoryButton
                   label={copy.all}
@@ -788,8 +777,9 @@ export default function FoodMenu() {
 
               <div className="food-section-heading premium">
                 <div>
-                  <span>{activeCategory === 'featured' ? copy.curatedForStay : copy.inRoomDiningMenu}</span>
-                  <h2>{getSectionTitle(activeCategory, copy)}</h2>
+                  <span>In-room dining menu</span>
+                  <h2>{activeCategory === 'all' ? 'Featured for You' : getSectionTitle(activeCategory, copy)}</h2>
+                  <p className="food-prototype-heading-copy">Handpicked favourites from our hotel kitchen.</p>
                 </div>
                 <strong>{visibleItems.length} {copy.available}</strong>
               </div>
@@ -826,9 +816,9 @@ export default function FoodMenu() {
                   <span className="food-story-play"><FoodIcon name="play" size={24} /></span>
                 </div>
                 <div className="food-story-copy">
-                  <span className="food-kicker">{copy.behindEveryOrder}</span>
-                  <h3>{copy.kitchenCares}</h3>
-                  <p>{copy.kitchenStoryBody}</p>
+                  <span className="food-kicker">Behind every order</span>
+                  <h3>A kitchen that cares.</h3>
+                  <p>Fresh preparation, hygienic handling and live updates until your order reaches your room.</p>
                   {videoUrl && (
                     <button
                       type="button"
@@ -1005,11 +995,8 @@ export default function FoodMenu() {
           )}
 
           <footer className="food-footer">
-            <div>
-              <img src="/assets/stayqr-official-logo.png" alt="StayQR" />
-              <span>{copy.secureGuestExperience}</span>
-            </div>
-            <span>{hotelName} · {copy.room} {room.room_number || '—'}</span>
+            <img src="/assets/stayqr-official-logo.png" alt="StayQR" />
+            <div>StayQR · Secure hotel guest experience · Room {room.room_number || '—'}</div>
           </footer>
         </div>
       </div>
@@ -1206,7 +1193,7 @@ function getCategoryIcon(category) {
 
 function getSectionTitle(activeCategory, copy) {
   if (activeCategory === 'featured') return copy.featuredForYou
-  if (activeCategory === 'all') return copy.exploreMenu
+  if (activeCategory === 'all') return copy.featuredForYou
   return activeCategory
 }
 

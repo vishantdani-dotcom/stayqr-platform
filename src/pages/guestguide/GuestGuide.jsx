@@ -739,6 +739,20 @@ export default function GuestGuide() {
     image_media_id: offerConfig.image_media_id || null,
   }
 
+  // REV46: every guest-facing photograph resolves from hotel-managed media.
+  // Prototype assets define layout only; they are not forced as live hotel imagery.
+  const offerImageMedia = mediaById.get(offer.image_media_id)
+    || allMedia.find((media) => media.media_key === 'offer_banner' || media.media_key === 'dining_offer_banner')
+    || null
+  const offerImageUrl = offerImageMedia ? getGuestGuideMediaUrl(offerImageMedia.object_path) : ''
+  const diningMedia = allMedia.find((media) => media.category === 'dining') || null
+  const diningImageUrl = diningMedia ? getGuestGuideMediaUrl(diningMedia.object_path) : heroImageUrl
+  const easierMedia = allMedia.find((media) => media.category === 'custom' && /easier|scan|tap|relax/i.test(`${media.media_key || ''} ${media.title || ''}`))
+    || allMedia.find((media) => media.category === 'custom')
+    || allMedia.find((media) => media.category === 'property' && media.id !== heroMedia?.id)
+    || heroMedia
+  const easierImageUrl = easierMedia ? getGuestGuideMediaUrl(easierMedia.object_path) : heroImageUrl
+
   function itemsForSection(section) {
     return allItems.filter(
       (item) => item.section_id === section.id || item.metadata?.section_key === section.section_key
@@ -1134,7 +1148,7 @@ export default function GuestGuide() {
               <strong>Your Stay Made Easier</strong>
               <p>Fast access to services, room details, food and support.</p>
             </div>
-            <div className="ag-prototype-easier-photo" />
+            <div className="ag-prototype-easier-photo" style={easierImageUrl ? { '--ag-easier-image': `url(${easierImageUrl})` } : undefined} />
           </article>
         </section>
       )
@@ -1253,7 +1267,7 @@ export default function GuestGuide() {
       return (
         <section className="ag-section ag-prototype-dining-section" id={sectionId} key={section.id}>
           <article className="ag-prototype-dining">
-            <div className="ag-prototype-dining-photo" />
+            <div className="ag-prototype-dining-photo" style={diningImageUrl ? { '--ag-dining-image': `url(${diningImageUrl})` } : undefined} />
             <div className="ag-prototype-dining-copy">
               <div className="ag-section-eyebrow">Dining &amp; Room Service</div>
               <strong>Great Food. Greater Stays.</strong>
@@ -1452,11 +1466,11 @@ export default function GuestGuide() {
   const heroTitle = hotelName
 
   return (
-    <main className="ag-page" style={pageStyle} data-stayqr-ui-revision="stayqr-rev44-prototype-exact" data-prototype-guide-sha256="da87fe6f4d185d0efa7cd9f5e91e2f4fc21a3e657a7e06d47523d078b6b4e644">
+    <main className="ag-page" style={pageStyle} data-stayqr-ui-revision="stayqr-rev46-functional-uiux-lock" data-prototype-guide-sha256="da87fe6f4d185d0efa7cd9f5e91e2f4fc21a3e657a7e06d47523d078b6b4e644">
       <div className="ag-progress" style={{ width: `${scrollProgress}%` }} />
       <header className="ag-topbar"><div className="ag-topbar-inner"><div className="ag-brand">{logoMedia ? <img src={getGuestGuideMediaUrl(logoMedia.object_path)} alt={`${hotelName} logo`} /> : <span>{hotelName.charAt(0).toUpperCase()}</span>}<div><strong>{hotelName}</strong><small>{displayInfo.address || hotel.location || copy.digitalGuide}</small></div></div><div className="ag-top-actions">{enabledLocales.length > 1 && <select aria-label="Guest guide language" value={locale} onChange={(event) => void handleLocaleChange(event.target.value)}>{enabledLocales.map((code) => <option key={code} value={code}>{getLocaleLabel(code)}</option>)}</select>}<span>{copy.room} {room.room_number || '—'}</span></div></div></header>
 
-      <section className="ag-hero" style={heroImageUrl ? { backgroundImage: `url(${heroImageUrl})` } : undefined}>
+      <section className="ag-hero" style={heroImageUrl ? { '--ag-hero-image': `url(${heroImageUrl})` } : undefined}>
         <div className="ag-hero-overlay" /><div className="ag-hero-glow" />
         <div className="ag-hero-content">
           <div className="ag-hero-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR" /><span>{copy.digitalGuide}</span></div>
@@ -1471,7 +1485,7 @@ export default function GuestGuide() {
         <div className="ag-scroll-cue"><span /></div>
       </section>
 
-      {offer.enabled && <section className="ag-offer-band"><article><div><span>Exclusive for our guests</span><h2>Guest Reward</h2><p>Ask reception about today’s special guest benefit and offers.</p></div><button type="button" onClick={() => void runOfferAction()}>View Offer <b>→</b></button></article></section>}
+      {offer.enabled && <section className="ag-offer-band"><article className={offerImageUrl ? 'has-image' : ''} style={offerImageUrl ? { '--ag-offer-image': `url(${offerImageUrl})` } : undefined}><div><span>{offer.badge || 'Exclusive for our guests'}</span><h2>{offer.title || 'Guest Reward'}</h2><p>{offer.description || 'Ask reception about today’s special guest benefit and offers.'}</p></div><button type="button" onClick={() => void runOfferAction()}>{offer.button_label || 'View Offer'} <b>→</b></button></article></section>}
 
       <div className="ag-content">{sections.map((section) => renderSection(section))}</div>
 

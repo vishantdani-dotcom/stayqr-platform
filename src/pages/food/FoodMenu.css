@@ -2524,3 +2524,50 @@
   .food-guest-page img,.food-guest-page video{max-width:100%}
 }
 /* STAYQR_REV45_FINAL_MENU_UIUX_LOCK_END */
+
+
+/* STAYQR_REV46_FINAL_FUNCTIONAL_UIUX_LOCK_START
+   Approved REV44/45 visual design + restored guest navigation/cart + dashboard-managed imagery.
+   This block intentionally overrides prototype-photo forcing from earlier parity layers.
+*/
+@media (max-width:720px){
+  .food-guest-page{--stayqr-rev46-functional-uiux-lock:1!important}
+  .food-topbar-left{display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important}
+  .food-back{
+    width:auto!important;min-width:54px!important;height:34px!important;min-height:34px!important;
+    padding:0 9px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;
+    border:1px solid #27303a!important;border-radius:10px!important;background:#090c11!important;background-image:none!important;
+    color:#f7f8f9!important;font-size:8px!important;font-weight:800!important;line-height:1!important;overflow:visible!important
+  }
+  .food-back>span{display:inline!important;color:inherit!important;font-size:inherit!important}
+  .food-back-label{font-size:8px!important}
+  .food-top-logo{display:block!important;width:62px!important;height:28px!important;object-fit:contain!important;object-position:left center!important;flex:0 0 auto!important}
+
+  /* Hotel dashboard media remains authoritative. */
+  .food-hero-card{background-image:var(--food-hero-image,none)!important;background-color:#0a0d11!important}
+  .food-offer-band::after{display:none!important;content:none!important;background:none!important}
+  .food-offer-band.has-image{background-image:linear-gradient(90deg,rgba(21,19,13,.98),rgba(33,26,12,.72)),var(--food-offer-image)!important;background-size:cover!important;background-position:center!important}
+  .food-offer-band:not(.has-image){background-image:linear-gradient(90deg,#15130d,#211a0c)!important}
+  .food-story-visual{background-image:linear-gradient(135deg,rgba(0,0,0,.30),rgba(0,0,0,.72)),var(--food-story-image,linear-gradient(#111,#080808))!important;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}
+  .food-order-card::before{display:none!important;content:none!important;background:none!important}
+
+  /* Prototype cart is always reachable, including when empty. */
+  .food-cart-panel{
+    display:none!important;position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:0!important;
+    transform:translateX(-50%)!important;z-index:112!important;width:min(100%,430px)!important;max-width:430px!important;max-height:78vh!important;
+    overflow-y:auto!important;margin:0!important;padding:14px 12px calc(86px + env(safe-area-inset-bottom))!important;
+    border:1px solid #36414d!important;border-bottom:0!important;border-radius:20px 20px 0 0!important;background:#0f141a!important;
+    box-shadow:0 -24px 70px rgba(0,0,0,.62)!important
+  }
+  .food-cart-panel.mobile-open{display:block!important}
+  .food-cart-heading{position:relative!important;padding-right:40px!important}
+  .food-cart-close{display:inline-flex!important;position:absolute!important;right:0!important;top:0!important;width:34px!important;height:34px!important;align-items:center!important;justify-content:center!important;border:1px solid #36414d!important;border-radius:10px!important;background:#090c11!important;color:#f7f8f9!important;font-size:20px!important;line-height:1!important}
+  .food-cart-backdrop{display:block!important;position:fixed!important;inset:0!important;z-index:108!important;border:0!important;background:rgba(0,0,0,.66)!important;backdrop-filter:blur(2px)!important}
+  .food-mobile-cart{display:flex!important;z-index:116!important}
+  .food-mobile-cart span{display:flex!important;align-items:center!important;gap:5px!important}
+  .food-mobile-cart b{display:inline-flex!important;min-width:20px!important;height:20px!important;padding:0 6px!important;align-items:center!important;justify-content:center!important;border-radius:999px!important;background:#171207!important;color:#f7d76f!important;font-size:8px!important}
+}
+@media (min-width:721px){
+  .food-top-logo,.food-cart-close,.food-cart-backdrop{display:none!important}
+}
+/* STAYQR_REV46_FINAL_FUNCTIONAL_UIUX_LOCK_END */

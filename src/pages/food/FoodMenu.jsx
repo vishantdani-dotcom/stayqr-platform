@@ -107,6 +107,7 @@ export default function FoodMenu() {
   const [orders, setOrders] = useState([])
   const [notifications, setNotifications] = useState([])
   const [cart, setCart] = useState([])
+  const [mobileCartOpen, setMobileCartOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
   const [selectedModifiers, setSelectedModifiers] = useState({})
   const [loading, setLoading] = useState(true)
@@ -513,6 +514,7 @@ export default function FoodMenu() {
       }
       const result = await placeGuestFoodOrder(payload)
       setCart([])
+      setMobileCartOpen(false)
       await loadOrderData()
       showToast(result?.idempotent ? copy.orderAlreadyReceived : copy.orderSent)
       scrollToOrders()
@@ -550,6 +552,7 @@ export default function FoodMenu() {
   }
 
   function scrollToMenu() {
+    setMobileCartOpen(false)
     document.getElementById('food-menu')?.scrollIntoView({
       behavior: 'smooth',
       block: 'start',
@@ -624,7 +627,7 @@ export default function FoodMenu() {
     : null
 
   return (
-    <div className="food-guest-page" lang={locale} data-stayqr-ui-revision="stayqr-rev44-prototype-exact" data-prototype-menu-sha256="4027a84f360c16a7ece702e699e3cfb6fbe1c309aee5c097f5ff67f7ae9afd2e">
+    <div className="food-guest-page" lang={locale} data-stayqr-ui-revision="stayqr-rev46-functional-uiux-lock" data-prototype-menu-sha256="4027a84f360c16a7ece702e699e3cfb6fbe1c309aee5c097f5ff67f7ae9afd2e">
       <div className="food-app-shell">
         <aside className="food-side-nav">
           <button
@@ -664,9 +667,12 @@ export default function FoodMenu() {
 
         <div className="food-main-column">
           <header className="food-topbar">
-            <button type="button" className="food-back" onClick={returnToGuide}>
-              ← {copy.backToGuestGuide}
-            </button>
+            <div className="food-topbar-left">
+              <button type="button" className="food-back" onClick={returnToGuide} aria-label={copy.backToGuestGuide}>
+                <span aria-hidden="true">←</span><span className="food-back-label">Guide</span>
+              </button>
+              <img className="food-top-logo" src="/assets/stayqr-official-logo.png" alt="StayQR" />
+            </div>
             <div className="food-top-actions">
               {enabledLocales.length > 1 && (
                 <label className="food-language-picker">
@@ -810,7 +816,7 @@ export default function FoodMenu() {
                 <div
                   className="food-story-visual"
                   style={storyImageUrl
-                    ? { backgroundImage: `linear-gradient(135deg, rgba(0,0,0,.3), rgba(0,0,0,.72)), url(${storyImageUrl})` }
+                    ? { '--food-story-image': `url(${storyImageUrl})` }
                     : undefined}
                 >
                   <span className="food-story-play"><FoodIcon name="play" size={24} /></span>
@@ -848,13 +854,14 @@ export default function FoodMenu() {
               </section>
             </main>
 
-            <aside className="food-cart-panel">
+            <aside id="food-cart-panel" className={`food-cart-panel${mobileCartOpen ? ' mobile-open' : ''}`} aria-label={copy.yourCart}>
               <div className="food-cart-heading">
                 <div>
                   <FoodIcon name="cart" />
                   <div><span>{copy.yourActiveOrder}</span><h2>{copy.yourCart}</h2></div>
                 </div>
                 <strong>{totals.quantity}</strong>
+                <button type="button" className="food-cart-close" onClick={() => setMobileCartOpen(false)} aria-label="Close cart">×</button>
               </div>
 
               {cart.length === 0 ? (
@@ -1050,16 +1057,24 @@ export default function FoodMenu() {
         </div>
       )}
 
-      {totals.quantity > 0 && (
+      {mobileCartOpen && (
         <button
-          className="food-mobile-cart"
+          className="food-cart-backdrop"
           type="button"
-          onClick={() => document.querySelector('.food-cart-panel')?.scrollIntoView({ behavior: 'smooth' })}
-        >
-          <span>{totals.quantity} {totals.quantity === 1 ? copy.orderSingular : copy.orderPlural}</span>
-          <strong>{money(totals.total)} · {copy.yourCart}</strong>
-        </button>
+          aria-label="Close cart"
+          onClick={() => setMobileCartOpen(false)}
+        />
       )}
+      <button
+        className="food-mobile-cart"
+        type="button"
+        aria-controls="food-cart-panel"
+        aria-expanded={mobileCartOpen}
+        onClick={() => setMobileCartOpen(true)}
+      >
+        <span>🛒 {copy.yourCart} <b>{totals.quantity}</b></span>
+        <strong>{money(totals.total)}</strong>
+      </button>
 
       {toast && <div className="food-toast" role="status">{toast}</div>}
     </div>

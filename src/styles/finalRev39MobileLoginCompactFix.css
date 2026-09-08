@@ -1,0 +1,130 @@
+﻿/*
+ StayQR REV39 — mobile login compact polish
+ Scope: mobile login only. Desktop login and all in-app pages remain unchanged.
+ Fixes:
+ - remove duplicate StayQR logo above login
+ - reduce hero height
+ - minimize the 3 feature boxes
+ - keep sign-in reachable sooner on small screens
+*/
+
+@media (max-width:900px) {
+  body.sq39-mobile-login-active {
+    overflow-x: hidden !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact {
+    padding: 12px 14px 10px !important;
+    border-bottom: 1px solid #232c35 !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-brand {
+    margin: 0 0 12px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-brand-mark {
+    width: 30px !important;
+    height: 30px !important;
+    flex-basis: 30px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-brand strong {
+    font-size: 14px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-brand small {
+    font-size: 8px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-eyebrow {
+    margin: 0 0 5px !important;
+    font-size: 8px !important;
+    letter-spacing: .11em !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact h1 {
+    font-size: clamp(23px, 8vw, 30px) !important;
+    line-height: .96 !important;
+    max-width: 320px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-lead {
+    margin: 8px 0 10px !important;
+    font-size: 10px !important;
+    line-height: 1.42 !important;
+    max-width: 350px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-feature-grid {
+    gap: 4px !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-feature {
+    min-height: 60px !important;
+    padding: 5px !important;
+    border-radius: 8px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-feature-icon {
+    width: 20px !important;
+    height: 20px !important;
+    margin: 0 0 4px !important;
+    border-radius: 6px !important;
+    font-size: 10px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-feature strong {
+    font-size: 7.5px !important;
+    line-height: 1.16 !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-feature p {
+    margin-top: 3px !important;
+    font-size: 6.4px !important;
+    line-height: 1.22 !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-compact-auth {
+    padding: 10px 14px 18px !important;
+    margin-top: 0 !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-compact-auth [role='tablist'],
+  .sq39-mobile-login-compact-page .sq39-compact-auth .tabs,
+  .sq39-mobile-login-compact-page .sq39-compact-auth .tab-list,
+  .sq39-mobile-login-compact-page .sq39-compact-auth [class*='tabs'],
+  .sq39-mobile-login-compact-page .sq39-compact-auth [class*='tab-list'] {
+    margin-top: 0 !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-mobile-hide {
+    display: none !important;
+  }
+}
+
+@media (max-width:420px) {
+  .sq39-mobile-login-compact-page .sq39-hero-compact {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-compact-auth {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-feature {
+    min-height: 56px !important;
+    padding: 4px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-feature strong {
+    font-size: 7px !important;
+  }
+
+  .sq39-mobile-login-compact-page .sq39-hero-compact .sq37-feature p {
+    font-size: 6px !important;
+  }
+}
+

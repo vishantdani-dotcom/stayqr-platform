@@ -1,21 +1,80 @@
-﻿let sq40Queued = false;
+﻿let sq40Fix2Queued = false;
 
-function sq40Text(el) {
+function sq40Fix2Text(el) {
   return String(el?.textContent || "").replace(/\s+/g, " ").trim();
 }
 
-function sq40Lower(el) {
-  return sq40Text(el).toLowerCase();
+function sq40Fix2Lower(el) {
+  return sq40Fix2Text(el).toLowerCase();
 }
 
-function sq40FindAuth(page) {
-  const candidates = [...page.querySelectorAll("section,aside,div")].filter((el) => {
-    const t = sq40Lower(el);
+function sq40Fix2SmallBrandBlock(leaf, page) {
+  let node = leaf;
+  let best = null;
+
+  for (let depth = 0; node && node !== page && depth < 7; depth += 1) {
+    const text = sq40Fix2Lower(node);
+    const rect = node.getBoundingClientRect();
+
+    if (
+      text.includes("stayqr") &&
+      text.includes("simplifying") &&
+      rect.height > 16 &&
+      rect.height < 130 &&
+      rect.width > 60 &&
+      rect.width < 360
+    ) {
+      best = node;
+    }
+
+    node = node.parentElement;
+  }
+
+  return best;
+}
+
+function sq40Fix2HideDuplicateBrands(page) {
+  const leaves = [...page.querySelectorAll("*")].filter((el) => {
+    if (el.children.length !== 0) return false;
+    const text = sq40Fix2Lower(el);
+    return text === "stayqr" || text === "simplifying checkinn";
+  });
+
+  const blocks = [];
+
+  for (const leaf of leaves) {
+    const block = sq40Fix2SmallBrandBlock(leaf, page);
+    if (block && !blocks.includes(block)) blocks.push(block);
+  }
+
+  blocks.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+
+  blocks.slice(1).forEach((block) => {
+    block.classList.add("sq40-fix2-hide-brand");
+    block.style.setProperty("display", "none", "important");
+    block.style.setProperty("visibility", "hidden", "important");
+    block.style.setProperty("height", "0", "important");
+    block.style.setProperty("min-height", "0", "important");
+    block.style.setProperty("max-height", "0", "important");
+    block.style.setProperty("margin", "0", "important");
+    block.style.setProperty("padding", "0", "important");
+    block.style.setProperty("overflow", "hidden", "important");
+  });
+}
+
+function sq40Fix2FindSmallestContaining(page, phrase) {
+  const needle = phrase.toLowerCase();
+
+  const candidates = [...page.querySelectorAll("article,section,div,li")].filter((el) => {
+    const text = sq40Fix2Lower(el);
+    const rect = el.getBoundingClientRect();
+
     return (
-      t.includes("email address") &&
-      t.includes("password") &&
-      t.includes("sign in securely") &&
-      t.includes("create owner account")
+      text.includes(needle) &&
+      text.length < 320 &&
+      rect.width > 55 &&
+      rect.height > 24 &&
+      rect.height < 220
     );
   });
 
@@ -28,19 +87,37 @@ function sq40FindAuth(page) {
   return candidates[0] || null;
 }
 
-function sq40HideDuplicateBrand(auth) {
-  if (!auth) return false;
+function sq40Fix2CompactFeatureCard(card) {
+  if (!card) return;
 
-  const candidates = [...auth.querySelectorAll("div,header,section,a,span,strong,p")].filter((el) => {
-    const t = sq40Lower(el);
-    const r = el.getBoundingClientRect();
+  card.classList.add("sq40-fix2-mini-card");
+
+  [...card.querySelectorAll("p,small,span,div")].forEach((el) => {
+    const text = sq40Fix2Lower(el);
+
+    if (
+      text.includes("personalised room access") ||
+      text.includes("role-aware staff") ||
+      text.includes("check-in, service") ||
+      text.includes("billing and room status")
+    ) {
+      el.classList.add("sq40-fix2-card-description");
+      el.style.setProperty("display", "none", "important");
+    }
+  });
+}
+
+function sq40Fix2FindAuth(page) {
+  const candidates = [...page.querySelectorAll("section,aside,div")].filter((el) => {
+    const text = sq40Fix2Lower(el);
+    const rect = el.getBoundingClientRect();
 
     return (
-      t.includes("stayqr") &&
-      t.includes("simplifying") &&
-      t.length < 100 &&
-      r.height > 14 &&
-      r.height < 120
+      text.includes("email address") &&
+      text.includes("password") &&
+      text.includes("sign in securely") &&
+      text.includes("create owner account") &&
+      rect.width > 180
     );
   });
 
@@ -50,102 +127,74 @@ function sq40HideDuplicateBrand(auth) {
     return (ar.width * ar.height) - (br.width * br.height);
   });
 
-  let target = candidates[0] || null;
-
-  if (!target) {
-    const stayqrLeaves = [...auth.querySelectorAll("*")].filter((el) => {
-      const t = sq40Lower(el);
-      return (t === "stayqr" || t === "simplifying checkinn");
-    });
-
-    if (stayqrLeaves.length) {
-      target = stayqrLeaves[0];
-
-      for (let i = 0; i < 4 && target.parentElement && target.parentElement !== auth; i += 1) {
-        const p = target.parentElement;
-        const pt = sq40Lower(p);
-        const pr = p.getBoundingClientRect();
-
-        if (
-          pr.height <= 120 &&
-          (pt.includes("stayqr") || pt.includes("simplifying"))
-        ) {
-          target = p;
-        } else {
-          break;
-        }
-      }
-    }
-  }
-
-  if (!target) return false;
-
-  target.classList.add("sq40-hide-duplicate-brand");
-  target.style.setProperty("display", "none", "important");
-  target.style.setProperty("visibility", "hidden", "important");
-  target.style.setProperty("height", "0", "important");
-  target.style.setProperty("margin", "0", "important");
-  target.style.setProperty("padding", "0", "important");
-
-  return true;
+  return candidates[0] || null;
 }
 
-function sq40Apply() {
-  sq40Queued = false;
+function sq40Fix2Apply() {
+  sq40Fix2Queued = false;
 
+  const mobile = window.matchMedia("(max-width: 900px)").matches;
   const page = document.querySelector(".sq-login-page");
 
-  if (!page) {
-    document.body.classList.remove("sq40-mobile-login-active");
+  if (!mobile || !page) {
+    document.body.classList.remove("sq40-fix2-mobile-login-active");
     return;
   }
 
-  document.body.classList.add("sq40-mobile-login-active");
-  page.classList.add("sq40-mobile-login-final");
+  document.body.classList.add("sq40-fix2-mobile-login-active");
+  page.classList.add("sq40-fix2-mobile-login");
 
-  const hero = page.querySelector(".sq37-mobile-desktop-hero, .sq38-approved-hero, .sq39-hero-compact");
-  if (hero) {
-    hero.classList.add("sq40-hero-final");
-  }
+  const hero = page.querySelector(
+    ".sq37-mobile-desktop-hero, .sq38-approved-hero, .sq39-hero-compact, .sq40-hero-final"
+  );
 
-  const auth = sq40FindAuth(page);
+  if (hero) hero.classList.add("sq40-fix2-hero");
 
-  if (auth) {
-    auth.classList.add("sq40-auth-final");
-    sq40HideDuplicateBrand(auth);
-  }
+  sq40Fix2HideDuplicateBrands(page);
+
+  sq40Fix2CompactFeatureCard(
+    sq40Fix2FindSmallestContaining(page, "qr-first guest experience")
+  );
+  sq40Fix2CompactFeatureCard(
+    sq40Fix2FindSmallestContaining(page, "secure hotel access")
+  );
+  sq40Fix2CompactFeatureCard(
+    sq40Fix2FindSmallestContaining(page, "operational clarity")
+  );
+
+  const auth = sq40Fix2FindAuth(page);
+  if (auth) auth.classList.add("sq40-fix2-auth");
 }
 
-function sq40Schedule() {
-  if (sq40Queued) return;
-  sq40Queued = true;
-  requestAnimationFrame(sq40Apply);
+function sq40Fix2Schedule() {
+  if (sq40Fix2Queued) return;
+  sq40Fix2Queued = true;
+  requestAnimationFrame(sq40Fix2Apply);
 }
 
-function sq40Boot() {
-  sq40Schedule();
-
-  setTimeout(sq40Schedule, 100);
-  setTimeout(sq40Schedule, 300);
-  setTimeout(sq40Schedule, 800);
-  setTimeout(sq40Schedule, 1600);
+function sq40Fix2Boot() {
+  sq40Fix2Schedule();
+  setTimeout(sq40Fix2Schedule, 100);
+  setTimeout(sq40Fix2Schedule, 300);
+  setTimeout(sq40Fix2Schedule, 800);
+  setTimeout(sq40Fix2Schedule, 1500);
 
   const root = document.getElementById("root");
   if (root) {
-    new MutationObserver(sq40Schedule).observe(root, {
+    new MutationObserver(sq40Fix2Schedule).observe(root, {
       childList: true,
       subtree: true
     });
   }
 
-  window.addEventListener("resize", sq40Schedule);
-  window.addEventListener("popstate", sq40Schedule);
-  window.addEventListener("hashchange", sq40Schedule);
+  window.addEventListener("resize", sq40Fix2Schedule);
+  window.addEventListener("popstate", sq40Fix2Schedule);
+  window.addEventListener("hashchange", sq40Fix2Schedule);
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", sq40Boot, { once: true });
+  document.addEventListener("DOMContentLoaded", sq40Fix2Boot, { once: true });
 } else {
-  sq40Boot();
+  sq40Fix2Boot();
 }
 

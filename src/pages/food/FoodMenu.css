@@ -2334,3 +2334,65 @@
 }
 /* STAYQR_REV41_FOOD_UIUX_END */
 
+/* REV42 — approved mobile Menu visual parity */
+@media (max-width: 720px) {
+  .food-guest-page { --food-bg: #06080b; --food-surface: #0f141a; --food-surface-2: #131920; --food-line: #27303a; --food-line-gold: rgba(232,189,69,.35); --food-gold: #e8bd45; --food-gold-bright: #f7d76f; --food-muted: #9ba4ae; --food-text: #f7f8f9; width: min(100%, 430px); margin: 0 auto; padding-bottom: 74px; background: radial-gradient(circle at 55% -5%, rgba(232,189,69,.08), transparent 28%), #06080b; }
+  .food-app-shell { display: block; min-height: 100vh; }
+  .food-side-nav { display: none; }
+  .food-main-column { padding: 0 10px 38px; }
+  .food-topbar { position: sticky; top: 0; z-index: 40; height: 62px; margin: 0 -10px 10px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; background: rgba(6,8,11,.9); border-bottom: 1px solid rgba(54,65,77,.7); backdrop-filter: blur(18px); }
+  .food-back { width: 108px; height: 30px; overflow: hidden; border: 0; border-radius: 0; padding: 0; background: url('/assets/stayqr-official-logo.png') left center / contain no-repeat; color: transparent; }
+  .food-top-actions { display: flex; flex-wrap: nowrap; margin-left: auto; }
+  .food-language-picker { width: auto; min-height: 34px; padding: 0 4px; border-radius: 10px; }
+  .food-language-picker > span { display: none; }
+  .food-language-picker select { min-width: 58px; max-width: 72px; height: 32px; padding: 0 5px; font-size: 8px; }
+  .food-stay-pills { flex-wrap: nowrap; gap: 6px; }
+  .food-stay-pills span { min-height: 34px; padding: 0 8px; border-radius: 10px; font-size: 8px; }
+  .food-hero-card { min-height: 368px; display: flex; align-items: flex-end; margin: 0; padding: 22px 16px; border-radius: 21px; background-image: linear-gradient(180deg, rgba(3,5,7,.16), rgba(4,6,9,.55) 48%, rgba(6,8,11,.97)), var(--food-hero-image), radial-gradient(circle at 80% 30%, #4d3616, #12100c 46%, #080808 100%); }
+  .food-hotel-logo, .food-hero-art { display: none; }
+  .food-hero-content h1 { font-size: 34px; line-height: 1.02; margin: 6px 0 8px; }
+  .food-hero-content > p { font-size: 10px; line-height: 1.55; }
+  .food-kicker { font-size: 8px; }
+  .food-hero-chips { gap: 6px; margin-top: 12px; }
+  .food-hero-chips span { min-height: 28px; padding: 0 8px; font-size: 8px; }
+  .food-offer-band, .food-offer-band.has-image { min-height: 118px; margin-top: 8px; padding: 14px; grid-template-columns: 1fr; gap: 7px; border-radius: 15px; }
+  .food-offer-icon { display: none; }
+  .food-offer-copy > span { font-size: 8px; }
+  .food-offer-copy h2 { margin: 3px 0; font-size: 18px; }
+  .food-offer-copy p { margin: 0; font-size: 9px; line-height: 1.5; }
+  .food-offer-cta { grid-column: 1; justify-self: start; width: auto; min-width: 0; min-height: 34px; padding: 0 11px; border-radius: 9px; font-size: 8px; }
+  .food-content-grid { display: block; margin-top: 20px; }
+  .food-menu-panel { min-width: 0; }
+  .food-category-strip { position: static; display: flex; overflow-x: auto; gap: 6px; padding: 0 0 10px; scrollbar-width: none; }
+  .food-category-strip::-webkit-scrollbar { display: none; }
+  .food-category-strip button { flex: 0 0 auto; min-height: 34px; padding: 0 11px; border-radius: 10px; font-size: 8px; }
+  .food-section-heading.premium { margin: 10px 0 13px; }
+  .food-section-heading.premium h2 { font-size: 23px; margin: 4px 0; }
+  .food-section-heading.premium p { font-size: 9px; }
+  .food-item-grid { grid-template-columns: 1fr; gap: 8px; }
+  .food-item-card { min-height: 126px; display: grid; grid-template-columns: 112px minmax(0,1fr); border-radius: 14px; overflow: hidden; }
+  .food-item-image { min-height: 126px; height: 100%; border-radius: 0; }
+  .food-item-copy { padding: 11px; }
+  .food-item-category, .food-item-meta { font-size: 7px; }
+  .food-item-top h3 { margin: 3px 0; font-size: 13px; }
+  .food-item-top > strong { font-size: 13px; }
+  .food-item-copy > p { margin: 3px 0 7px; font-size: 8px; line-height: 1.45; }
+  .food-item-copy > button { min-height: 32px; padding: 0 10px; border-radius: 9px; font-size: 8px; }
+  .food-cart-panel { display: none; }
+  .food-kitchen-story { margin-top: 24px; grid-template-columns: 112px 1fr; min-height: 130px; border-radius: 14px; }
+  .food-story-copy { padding: 13px; }
+  .food-story-copy h2 { font-size: 18px; }
+  .food-story-copy p { font-size: 8px; line-height: 1.5; }
+  .food-order-history, .food-notifications { margin-top: 25px; }
+  .food-order-card, .food-notification-grid > article { border-radius: 14px; padding: 12px; }
+  .food-footer { padding: 24px 2px 72px; font-size: 8px; }
+  .food-mobile-cart { left: 50%; right: auto; bottom: 9px; width: min(calc(100% - 20px), 410px); min-height: 57px; transform: translateX(-50%); border-radius: 14px; background: linear-gradient(180deg, #f7d76f, #e8bd45); color: #171207; box-shadow: 0 18px 45px rgba(0,0,0,.46); }
+  .food-modal { width: min(100%, 430px); max-height: 78vh; border-radius: 20px 20px 0 0; }
+  .food-toast { bottom: 76px; font-size: 9px; }
+}
+
+@media (max-width: 360px) {
+  .food-item-card { grid-template-columns: 104px minmax(0,1fr); }
+  .food-hero-content h1 { font-size: 31px; }
+}
+/* STAYQR_REV42_MENU_APPROVED_VISUAL_PARITY_END */

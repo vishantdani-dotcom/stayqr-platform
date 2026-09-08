@@ -711,10 +711,6 @@ export default function GuestGuide() {
     allMedia.find((media) => media.category === 'property') ||
     allMedia.find((media) => media.category === 'room') ||
     null
-  const logoMedia =
-    allMedia.find((media) => media.category === 'logo') ||
-    allMedia.find((media) => media.category === 'profile') ||
-    null
   const heroImageUrl = heroMedia ? getGuestGuideMediaUrl(heroMedia.object_path) : ''
   const wifiMedia = allMedia.find((media) => media.category === 'wifi') || null
 
@@ -1394,7 +1390,7 @@ export default function GuestGuide() {
         <section className="ag-thankyou" id={sectionId} key={section.id}>
           <p>{section.label}</p><h2>{section.title || copy.thankYou}</h2><span>{section.subtitle || displayInfo.footer_message || copy.thankYouBody}</span>
           <div><button type="button" onClick={() => callPhone(displayInfo.reception_phone)}><GuideIcon name="phone" size={18} />{copy.callReception}</button><button type="button" className="outline" onClick={() => openWhatsApp(displayInfo.reception_phone)}><GuideIcon name="whatsapp" size={18} />{copy.whatsapp}</button></div>
-          <article className="ag-stayqr-signature"><img src="/assets/stayqr-official-logo.png" alt="StayQR — Simplifying Checkinn" /><div><p>{copy.poweredBy}</p><span>{copy.stayqrTagline}</span></div></article>
+          <article className="ag-stayqr-signature"><img src="/assets/stayqr-official-logo.png" alt="StayQR — Simplifying check-in" /><div><p>{copy.poweredBy}</p><span>{copy.stayqrTagline}</span></div></article>
         </section>
       )
     }
@@ -1425,7 +1421,7 @@ export default function GuestGuide() {
   return (
     <main className="ag-page" style={pageStyle}>
       <div className="ag-progress" style={{ width: `${scrollProgress}%` }} />
-      <header className="ag-topbar"><div className="ag-topbar-inner"><div className="ag-brand">{logoMedia ? <img src={getGuestGuideMediaUrl(logoMedia.object_path)} alt={`${hotelName} logo`} /> : <span>{hotelName.charAt(0).toUpperCase()}</span>}<div><strong>{hotelName}</strong><small>{displayInfo.address || hotel.location || copy.digitalGuide}</small></div></div><div className="ag-top-actions">{enabledLocales.length > 1 && <select aria-label="Guest guide language" value={locale} onChange={(event) => void handleLocaleChange(event.target.value)}>{enabledLocales.map((code) => <option key={code} value={code}>{getLocaleLabel(code)}</option>)}</select>}<span>{copy.room} {room.room_number || '—'}</span></div></div></header>
+      <header className="ag-topbar"><div className="ag-topbar-inner"><div className="ag-brand"><img className="ag-stayqr-wordmark" src="/assets/stayqr-official-logo.png" alt="StayQR" /><div><strong>{hotelName}</strong><small>{displayInfo.address || hotel.location || copy.digitalGuide}</small></div></div><div className="ag-top-actions">{enabledLocales.length > 1 && <select aria-label="Guest guide language" value={locale} onChange={(event) => void handleLocaleChange(event.target.value)}>{enabledLocales.map((code) => <option key={code} value={code}>{getLocaleLabel(code)}</option>)}</select>}<span>{copy.room} {room.room_number || '—'}</span><span className="ag-active-pill">● Active</span></div></div></header>
 
       <section className="ag-hero" style={heroImageUrl ? { backgroundImage: `url(${heroImageUrl})` } : undefined}>
         <div className="ag-hero-overlay" /><div className="ag-hero-glow" />
@@ -1446,7 +1442,7 @@ export default function GuestGuide() {
 
       <div className="ag-content">{sections.map((section) => renderSection(section))}</div>
 
-      <footer className="ag-footer"><div className="ag-footer-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR — Simplifying Checkinn" /><div><span>{copy.poweredBy}</span><p>{copy.stayqrTagline}</p></div></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}><a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Privacy Policy</a><a href="/terms" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Terms of Service</a><a href="/legal" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Legal &amp; Policies</a><small>{hotelName}</small></div></footer>
+      <footer className="ag-footer"><div className="ag-footer-brand"><img src="/assets/stayqr-official-logo.png" alt="StayQR — Simplifying check-in" /><div><span>{copy.poweredBy}</span><p>{copy.stayqrTagline}</p></div></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}><a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Privacy Policy</a><a href="/terms" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Terms of Service</a><a href="/legal" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontSize: '12px', opacity: 0.8, textDecoration: 'underline' }}>Legal &amp; Policies</a><small>{hotelName}</small></div></footer>
 
       <nav className="ag-sticky" aria-label="Guest quick actions"><button type="button" onClick={() => callPhone(receptionPhone)}><GuideIcon name="phone" size={18} /><span>{copy.call}</span></button><button type="button" onClick={() => openWhatsApp(whatsappItem?.action_value || receptionPhone)}><GuideIcon name="whatsapp" size={18} /><span>{copy.whatsapp}</span></button><button type="button" onClick={() => scrollToSection('wifi')}><GuideIcon name="wifi" size={18} /><span>{copy.wifi}</span></button><button type="button" onClick={() => scrollToSection('guest_services')}><GuideIcon name="service" size={18} /><span>{copy.services}</span></button></nav>
 

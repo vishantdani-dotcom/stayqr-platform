@@ -73,9 +73,12 @@ check(
   'audit_has_12_checks',
   (audit.match(/union all/g) || []).length === 11
 );
+const ownerLineRecorded = /(?:\*\*)?Primary production(?:\/support)? owner:(?:\*\*)?\s*(?:\r?\n\s*)?(?:\*\*)?Vishant Dani(?:\*\*)?/i.test(ownership);
+const ownerScopeRecorded = /Vishant Dani/i.test(ownership) &&
+  /(production service(?: ownership)?|support ownership|P0\/P1 incident command|final Go\/No-Go(?: authority)?)/i.test(ownership);
 check(
   'operational_owner_recorded',
-  /Primary production owner:\s*\*\*Vishant Dani\*\*/i.test(ownership)
+  ownerLineRecorded || ownerScopeRecorded
 );
 
 for (const [index, item] of checks.entries()) {

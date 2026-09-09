@@ -28,13 +28,13 @@ check('Room pricing remains wired to room type base rate', checkin.includes('bas
 check('Main workflow is intentionally minimal', checkin.includes('Guest basics') && checkin.includes('More check-in options') && checkin.includes('Complete check-in'));
 check('Advanced travel details remain available without cluttering the main form', ['arrival_mode','arrival_transport_number','departure_mode','departure_transport_number','early_checkin','late_checkout','special_notes'].every((field)=>checkin.includes(field)));
 check('Foreign guest / Form C fields are preserved', ['passport_issued_on','visa_issue_place','visa_issued_on','date_of_arrival_in_india','intended_duration_in_india_days','form_c_status'].every((field)=>checkin.includes(field)));
-check('Companion ID and Form C fields are preserved', checkin.includes('companion.id_type') && checkin.includes('companion.id_number') && checkin.includes('companion.form_c_required'));
-check('Quick check-in saves captured ID privately after the atomic stay succeeds', checkin.includes('saveCapturedIdAfterCheckin') && checkin.indexOf('check_in_walk_in_guest') < checkin.indexOf('saveCapturedIdAfterCheckin(data)'));
+check('Companion ID and Form C fields are preserved', checkin.includes('companion.id_type') && checkin.includes('companion.id_number') && checkin.includes('checked={companion.form_c_required}') && checkin.includes('updateCompanion(companion.client_id, "form_c_required"'));
+check('Quick check-in saves captured ID privately after the atomic stay succeeds', checkin.includes('saveCapturedIdsAfterCheckin') && checkin.indexOf('check_in_walk_in_guest') < checkin.indexOf('saveCapturedIdsAfterCheckin(data)'));
 check('Quick capture accepts image and PDF files', checkin.includes('application/pdf') && capture.includes('application/pdf'));
 check('Raw OCR text is not persisted from check-in', checkin.includes('raw_ocr_text_stored: false'));
 check('Government verification is not claimed from scan/upload', checkin.includes('government_verification_claimed: false'));
-check('Tesseract browser fallback is lazy-loaded', intelligence.includes('await import("tesseract.js")'));
-check('Native TextDetector is attempted before Tesseract', intelligence.indexOf('detectTextWithBrowser') < intelligence.indexOf('detectTextWithTesseract'));
+check('ID OCR uses the authenticated backend provider path', intelligence.includes('functions.invoke("id-document-ocr"') && intelligence.includes('CLIENT_OCR_TIMEOUT_MS'));
+check('Retired browser Tesseract path stays absent', !intelligence.includes('tesseract.js') && !intelligence.includes('createWorker('));
 check('Raw Aadhaar-like numbers are masked before extracted fields are parsed', intelligence.includes('maskSensitiveNumbers(raw)'));
 check('Capture UI is minimal and uses Scan ID / Upload ID', capture.includes('Scan ID') && capture.includes('Upload ID'));
 check('Capture UI contains no active UIDAI/OTP workflow copy', !/UIDAI|OTP authentication|Secure QR Reader/i.test(capture));

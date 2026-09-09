@@ -1008,6 +1008,14 @@ export default function CheckIn() {
                         <label><span>ID number</span><input value={companion.id_number} onChange={(event) => updateCompanion(companion.client_id, "id_number", event.target.value)} placeholder="Masked / extracted ID" /></label>
                         <label><span>Gender</span><select value={companion.gender} onChange={(event) => updateCompanion(companion.client_id, "gender", event.target.value)}><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="non_binary">Non-binary</option><option value="other">Other</option><option value="prefer_not_to_say">Prefer not to say</option></select></label>
                         <label><span>Nationality</span><input value={companion.nationality} onChange={(event) => updateCompanion(companion.client_id, "nationality", event.target.value)} /></label>
+                        <label className="wide simple-inline-check">
+                          <input
+                            type="checkbox"
+                            checked={companion.form_c_required}
+                            onChange={(event) => updateCompanion(companion.client_id, "form_c_required", event.target.checked)}
+                          />
+                          <span>Form C required for this companion</span>
+                        </label>
                         <label className="wide"><span>Address</span><input value={companion.address_line1} onChange={(event) => updateCompanion(companion.client_id, "address_line1", event.target.value)} /></label>
                       </div>
                     </details>

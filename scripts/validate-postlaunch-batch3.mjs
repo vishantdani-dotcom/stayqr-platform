@@ -89,12 +89,12 @@ check('CSV injection guard exists', has(guestDirectory, "/^[=+\\-@]/") && has(gu
 check('WhatsApp consent ledger purposes exist', has(migration, "'whatsapp_transactional'") && has(migration, "'whatsapp_marketing'"));
 check('WhatsApp suppression ledger exists', has(migration, 'guest_communication_suppressions'));
 check('WhatsApp campaign/recipient/event evidence exists', ['guest_communication_campaigns','guest_communication_recipients','guest_communication_events'].every((v) => has(migration, v)));
-check('Manual one-recipient WhatsApp fallback exists', has(guestComms, 'Manual / click-to-chat') && has(guestComms, 'prepareManualWhatsAppContact'));
+check('Manual one-recipient WhatsApp fallback exists', has(guestComms, 'prepareManualWhatsAppContact') && has(guestComms, 'Open WhatsApp') && has(guestComms, 'window.open'));
 check('Consent confirmation required in UI', has(guestComms, 'explicitly consented'));
 check('Hotel-owned provider profile exists', has(migration, 'hotel_whatsapp_provider_profiles'));
 check('Provider-approved template metadata exists', has(migration, 'provider_status') && has(migration, "'approved'"));
-check('Meta template selection and preview exists', has(guestComms, 'Approved template preview') && has(guestComms, 'provider-approved template'));
-check('Meta mode stays unavailable without readiness', has(guestComms, 'disabled={!metaReady}'));
+check('Meta automation launch hold is explicit', has(guestComms, 'Automated WhatsApp campaigns — upcoming') && has(guestComms, 'Bulk/template automation is intentionally on hold for launch'));
+check('Meta automated send action stays unavailable at launch', !has(guestComms, 'Approved template preview') && !has(guestComms, 'disabled={!metaReady}') && !has(guestComms, 'sendMetaCampaign'));
 check('WhatsApp automation is feature-flagged', has(waSend, 'WHATSAPP_AUTOMATION_ENABLED'));
 check('WhatsApp sender uses hotel provider profile', has(waSend, "from('hotel_whatsapp_provider_profiles')"));
 check('WhatsApp sender rechecks approved template', has(waSend, ".eq('provider_status', 'approved')"));
@@ -103,13 +103,10 @@ check('WhatsApp retry attempt evidence exists', has(waSend, 'attempt_count') && 
 check('WhatsApp webhook verifies Meta HMAC', has(waWebhook, 'x-hub-signature-256') && has(waWebhook, 'HMAC'));
 check('WhatsApp delivery states persist', ['sent','delivered','read','failed'].every((v) => has(waWebhook, `'${v}'`)));
 
-const failed = checks.filter((item) => !item.passed);
-checks.forEach((item, index) => console.log(`${item.passed ? 'PASS' : 'FAIL'} ${String(index + 1).padStart(2, '0')} | ${item.name}${item.evidence ? ` | ${item.evidence}` : ''}`));
-
 check(
   "Offline XML rejection is visible inline",
   has(identity, "guest-xml-inline-notice") &&
-    has(identity, "showXmlNotice") &&
+    has(identity, "setXmlNotice") &&
     has(identity, 'role={xmlNotice.type === "error" ? "alert" : "status"}')
 );
 check(
@@ -125,5 +122,7 @@ check(
       read(aadhaarFn).indexOf("await loadCertificatePem()")
 );
 
+const failed = checks.filter((item) => !item.passed);
+checks.forEach((item, index) => console.log(`${item.passed ? 'PASS' : 'FAIL'} ${String(index + 1).padStart(2, '0')} | ${item.name}${item.evidence ? ` | ${item.evidence}` : ''}`));
 console.log(`POSTLAUNCH_BATCH3_SOURCE_ACCEPTANCE: ${failed.length ? 'FAIL' : 'PASS'} (${checks.length - failed.length}/${checks.length})`);
 if (failed.length) process.exit(1);

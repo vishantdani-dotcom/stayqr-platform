@@ -355,3 +355,8 @@
     padding: 10px !important;
   }
 }
+
+
+/* REV50 explicit session exit */
+.sidebar-logout{width:100%;margin-top:10px;min-height:40px;display:flex;align-items:center;gap:9px;padding:0 10px;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:#0d1116;color:#cbd2da;font:inherit;font-size:12px;font-weight:650;cursor:pointer;transition:border-color .18s ease,background .18s ease,color .18s ease}
+.sidebar-logout:hover{background:#131920;border-color:rgba(232,189,69,.42);color:#f7d76f}.sidebar-logout:disabled{opacity:.45;cursor:not-allowed}

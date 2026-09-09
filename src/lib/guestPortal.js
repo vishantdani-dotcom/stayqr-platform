@@ -175,8 +175,8 @@ export async function getGuestMenu() {
   return Array.isArray(data) ? data : []
 }
 
-export async function getGuestFoodOrders() {
-  const { hotelSlug, accessToken } = requireGuestAccess('food')
+export async function getGuestFoodOrders(root = 'food') {
+  const { hotelSlug, accessToken } = requireGuestAccess(root)
 
   const data = await callGuestRpc(
     'get_guest_food_orders',

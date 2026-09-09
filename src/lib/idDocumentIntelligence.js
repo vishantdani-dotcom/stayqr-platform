@@ -5,7 +5,8 @@ const PASSPORT_REGEX = /\b[A-Z][0-9]{7}\b/i;
 const VOTER_REGEX = /\b[A-Z]{3}\d{7}\b/i;
 const DL_REGEX = /\b[A-Z]{2}[\s-]?\d{2}[\s-]?\d{4}[\s-]?\d{7}\b/i;
 const MAX_PROVIDER_IMAGE_BYTES = 5 * 1024 * 1024;
-const CLIENT_OCR_TIMEOUT_MS = 30000;
+const CLIENT_OCR_TIMEOUT_MS = 45000;
+const OCR_RETRY_TARGET_DIMENSION = 1900;
 
 function normalizeSpace(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -319,6 +320,49 @@ async function compressImageForProvider(file) {
   }
 }
 
+function analysisSignalScore(analysis) {
+  if (!analysis) return 0;
+  const fields = analysis.extractedFields || {};
+  const keys = ["full_name", "date_of_birth", "gender", "nationality", "address_line1", "postal_code"];
+  let score = keys.reduce((total, key) => total + (fields[key] ? 1 : 0), 0);
+  if (analysis.documentNumberMasked) score += 2;
+  if (analysis.documentType && analysis.documentType !== "other") score += 1;
+  if (analysis.status === "extracted") score += 2;
+  if (analysis.reviewRequired) score -= 1;
+  return score;
+}
+
+async function createEnhancedOcrVariant(file) {
+  if (!String(file?.type || "").startsWith("image/")) return null;
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+    const largest = Math.max(bitmap.width, bitmap.height);
+    const scale = largest > 0 && largest < OCR_RETRY_TARGET_DIMENSION
+      ? Math.min(2, OCR_RETRY_TARGET_DIMENSION / largest)
+      : 1;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    if ("filter" in context) context.filter = "grayscale(1) contrast(1.32) brightness(1.06)";
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    if ("filter" in context) context.filter = "none";
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.93));
+    if (!blob) return null;
+    return new File([blob], `${String(file.name || "guest-id").replace(/\.[^.]+$/, "")}-ocr-enhanced.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return null;
+  } finally {
+    bitmap?.close?.();
+  }
+}
+
 async function invokeBackendOcr(file, requestedDocumentType, options) {
   if (!options?.hotelId) throw new Error("Hotel context is required before scanning an ID.");
   if (!String(file.type || "").startsWith("image/")) {
@@ -377,5 +421,39 @@ export function prewarmIdentityOcrRuntime() {
 
 export async function analyzeIdentityDocument(file, requestedDocumentType = "auto", options = {}) {
   if (!file) throw new Error("Choose or capture a document first.");
-  return invokeBackendOcr(file, requestedDocumentType, options);
+
+  let firstAnalysis = null;
+  let firstError = null;
+  try {
+    firstAnalysis = await invokeBackendOcr(file, requestedDocumentType, options);
+  } catch (error) {
+    firstError = error;
+  }
+
+  const shouldRetry = String(file.type || "").startsWith("image/")
+    && (!firstAnalysis || firstAnalysis.reviewRequired || analysisSignalScore(firstAnalysis) < 4);
+
+  if (!shouldRetry) return firstAnalysis;
+
+  const enhancedFile = await createEnhancedOcrVariant(file);
+  if (!enhancedFile) {
+    if (firstAnalysis) return firstAnalysis;
+    throw firstError || new Error("Unable to read this ID automatically.");
+  }
+
+  try {
+    options.onProgress?.(18);
+    const retryAnalysis = await invokeBackendOcr(enhancedFile, requestedDocumentType, options);
+    if (!firstAnalysis || analysisSignalScore(retryAnalysis) > analysisSignalScore(firstAnalysis)) {
+      return {
+        ...retryAnalysis,
+        retryApplied: true,
+        message: retryAnalysis?.message || "StayQR enhanced the captured image and retried OCR automatically.",
+      };
+    }
+  } catch (retryError) {
+    if (!firstAnalysis) throw firstError || retryError;
+  }
+
+  return firstAnalysis;
 }

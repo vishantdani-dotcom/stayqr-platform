@@ -163,6 +163,7 @@ export default function SimpleGuestIdCapture({
             </div>
           )}
 
+          {analysis?.retryApplied && <p className="simple-id-message auto">Image enhancement retry applied automatically.</p>}
           {analysis?.message && (needsReview || !hasFields) && <p className="simple-id-message review">{analysis.message}</p>}
           <p className="simple-id-privacy">StayQR uses the scan to pre-fill the guest record. Review the details before saving.</p>
         </div>

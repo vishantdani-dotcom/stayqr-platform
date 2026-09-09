@@ -33,6 +33,7 @@ export default function Navbar({
   hotelSwitchError,
   onNavigate,
   onReturnToPlatform,
+  onLogout,
 }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
@@ -44,6 +45,10 @@ export default function Navbar({
   const notificationRef = useRef(null)
   const notificationRequestRef = useRef(0)
   const activeHotelIdRef = useRef(null)
+  const notificationAudioContextRef = useRef(null)
+  const notificationAudioArmedRef = useRef(false)
+  const notificationInboxPrimedRef = useRef(false)
+  const seenNotificationIdsRef = useRef(new Set())
 
   const hotelId = tenantContext?.selectedHotelId || currentStaff?.hotel_id || currentStaff?.hotels?.id
   const userName = currentStaff?.full_name || 'Admin'
@@ -60,6 +65,8 @@ export default function Navbar({
     setNotifications([])
     setNotifError('')
     setNotifOpen(false)
+    notificationInboxPrimedRef.current = false
+    seenNotificationIdsRef.current = new Set()
 
     if (!hotelId) return undefined
 
@@ -95,6 +102,32 @@ export default function Navbar({
   }, [])
 
   useEffect(() => {
+    const armAudio = () => {
+      notificationAudioArmedRef.current = true
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext
+      if (!AudioContextCtor) return
+      try {
+        if (!notificationAudioContextRef.current) {
+          notificationAudioContextRef.current = new AudioContextCtor()
+        }
+        if (notificationAudioContextRef.current.state === 'suspended') {
+          void notificationAudioContextRef.current.resume()
+        }
+      } catch {
+        // Notification audio is a progressive enhancement.
+      }
+    }
+    window.addEventListener('pointerdown', armAudio, { passive: true })
+    window.addEventListener('keydown', armAudio)
+    return () => {
+      window.removeEventListener('pointerdown', armAudio)
+      window.removeEventListener('keydown', armAudio)
+      notificationAudioContextRef.current?.close?.().catch?.(() => {})
+      notificationAudioContextRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
     const handleSearchShortcut = (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
@@ -106,6 +139,39 @@ export default function Navbar({
     document.addEventListener('keydown', handleSearchShortcut)
     return () => document.removeEventListener('keydown', handleSearchShortcut)
   }, [])
+
+  function playNotificationChime(notification) {
+    if (!notificationAudioArmedRef.current) return
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext
+    if (!AudioContextCtor) return
+    try {
+      const context = notificationAudioContextRef.current || new AudioContextCtor()
+      notificationAudioContextRef.current = context
+      if (context.state === 'suspended') void context.resume()
+      const now = context.currentTime
+      const gain = context.createGain()
+      gain.gain.setValueAtTime(0.0001, now)
+      gain.gain.exponentialRampToValueAtTime(0.11, now + 0.015)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34)
+      gain.connect(context.destination)
+      ;[740, 988].forEach((frequency, index) => {
+        const oscillator = context.createOscillator()
+        oscillator.type = 'sine'
+        oscillator.frequency.setValueAtTime(frequency, now + (index * 0.11))
+        oscillator.connect(gain)
+        oscillator.start(now + (index * 0.11))
+        oscillator.stop(now + 0.22 + (index * 0.11))
+      })
+      if (document.visibilityState !== 'visible' && window.Notification?.permission === 'granted') {
+        new window.Notification(notification?.title || 'StayQR', {
+          body: notification?.message || 'New hotel activity',
+          tag: `stayqr-${notification?.id || Date.now()}`,
+        })
+      }
+    } catch {
+      // Keep the notification inbox functional even if audio is unavailable.
+    }
+  }
 
   async function loadNotifications(id) {
     if (!id) return
@@ -123,7 +189,22 @@ export default function Navbar({
         return
       }
 
-      setNotifications(data?.items || [])
+      const nextItems = data?.items || []
+      const newUnreadItems = nextItems.filter((item) =>
+        item?.id && item.status === 'unread' && !seenNotificationIdsRef.current.has(item.id)
+      )
+
+      if (notificationInboxPrimedRef.current && newUnreadItems.length > 0) {
+        // get_notification_inbox is recipient-scoped, so only alerts visible to this logged-in staff account chime.
+        playNotificationChime(newUnreadItems[0])
+      }
+
+      seenNotificationIdsRef.current = new Set([
+        ...seenNotificationIdsRef.current,
+        ...nextItems.map((item) => item?.id).filter(Boolean),
+      ])
+      notificationInboxPrimedRef.current = true
+      setNotifications(nextItems)
       setNotifError('')
     } catch (error) {
       if (notificationRequestRef.current === requestId) {
@@ -182,9 +263,12 @@ export default function Navbar({
   }
 
   const handleLogout = async () => {
+    if (onLogout) {
+      await onLogout()
+      return
+    }
     const confirmLogout = window.confirm('Logout from StayQR?')
     if (!confirmLogout) return
-
     clearSelectedTenantHotel()
     await supabase.auth.signOut()
     window.location.reload()

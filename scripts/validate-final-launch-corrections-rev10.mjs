@@ -37,7 +37,8 @@ const good = mod.extractIdentityFromText(`Government of India\nAarav Mehta\nDOB:
 check('Good Aadhaar name still extracts', good.extractedFields.full_name === 'Aarav Mehta');
 check('Good Aadhaar address still extracts', /42 MG Road/i.test(good.extractedFields.address_line1 || ''));
 check('Good Aadhaar is not forced to manual review', good.reviewRequired === false);
-check('Client allows fallback provider latency', client.includes('CLIENT_OCR_TIMEOUT_MS = 30000'));
+const clientTimeoutMatch = client.match(/CLIENT_OCR_TIMEOUT_MS\s*=\s*(\d+)/);
+check('Client allows fallback provider latency', Boolean(clientTimeoutMatch && Number(clientTimeoutMatch[1]) >= 30000));
 check('Client exposes quality score', client.includes('qualityScore: quality.score'));
 check('Client marks reviewRequired', client.includes('reviewRequired: quality.reviewRequired'));
 check('Edge has OCR.Space and Google fallback candidates', edge.includes("addProvider('google_vision')") && edge.includes("addProvider('ocr_space')"));

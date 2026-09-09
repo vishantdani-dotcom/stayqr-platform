@@ -1235,3 +1235,6 @@
   .ag-prototype-dining-photo{background-image:var(--ag-dining-image,none)!important;background-color:#111!important;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}
 }
 /* STAYQR_REV46_FINAL_FUNCTIONAL_UIUX_LOCK_END */
+
+/* REV50 live payable detail */
+.ag-balance em{display:block;margin-top:5px;color:var(--ag-muted,#b3bbc5);font-size:10px;font-style:normal;font-weight:500;line-height:1.45}

@@ -5,6 +5,7 @@ import {
   getGuestAccessContext,
   getGuestServiceCatalog,
   getGuestServiceRequests,
+  getGuestFoodOrders,
   recordGuestGuideEvent,
   recordGuestReviewRewardAction,
   resolvePremiumGuestGuide,
@@ -29,6 +30,7 @@ import './GuestGuide.css'
 
 const ACCESS_RECHECK_INTERVAL_MS = 15000
 const REQUEST_RECHECK_INTERVAL_MS = 20000
+const FINANCIAL_RECHECK_INTERVAL_MS = 10000
 
 const DEFAULT_QUICK_ACTIONS = [
   {
@@ -473,6 +475,7 @@ export default function GuestGuide() {
   const [requests, setRequests] = useState([])
   const [serviceCatalog, setServiceCatalog] = useState([])
   const [requestLoading, setRequestLoading] = useState(false)
+  const [pendingDiningAmount, setPendingDiningAmount] = useState(0)
   const [feedbackRating, setFeedbackRating] = useState(5)
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [feedbackConsent, setFeedbackConsent] = useState(false)
@@ -495,6 +498,7 @@ export default function GuestGuide() {
     setPortal(null)
     setRequests([])
     setServiceCatalog([])
+    setPendingDiningAmount(0)
     setSelectedMedia(null)
   }, [])
 
@@ -555,6 +559,18 @@ export default function GuestGuide() {
     }
   }, [])
 
+  const fetchPendingDiningAmount = useCallback(async () => {
+    try {
+      const orders = await getGuestFoodOrders('guest')
+      const pendingTotal = (Array.isArray(orders) ? orders : [])
+        .filter((order) => !['cancelled', 'delivered'].includes(String(order?.order_status || '').toLowerCase()))
+        .reduce((sum, order) => sum + (Number(order?.total_amount) || 0), 0)
+      setPendingDiningAmount(Math.max(0, pendingTotal))
+    } catch (error) {
+      console.warn('Guest pending dining total refresh failed:', error)
+    }
+  }, [])
+
   useEffect(() => {
     void fetchActivePortal({ initial: true })
   }, [fetchActivePortal])
@@ -567,6 +583,22 @@ export default function GuestGuide() {
     const timer = window.setInterval(() => void fetchMyRequests(), REQUEST_RECHECK_INTERVAL_MS)
     return () => window.clearInterval(timer)
   }, [fetchMyRequests, hasActiveSession])
+
+  useEffect(() => {
+    if (!hasActiveSession) return undefined
+    void fetchPendingDiningAmount()
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void fetchPendingDiningAmount()
+    }
+    const timer = window.setInterval(refresh, FINANCIAL_RECHECK_INTERVAL_MS)
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [fetchPendingDiningAmount, hasActiveSession])
 
   useEffect(() => {
     if (!hasActiveSession) return undefined
@@ -1373,9 +1405,10 @@ export default function GuestGuide() {
     if (section.section_type === 'payment') {
       const payment = premiumGuide.payment_profile || {}
       const balance = Number(portal?.folio?.balance_amount || 0)
+      const livePayableBalance = Math.max(0, balance + pendingDiningAmount)
       const paymentQr = mediaById.get(payment.qr_media_id) || allMedia.find((media) => media.category === 'payment_qr')
-      if (!payment.is_enabled && balance <= 0) return null
-      const amount = payment.show_outstanding_balance !== false && balance > 0 ? balance.toFixed(2) : ''
+      if (!payment.is_enabled && livePayableBalance <= 0) return null
+      const amount = payment.show_outstanding_balance !== false && livePayableBalance > 0 ? livePayableBalance.toFixed(2) : ''
       const upiLink = payment.upi_id
         ? `upi://pay?pa=${encodeURIComponent(payment.upi_id)}&pn=${encodeURIComponent(payment.payee_name || hotelName)}${amount ? `&am=${encodeURIComponent(amount)}` : ''}&cu=${encodeURIComponent(portal?.folio?.currency_code || hotel.currency_code || 'INR')}`
         : ''
@@ -1385,7 +1418,7 @@ export default function GuestGuide() {
           <article className="ag-payment-card">
             {paymentQr && <img src={getGuestGuideMediaUrl(paymentQr.object_path)} alt={paymentQr.alt_text || 'UPI QR'} loading="lazy" />}
             <div className="ag-payment-details">
-              {payment.show_outstanding_balance !== false && balance > 0 && <div className="ag-balance"><small>{copy.outstandingBalance}</small><strong>{formatMoney(balance, portal?.folio?.currency_code || hotel.currency_code || 'INR')}</strong></div>}
+              {payment.show_outstanding_balance !== false && livePayableBalance > 0 && <div className="ag-balance"><small>{copy.outstandingBalance}</small><strong>{formatMoney(livePayableBalance, portal?.folio?.currency_code || hotel.currency_code || 'INR')}</strong>{pendingDiningAmount > 0 && <em>Includes {formatMoney(pendingDiningAmount, portal?.folio?.currency_code || hotel.currency_code || 'INR')} in active dining orders</em>}</div>}
               {payment.payee_name && <p><b>{copy.payee}:</b> {payment.payee_name}</p>}
               {payment.upi_id && <div className="ag-upi-row"><p><b>{copy.upiId}:</b> {payment.upi_id}</p><button type="button" onClick={() => void copyToClipboard(payment.upi_id, copy.copied)}>{copy.copy}</button></div>}
               {payment.instructions && <p>{payment.instructions}</p>}

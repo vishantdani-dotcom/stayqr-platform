@@ -575,6 +575,25 @@ export default function App() {
     }
   }
 
+  async function handleLogout() {
+    const confirmed = window.confirm('Logout from StayQR?')
+    if (!confirmed) return
+    try {
+      clearSelectedTenantHotel()
+      clearTenantContextCache()
+      await supabase.auth.signOut()
+      setSession(null)
+      setTenantContext(null)
+      setCurrentStaff(null)
+      setCurrentRole('')
+      setNavigationRequest(null)
+      setActiveSection('dashboard')
+    } catch (error) {
+      console.error('StayQR logout failed:', error)
+      alert(error?.message || 'Unable to log out. Please try again.')
+    }
+  }
+
   const handleNavigate = (section, detail = null) => {
     if (!canAccessSection(currentRole, section, tenantContext?.permissions || [])) {
       alert('You do not have access to this section.')
@@ -758,6 +777,7 @@ export default function App() {
         switchingHotelId={switchingHotelId}
         hotelSwitchError={hotelSwitchError}
         onReturnToPlatform={handleReturnToPlatform}
+        onLogout={handleLogout}
       />
 
       {mobileMenuOpen && (
@@ -782,6 +802,7 @@ export default function App() {
           hotelSwitchError={hotelSwitchError}
           onNavigate={handleNavigate}
           onReturnToPlatform={handleReturnToPlatform}
+          onLogout={handleLogout}
         />
 
         <main

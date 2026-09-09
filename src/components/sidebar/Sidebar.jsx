@@ -80,6 +80,7 @@ export default function Sidebar({
   switchingHotelId,
   hotelSwitchError,
   onReturnToPlatform,
+  onLogout,
 }) {
   const role = normalizeRole(currentRole || currentStaff?.role)
   const isPlatformAccount = Boolean(tenantContext?.isPlatformAdmin)
@@ -188,6 +189,16 @@ export default function Sidebar({
               <span className="user-role">{userRole}</span>
             </div>
           </div>
+
+          <button
+            type="button"
+            className="sidebar-logout"
+            onClick={onLogout}
+            disabled={!onLogout}
+          >
+            <LogoutDoorIcon />
+            <span>Logout</span>
+          </button>
 
           <details
             style={{
@@ -298,6 +309,16 @@ export default function Sidebar({
         </div>
       )}
     </aside>
+  )
+}
+
+function LogoutDoorIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 17l5-5-5-5" />
+      <path d="M15 12H3" />
+      <path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" />
+    </svg>
   )
 }
 

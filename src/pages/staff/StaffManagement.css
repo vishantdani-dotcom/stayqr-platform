@@ -704,3 +704,26 @@
   .staff-phone-otp { grid-template-columns: 1fr; }
   .staff-phone-otp button { width: 100%; }
 }
+
+
+/* STAYQR REV51 — staff mobile readability lock */
+@media (max-width:760px){
+  .staff-table-wrap{--sq-rev51-staff-mobile:1;overflow:visible!important;max-width:100%!important}
+  .staff-table{display:block!important;width:100%!important;min-width:0!important;border-collapse:separate!important}
+  .staff-table thead{display:none!important}
+  .staff-table tbody{display:grid!important;gap:10px!important;width:100%!important}
+  .staff-table tr{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;width:100%!important;padding:13px!important;border:1px solid #27303a!important;border-radius:14px!important;background:#0d1218!important}
+  .staff-table td{display:grid!important;min-width:0!important;gap:5px!important;padding:0!important;border:0!important;color:#f7f8f9!important;font-size:11px!important;vertical-align:top!important}
+  .staff-table td::before{content:attr(data-label);display:block;color:#87919c;font-size:8px;font-weight:800;letter-spacing:.10em;text-transform:uppercase}
+  .staff-table td[data-label="Staff"],.staff-table td[data-label="Actions"]{grid-column:1/-1!important}
+  .staff-person{align-items:center!important;min-width:0!important}.staff-person>div:last-child{min-width:0!important}.staff-person strong{font-size:12px!important}.staff-person span,.staff-person small{max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important}
+  .staff-role-badge,.staff-identity,.staff-status{width:max-content!important;max-width:100%!important;white-space:normal!important;overflow-wrap:anywhere!important;line-height:1.3!important}
+  .staff-identity-note{max-width:100%!important}
+  .staff-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;width:100%!important}
+  .staff-actions button{width:100%!important;min-width:0!important;min-height:38px!important;padding:7px 9px!important;white-space:normal!important}
+}
+@media (max-width:420px){
+  .staff-table tr{grid-template-columns:1fr!important}
+  .staff-table td[data-label="Staff"],.staff-table td[data-label="Actions"]{grid-column:auto!important}
+  .staff-actions{grid-template-columns:1fr 1fr!important}
+}

@@ -6,6 +6,8 @@ import './Login.css'
 export default function AuthAction({ mode, session }) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -56,47 +58,67 @@ export default function AuthAction({ mode, session }) {
   }
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-brand">
-          <img src={logo} alt="StayQR" className="login-logo" />
-          <p className="login-subtitle">
+    <main className="sq-auth-action-page" data-password-reveal="enabled">
+      <section className="sq-auth-action-card">
+        <div className="sq-auth-action-brand">
+          <img src={logo} alt="StayQR" className="sq-auth-action-logo" />
+          <p className="sq-auth-action-subtitle">
             {isInvite ? 'Complete Staff Invitation' : 'Password Recovery'}
           </p>
           <h1>{isInvite ? 'Create your StayQR password' : 'Choose a new password'}</h1>
-          <p className="login-helper">
+          <p className="sq-auth-action-helper">
             {session
               ? 'Set a strong password to finish securing your account.'
               : 'Open the latest secure link from your email and try again.'}
           </p>
         </div>
 
-        {errorMessage && <div className="login-message error">{errorMessage}</div>}
+        {errorMessage && <div className="sq-auth-action-message error">{errorMessage}</div>}
 
         {session ? (
           <form onSubmit={handleSubmit}>
             <label>
-              New password
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="At least 8 characters"
-                required
-              />
+              <span>New password</span>
+              <div className="sq-auth-password-field">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="At least 8 characters"
+                  required
+                />
+                <button
+                  type="button"
+                  className="sq-auth-password-toggle"
+                  onClick={() => setShowPassword((value) => !value)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </label>
 
             <label>
-              Confirm new password
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Repeat your password"
-                required
-              />
+              <span>Confirm new password</span>
+              <div className="sq-auth-password-field">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Repeat your password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="sq-auth-password-toggle"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </label>
 
             <button type="submit" disabled={loading}>
@@ -112,7 +134,7 @@ export default function AuthAction({ mode, session }) {
             Return to sign in
           </button>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   )
 }

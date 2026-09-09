@@ -1,4 +1,4 @@
-﻿const ROOT = () => document.getElementById("root");
+const ROOT = () => document.getElementById("root");
 let queued = false;
 
 function textOf(el) {
@@ -35,8 +35,9 @@ function climb(el, predicate, maxDepth = 12) {
 
 function ensureLoginMotion() {
   const login = document.querySelector(".sq-login-page");
+  const mobileViewport = window.matchMedia?.("(max-width: 900px)")?.matches ?? window.innerWidth <= 900;
 
-  if (!login) {
+  if (!login || !mobileViewport) {
     document.querySelectorAll(".sq35-login-motion").forEach((el) => el.remove());
     return false;
   }
@@ -66,8 +67,8 @@ function ensureLoginMotion() {
     <div class="sq35-scene sq35-scene-bottom">
       <div class="sq35-keycard">
         <span>STAYQR</span>
-        <b>ROOM 101</b>
-        <small>Secure guest access</small>
+        <b>HOTEL STAFF</b>
+        <small>Secure staff access</small>
       </div>
     </div>
     <div class="sq35-scanline"></div>

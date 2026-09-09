@@ -729,7 +729,7 @@ export default function StaffManagement() {
 
                   return (
                     <tr key={member.id}>
-                      <td>
+                      <td data-label="Staff">
                         <div className="staff-person">
                           <div className="staff-avatar">
                             {isSelf && profilePreview ? (
@@ -745,12 +745,12 @@ export default function StaffManagement() {
                           </div>
                         </div>
                       </td>
-                      <td>
+                      <td data-label="Role">
                         <span className="staff-role-badge">
                           {formatRole(member.role)}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="Identity">
                         <span className={`staff-identity ${member.auth_user_id ? 'linked' : 'missing'}`}>
                           {member.auth_user_id
                             ? 'Supabase Auth linked'
@@ -764,13 +764,13 @@ export default function StaffManagement() {
                           </small>
                         )}
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span className={`staff-status ${member.status}`}>
                           {formatRole(member.status)}
                         </span>
                       </td>
-                      <td>{formatDate(member.accepted_at || member.invited_at)}</td>
-                      <td>
+                      <td data-label="Accepted">{formatDate(member.accepted_at || member.invited_at)}</td>
+                      <td data-label="Actions">
                         <div className="staff-actions">
                           <button
                             type="button"

@@ -87,7 +87,7 @@ function lineAfterLabel(lines, pattern) {
   return "";
 }
 
-const NAME_NOISE_RE = /government|govt\.?|india|bharat|aadhaar|aadhar|uidai|unique identification|income tax|department|date of birth|dob|male|female|address|year of birth|father|mother|signature|passport|republic|driving|licen[cs]e|election|commission|authority|number|no\.|issue|issued|valid|verified|verify|download|document|identity|support|update|updated|enrolment|enrollment|vid\b|help|www\.|http|toll\s*free/i;
+const NAME_NOISE_RE = /government|govt\.?|india|bharat|aadhaar|aadhar|uidai|unique identification|income tax|department|date of birth|dob|male|female|address|year of birth|father|mother|signat(?:ure)?|passport|republic|driving|licen[cs]e|election|commission|authority|number|no\.|issue|issued|valid|verified|verify|download|document|identity|support|update|updated|enrolment|enrollment|vid\b|help|www\.|http|toll\s*free/i;
 const ADDRESS_NOISE_RE = /documents?\s+to\s+support|identity\s+and\s+address|should\s+be\s+updated|update\s+your|downloaded|digitally\s+signed|authentication|verification|government\s+of\s+india|unique\s+identification|aadhaar\s+is|mera\s+aadhaar|www\.|uidai\.gov/i;
 const ADDRESS_LABEL_RE = /^(?:address|पता)\s*[:.-]\s*/i;
 const ADDRESS_RELATION_RE = /^(?:c\/?o|s\/?o|d\/?o|w\/?o)\b/i;
@@ -267,6 +267,96 @@ function extractionQuality(documentType, fields, documentNumberMasked) {
   };
 }
 
+const PROVIDER_NAME_NOISE_RE = /signat|government|govt|india|bharat|aadhaar|aadhar|uidai|dob|date of birth|male|female|address|verified|verify|authority|document|identity|download|issue|valid|help|support/i;
+const GENERIC_FILE_NAME_TOKEN_RE = /^(?:whatsapp|image|img|scan|scanned|aadhaar|aadhar|adhar|card|document|doc|identity|id|photo|pic|picture|screenshot|front|back|copy|jpeg|jpg|png|camera|file)$/i;
+
+function normalizedNameTokens(value) {
+  return normalizeSpace(value)
+    .toLowerCase()
+    .replace(/[^a-z .'-]/g, " ")
+    .split(/\s+/)
+    .map((token) => token.replace(/[^a-z'-]/g, ""))
+    .filter((token) => token.length >= 2);
+}
+
+function filenamePersonNameHint(fileName) {
+  const stem = String(fileName || "")
+    .replace(/\.[^.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\d{2,}\b/g, " ");
+  const tokens = normalizeSpace(stem)
+    .split(/\s+/)
+    .filter((token) => /^[A-Za-z][A-Za-z'.-]*$/.test(token))
+    .filter((token) => !GENERIC_FILE_NAME_TOKEN_RE.test(token));
+  if (tokens.length < 2 || tokens.length > 5) return "";
+  return titleCaseWords(tokens.join(" "));
+}
+
+function providerNameLooksUnsafe(value, documentType) {
+  const name = normalizeSpace(value);
+  if (!name || PROVIDER_NAME_NOISE_RE.test(name) || !looksLikePersonName(name)) return true;
+  const tokens = normalizedNameTokens(name);
+  if (documentType === "aadhaar" && tokens.length < 2) return true;
+  return tokens.length === 0;
+}
+
+export function sanitizeProviderIdentityAnalysis(analysis, fileName = "") {
+  if (!analysis || typeof analysis !== "object") return analysis;
+  const fields = { ...(analysis.extractedFields || {}) };
+  const reasons = Array.isArray(analysis.qualityReasons) ? [...analysis.qualityReasons] : [];
+  let rejectedName = false;
+
+  if (fields.full_name) {
+    const candidate = normalizeSpace(fields.full_name);
+    if (providerNameLooksUnsafe(candidate, analysis.documentType)) {
+      rejectedName = true;
+    } else {
+      const filenameHint = filenamePersonNameHint(fileName);
+      if (filenameHint) {
+        const hintTokens = new Set(normalizedNameTokens(filenameHint));
+        const candidateTokens = normalizedNameTokens(candidate);
+        const overlap = candidateTokens.filter((token) => hintTokens.has(token)).length;
+        if (overlap === 0) rejectedName = true;
+      }
+    }
+
+    if (rejectedName) {
+      // A name mismatch/noise means we cannot safely bind the remaining OCR fields
+      // to this guest either. Clear the whole identity payload rather than showing
+      // a plausible-but-wrong DOB/address/number from the same bad OCR reading.
+      for (const key of Object.keys(fields)) delete fields[key];
+      reasons.push("identity details were not reliable enough to auto-fill");
+    }
+  }
+
+  const safeDocumentNumberMasked = rejectedName ? null : (analysis.documentNumberMasked || null);
+  const safeQuality = extractionQuality(analysis.documentType || "other", fields, safeDocumentNumberMasked);
+  const providerScore = Number(analysis.qualityScore);
+  const qualityScore = Number.isFinite(providerScore)
+    ? Math.min(providerScore, safeQuality.score)
+    : safeQuality.score;
+  const reviewRequired = Boolean(analysis.reviewRequired || rejectedName || safeQuality.reviewRequired);
+  const autoFillAllowed = !rejectedName && Boolean(
+    fields.full_name &&
+    (analysis.documentType !== "aadhaar" || (safeDocumentNumberMasked && fields.date_of_birth))
+  );
+
+  return {
+    ...analysis,
+    status: reviewRequired && analysis.status === "extracted" ? "review_required" : analysis.status,
+    extractedFields: fields,
+    documentNumberMasked: safeDocumentNumberMasked,
+    qualityScore,
+    reviewRequired,
+    qualityReasons: [...new Set([...reasons, ...safeQuality.reasons])],
+    message: rejectedName
+      ? "StayQR withheld an unreliable OCR result instead of showing or auto-filling the wrong guest details. Review the ID and enter the correct values manually."
+      : analysis.message,
+    safeAutofillApplied: true,
+    autoFillAllowed,
+  };
+}
+
 export function extractIdentityFromText(rawText, requestedDocumentType = "auto", hints = {}) {
   const raw = String(rawText || "");
   const detectedDocumentType = inferDocumentType(raw, hints.fileName || "");
@@ -425,7 +515,10 @@ export async function analyzeIdentityDocument(file, requestedDocumentType = "aut
   let firstAnalysis = null;
   let firstError = null;
   try {
-    firstAnalysis = await invokeBackendOcr(file, requestedDocumentType, options);
+    firstAnalysis = sanitizeProviderIdentityAnalysis(
+      await invokeBackendOcr(file, requestedDocumentType, options),
+      file.name
+    );
   } catch (error) {
     firstError = error;
   }
@@ -443,7 +536,10 @@ export async function analyzeIdentityDocument(file, requestedDocumentType = "aut
 
   try {
     options.onProgress?.(18);
-    const retryAnalysis = await invokeBackendOcr(enhancedFile, requestedDocumentType, options);
+    const retryAnalysis = sanitizeProviderIdentityAnalysis(
+      await invokeBackendOcr(enhancedFile, requestedDocumentType, options),
+      file.name
+    );
     if (!firstAnalysis || analysisSignalScore(retryAnalysis) > analysisSignalScore(firstAnalysis)) {
       return {
         ...retryAnalysis,

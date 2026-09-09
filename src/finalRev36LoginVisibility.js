@@ -1,4 +1,4 @@
-﻿let rev36Queued = false;
+let rev36Queued = false;
 
 function isLoginPage() {
   return !!document.querySelector(".sq-login-page");
@@ -10,7 +10,8 @@ function removeRev36Overlay() {
 }
 
 function ensureRev36Overlay() {
-  if (!isLoginPage()) {
+  const mobileViewport = window.matchMedia?.("(max-width: 900px)")?.matches ?? window.innerWidth <= 900;
+  if (!isLoginPage() || !mobileViewport) {
     removeRev36Overlay();
     return;
   }
@@ -47,9 +48,9 @@ function ensureRev36Overlay() {
     <div class="sq36-visual sq36-visual-bottom">
       <div class="sq36-keycard">
         <div class="sq36-keycard-brand">STAYQR</div>
-        <div class="sq36-keycard-room">ROOM 101</div>
+        <div class="sq36-keycard-room">HOTEL STAFF</div>
         <div class="sq36-keycard-line"></div>
-        <div class="sq36-keycard-copy">SECURE GUEST ACCESS</div>
+        <div class="sq36-keycard-copy">SECURE STAFF ACCESS</div>
       </div>
       <div class="sq36-pulse"></div>
     </div>

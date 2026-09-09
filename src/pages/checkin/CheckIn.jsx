@@ -140,6 +140,12 @@ function compactObject(value) {
   );
 }
 
+function fillBlankField(currentValue, extractedValue) {
+  const currentText = String(currentValue ?? "").trim();
+  if (currentText) return currentValue;
+  return extractedValue || currentValue;
+}
+
 const GUEST_DOCUMENT_BUCKET = "guest-documents";
 const MAX_ID_FILE_SIZE = 15 * 1024 * 1024;
 const ALLOWED_ID_MIME_TYPES = new Set(["image/jpeg", "image/png", "application/pdf"]);
@@ -421,6 +427,7 @@ export default function CheckIn() {
   const handleCompanionIdExtracted = (clientId, analysis) => {
     if (!analysis) return;
     const fields = analysis.extractedFields || {};
+    if (analysis.autoFillAllowed === false) return;
 
     setCompanions((current) =>
       current.map((item) => {
@@ -428,21 +435,25 @@ export default function CheckIn() {
 
         return {
           ...item,
-          full_name: fields.full_name || item.full_name,
-          id_type:
+          full_name: fillBlankField(item.full_name, fields.full_name),
+          id_type: fillBlankField(
+            item.id_type,
             analysis.documentType && analysis.documentType !== "other"
               ? analysis.documentType
-              : item.id_type,
-          id_number: analysis.documentNumberMasked || item.id_number,
-          date_of_birth: fields.date_of_birth || item.date_of_birth,
-          gender: fields.gender || item.gender,
-          nationality: fields.nationality || item.nationality,
-          country_of_residence:
-            fields.country_of_residence || item.country_of_residence,
-          address_line1: fields.address_line1 || item.address_line1,
-          city: fields.city || item.city,
-          state_region: fields.state_region || item.state_region,
-          postal_code: fields.postal_code || item.postal_code,
+              : ""
+          ),
+          id_number: fillBlankField(item.id_number, analysis.documentNumberMasked),
+          date_of_birth: fillBlankField(item.date_of_birth, fields.date_of_birth),
+          gender: fillBlankField(item.gender, fields.gender),
+          nationality: fillBlankField(item.nationality, fields.nationality),
+          country_of_residence: fillBlankField(
+            item.country_of_residence,
+            fields.country_of_residence
+          ),
+          address_line1: fillBlankField(item.address_line1, fields.address_line1),
+          city: fillBlankField(item.city, fields.city),
+          state_region: fillBlankField(item.state_region, fields.state_region),
+          postal_code: fillBlankField(item.postal_code, fields.postal_code),
         };
       })
     );
@@ -530,19 +541,26 @@ export default function CheckIn() {
   const handleIdExtracted = (analysis) => {
     if (!analysis) return;
     const fields = analysis.extractedFields || {};
+    if (analysis.autoFillAllowed === false) {
+      setSelectedGuest(null);
+      setGuestMatches([]);
+      setMessage("StayQR read the ID but did not auto-fill uncertain identity details. Review the scan result and enter the correct values manually.");
+      setError("");
+      return;
+    }
     setGuest((current) => ({
       ...current,
-      full_name: fields.full_name || current.full_name,
-      id_type: analysis.documentType && analysis.documentType !== "other" ? analysis.documentType : current.id_type,
-      id_number: analysis.documentNumberMasked || current.id_number,
-      date_of_birth: fields.date_of_birth || current.date_of_birth,
-      gender: fields.gender || current.gender,
-      nationality: fields.nationality || current.nationality,
-      country_of_residence: fields.country_of_residence || current.country_of_residence,
-      address_line1: fields.address_line1 || current.address_line1,
-      city: fields.city || current.city,
-      state_region: fields.state_region || current.state_region,
-      postal_code: fields.postal_code || current.postal_code,
+      full_name: fillBlankField(current.full_name, fields.full_name),
+      id_type: fillBlankField(current.id_type, analysis.documentType && analysis.documentType !== "other" ? analysis.documentType : ""),
+      id_number: fillBlankField(current.id_number, analysis.documentNumberMasked),
+      date_of_birth: fillBlankField(current.date_of_birth, fields.date_of_birth),
+      gender: fillBlankField(current.gender, fields.gender),
+      nationality: fillBlankField(current.nationality, fields.nationality),
+      country_of_residence: fillBlankField(current.country_of_residence, fields.country_of_residence),
+      address_line1: fillBlankField(current.address_line1, fields.address_line1),
+      city: fillBlankField(current.city, fields.city),
+      state_region: fillBlankField(current.state_region, fields.state_region),
+      postal_code: fillBlankField(current.postal_code, fields.postal_code),
     }));
     const extractedCount = Object.keys(fields).filter((key) => fields[key]).length + (analysis.documentNumberMasked ? 1 : 0);
     setSelectedGuest(null);

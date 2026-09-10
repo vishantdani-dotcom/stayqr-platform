@@ -1,4 +1,4 @@
-﻿import { StrictMode } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './styles/globals.css'
@@ -36,6 +36,7 @@ import './styles/finalRev40MobileLoginFinalPolish.css'
 import './finalRev40MobileLoginFinalPolish.js'
 import './finalRev31MinorPolish.js'
 import App from './App.jsx'
+import './styles/finalRev54ThemeParity.css'
 import AppErrorBoundary from './components/system/AppErrorBoundary.jsx'
 import { installOperationalMonitoring } from './lib/day18Monitoring.js'
 

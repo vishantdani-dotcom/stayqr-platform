@@ -1,0 +1,491 @@
+/*
+ StayQR REV54 — FINAL THEME PARITY / COLOUR-ONLY CLOSURE
+
+ Scope is deliberately visual-only. This layer fixes residual legacy neutral/warm
+ near-black surfaces that remained inside otherwise accepted pages. It does NOT
+ alter layout, spacing, typography, responsive structure, content, workflow,
+ business logic, media, status semantics, or guest/public page design.
+
+ Visual authority: the accepted StayQR admin palette already used by the current
+ shell / Guest Bills / Billing / approved REV22-REV33 surfaces:
+   page       #06080b
+   control    #090c11
+   panel      #0f141a
+   panel-2    #131920
+   border     #27303a
+   border-2   #36414d
+   accent     #e8bd45
+*/
+
+#root {
+  --sq54-bg: #06080b;
+  --sq54-elev: #090c11;
+  --sq54-panel: #0f141a;
+  --sq54-panel-2: #131920;
+  --sq54-panel-3: #171e26;
+  --sq54-line: #27303a;
+  --sq54-line-2: #36414d;
+  --sq54-text: #f7f8f9;
+  --sq54-muted: #b3bbc5;
+  --sq54-accent: #e8bd45;
+  --sq54-theme-parity: 1;
+}
+
+/* 01 — Global Search: remove the remaining neutral-grey dialog/kbd surfaces. */
+#root .global-search-dialog {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .global-search-input-wrap,
+#root .global-search-dialog > footer { border-color: var(--sq54-line) !important; }
+#root .global-search-dialog kbd {
+  background: var(--sq54-panel-2) !important;
+  border-color: var(--sq54-line-2) !important;
+}
+
+/* 02 — Service Requests / dynamic catalogue. */
+#root .app-shell .service-day15-page { background: var(--sq54-bg) !important; }
+#root .app-shell :is(
+  .service-metric,
+  .service-catalogue-panel,
+  .service-department-report,
+  .service-type-card,
+  .service-request-card,
+  .service-empty
+) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+}
+#root .app-shell :is(.service-metric,.service-catalogue-panel,.service-department-report,.service-type-card,.service-empty) {
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .service-request-card:not(.overdue) { border-color: var(--sq54-line) !important; }
+#root .app-shell :is(
+  .service-day15-header button:not(.gold),
+  .service-filters button,
+  .service-type-card select,
+  .service-type-card input,
+  .service-filters select,
+  .service-controls select,
+  .service-card-actions button:not(.gold):not(.danger)
+) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .service-request-card:not(.overdue) .service-sla { background: var(--sq54-panel-2) !important; }
+
+/* 03 — Reservations: booking register, reservation forms and detail surfaces. */
+#root .app-shell .reservations-page {
+  background: var(--sq54-bg) !important;
+  background-image: none !important;
+}
+#root .app-shell :is(
+  .reservation-stat-card,
+  .reservation-panel,
+  .reservation-form-section,
+  .reservation-room-card,
+  .reservation-detail-grid > div,
+  .reservation-note-grid > div
+) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(.reservation-modal,.reservation-drawer,.reservation-room-modal) {
+  background: var(--sq54-bg) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(.reservation-modal-header,.reservation-drawer-header,.reservation-modal-footer,.reservation-drawer-footer,.reservation-room-modal-footer) {
+  background: rgba(9,12,17,.97) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(
+  .reservation-filters input,
+  .reservation-filters select,
+  .reservation-field input,
+  .reservation-field select,
+  .reservation-field textarea,
+  .reservation-table th,
+  .reservation-mode-switch button,
+  .reservation-subtabs button,
+  .reservation-modal-close,
+  .reservation-drawer-header button,
+  .reservation-icon-button,
+  .reservation-row-actions button:not(.danger):not(.primary)
+) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(.reservation-mode-switch button.active,.reservation-subtabs button.active) {
+  background: var(--sq54-panel-2) !important;
+  border-color: var(--sq54-line-2) !important;
+}
+#root .app-shell .reservation-guest-results { background: var(--sq54-elev) !important; border-color: var(--sq54-line) !important; }
+#root .app-shell .reservation-status-reason:not(.danger):not(.warning) { background: var(--sq54-panel) !important; border-color: var(--sq54-line) !important; }
+
+/* 04 — Arrivals/departures / reservation operations. */
+#root .app-shell .reservation-operations-page {
+  background: var(--sq54-bg) !important;
+  background-image: none !important;
+}
+#root .app-shell :is(.operations-control-panel,.operations-summary-card,.operations-list-panel) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(.operations-control-panel input,.operations-control-panel select,.operations-table th,.operations-btn.ghost) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+
+/* 05 — Booking Calendar: audit closure for the same legacy-grey form/card family. */
+#root .app-shell .booking-calendar-page {
+  background-color: var(--sq54-bg) !important;
+  background-image: none !important;
+}
+#root .app-shell :is(
+  .calendar-toolbar,
+  .calendar-filters,
+  .calendar-legend,
+  .unallocated-panel,
+  .calendar-details-drawer,
+  .calendar-modal
+) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(
+  .calendar-btn:not(.primary):not(.danger),
+  .calendar-period-controls button,
+  .calendar-clear-filters,
+  .historical-block-filter button,
+  .calendar-pagination button,
+  .calendar-period-controls input,
+  .calendar-filters input,
+  .calendar-filters select,
+  .calendar-modal input,
+  .calendar-modal select,
+  .calendar-modal textarea,
+  .calendar-view-switch,
+  .calendar-timeline-scroll,
+  .calendar-grid-header,
+  .calendar-room-header,
+  .calendar-room-meta
+) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(.unallocated-card,.calendar-detail-card > div,.allocation-summary) {
+  background: var(--sq54-panel-2) !important;
+  border-color: var(--sq54-line) !important;
+}
+
+/* 06 — Check-In / Out: normalize only the residual card/control shades. */
+#root .app-shell .checkin-page.simple-frontdesk { background: var(--sq54-bg) !important; }
+#root .app-shell :is(
+  .checkin-card--compact,
+  .simple-checkin-card,
+  .simple-more-wrap,
+  .simple-checkin-success,
+  .simple-companion-card,
+  .simple-occupant-card,
+  .simple-nested-options
+) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(
+  .simple-checkin-header-actions span,
+  .simple-checkin-header-actions button,
+  .checkin-button-secondary,
+  .simple-advanced-divider button,
+  .simple-companion-head button,
+  .simple-more-toggle > span,
+  .simple-occupant-number,
+  .simple-occupant-chip
+) {
+  background: var(--sq54-panel-2) !important;
+  border-color: var(--sq54-line-2) !important;
+}
+#root .app-shell :is(
+  .simple-basics-grid input,
+  .simple-basics-grid select,
+  .simple-id-edit-grid input,
+  .simple-id-edit-grid select,
+  .simple-more-grid input,
+  .simple-more-grid select,
+  .simple-textarea-field textarea,
+  .simple-occupant-fields input,
+  .simple-occupant-fields select,
+  .simple-occupant-card .simple-id-capture.compact
+) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .simple-checkin-footer {
+  background: rgba(15,20,26,.96) !important;
+  border-color: var(--sq54-line) !important;
+}
+
+/* 07 — Guests: tabs, Guest Directory structural cards, Contact & Consent. */
+#root .app-shell .guests-view-tabs { background: var(--sq54-panel) !important; border-color: var(--sq54-line) !important; }
+#root .app-shell :is(.guest-move-summary > div,.guest-move-request) { background: var(--sq54-panel) !important; border-color: var(--sq54-line) !important; }
+#root .app-shell :is(
+  .guest-directory-toolbar,
+  .guest-directory-metric,
+  .guest-directory-table-wrap,
+  .guest-directory-empty,
+  .guest-profile-panel,
+  .guest-profile-section,
+  .guest-history-card,
+  .guest-record-list article,
+  .guest-document-grid article,
+  .guest-directory-filters,
+  .guest-export-panel,
+  .guest-identity-workspace,
+  .guest-kyc-form-section,
+  .guest-kyc-capture-card,
+  .guest-document-card-clean,
+  .simple-profile-summary,
+  .simple-profile-card,
+  .simple-profile-more
+) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(
+  .guest-directory-actions input,
+  .guest-inline-form input,
+  .guest-inline-form textarea,
+  .guest-inline-form select,
+  .guest-directory-filters select,
+  .guest-directory-filters input,
+  .guest-export-reason input,
+  .guest-kyc-upload-form input,
+  .guest-kyc-upload-form select,
+  .guest-kyc-form-grid input,
+  .guest-kyc-form-grid select,
+  .guest-kyc-file-field input,
+  .guest-kyc-input-with-suffix,
+  .guest-kyc-selected-file,
+  .guest-document-meta > div,
+  .guest-document-summary > div
+) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(.guest-directory-actions button.secondary,.guest-directory-table button.secondary,.guest-document-actions button.secondary,.simple-document-view) {
+  background: var(--sq54-panel-2) !important;
+  border-color: var(--sq54-line-2) !important;
+}
+#root .app-shell :is(.guest-comms-hero,.guest-comms-card,.guest-comms-metric) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(
+  .guest-comms-toolbar input,
+  .guest-comms-toolbar select,
+  .guest-campaign-grid input,
+  .guest-campaign-grid select,
+  .guest-campaign-list article,
+  .guest-template-preview
+) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+
+/* 08 — Guest Guide Builder: Editing language + Setup summary + admin studio surfaces. */
+#root .app-shell .simple-builder-page { background: var(--sq54-bg) !important; background-image: none !important; }
+#root .app-shell :is(
+  .simple-builder-hero,
+  .simple-steps,
+  .simple-builder-toolbar,
+  .simple-panel,
+  .simple-media-grid article,
+  .simple-language-grid > label,
+  .simple-scope-explainer,
+  .simple-section-list > article,
+  .simple-publish-panel,
+  .simple-official-brand,
+  .simple-offer-editor,
+  .rev35-setup-summary,
+  .rev35-setup-stat
+) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(
+  .simple-builder-toolbar select,
+  .simple-builder-toolbar button,
+  .simple-field input,
+  .simple-field select,
+  .simple-field textarea,
+  .simple-section-list input,
+  .simple-readiness-panel span
+) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .simple-steps button.active {
+  background: var(--sq54-panel-2) !important;
+  border-color: var(--sq54-line-2) !important;
+}
+
+/* 09 — Menu Management: Category service windows and matching admin surfaces. */
+#root .app-shell .menu15-page { background: var(--sq54-bg) !important; background-image: none !important; }
+#root .app-shell :is(
+  .menu15-metric,
+  .menu15-panel,
+  .menu15-item-grid article,
+  .menu15-modifier-group,
+  .menu15-photo-uploader,
+  .menu15-translation-group
+) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(
+  .menu15-panel input,
+  .menu15-panel select,
+  .menu15-panel textarea
+) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(
+  .menu15-add-category,
+  .menu15-category-row,
+  .menu15-group-form,
+  .menu15-modifier-group form,
+  .menu15-modifier-row,
+  .menu15-item-actions,
+  .menu15-banner-upload,
+  .menu15-action-row
+) button:not(.menu15-primary):not(.danger) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .menu15-item-meta span { background: var(--sq54-panel-2) !important; border-color: var(--sq54-line) !important; }
+
+/* 10 — Food & Kitchen operations / completed activity. */
+#root .app-shell .day15-foodops { background: var(--sq54-bg) !important; }
+#root .app-shell :is(
+  .day15-metric,
+  .day15-kitchen-column,
+  .day15-kitchen-card,
+  .day15-terminal-card,
+  .day15-popular
+) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .day15-column-head { background: var(--sq54-panel-2) !important; border-color: var(--sq54-line) !important; }
+#root .app-shell :is(.day15-eta select,.day15-card-actions button:not(.primary),.day15-terminal-card button) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+
+/* 11 — Housekeeping + Maintenance including Create task / Report issue dialogs. */
+#root .app-shell .day13-page { background: var(--sq54-bg) !important; background-image: none !important; }
+#root .app-shell :is(.day13-panel,.day13-card,.day13-stat,.day13-mobile-card,.day13-modal) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .day13-tabs { background: var(--sq54-panel) !important; border-color: var(--sq54-line) !important; }
+#root .app-shell :is(.day13-field input,.day13-field select,.day13-field textarea,.day13-search) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .room-register-table tr { background: var(--sq54-panel) !important; }
+#root .stayqr-action-dialog {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .stayqr-action-dialog :is(select,textarea) { background: var(--sq54-elev) !important; border-color: var(--sq54-line) !important; }
+#root .stayqr-action-dialog button:not(.primary):not(.danger) { background: var(--sq54-panel-2) !important; border-color: var(--sq54-line-2) !important; }
+
+/* 12 — Invoices: tax-rate/configuration cards. Printed invoice/paper is intentionally untouched. */
+#root .app-shell :is(.day12-metric,.day12-section,.day12-form-card,.day12-record-card,.day12-rate-card,.day12-export-list article,.day12-export-card,.day12-modal) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(.day12-tabs,.day12-search,.day12-field input,.day12-field select,.day12-field textarea,.day12-btn.secondary,.day12-modal > header button) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+
+/* 13 — Staff: normalize the remaining desktop + responsive card shade only. */
+#root .app-shell :is(.staff-self-profile,.staff-stat-card,.staff-control-card,.staff-table-card,.staff-modal,.staff-loading-card) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(.staff-self-profile-fields input,.staff-search-box,.staff-search-box input,.staff-control-card select,.staff-control-card button,.staff-form-grid input,.staff-form-grid select,.staff-actions button:not(.danger),.staff-pagination button,.staff-close-btn,.staff-secondary-btn) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+@media (max-width: 900px) {
+  #root .app-shell .staff-table tr {
+    background: var(--sq54-panel) !important;
+    border-color: var(--sq54-line) !important;
+  }
+}
+
+/* 14 — Hotel Setup / onboarding configuration cards shown in final audit. */
+#root .app-shell :is(.onboarding-shell,.onboarding-shell.standalone) {
+  background: var(--sq54-bg) !important;
+  background-image: none !important;
+}
+#root .app-shell :is(
+  .onboarding-context-card,
+  .onboarding-panel,
+  .config-section,
+  .config-card,
+  .csv-reference,
+  .setup-stat,
+  .operations-card,
+  .readiness-item,
+  .missing-list,
+  .onboarding-loading-card
+) {
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell :is(
+  .onboarding-steps button,
+  .onboarding-field input,
+  .onboarding-field select,
+  .onboarding-field textarea,
+  .config-row input,
+  .small-form input,
+  .small-form select,
+  .menu-item-form input,
+  .menu-item-form select,
+  .secondary-button,
+  .reference-block code,
+  .toggle-chip:not(.active),
+  .menu-preview div
+) {
+  background: var(--sq54-elev) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .onboarding-steps button.active {
+  background: var(--sq54-panel-2) !important;
+  border-color: var(--sq54-line-2) !important;
+}
+
+/* Explicit non-scope guardrails: public/guest visuals, images/video, print paper,
+   semantic success/warning/error/status fills and primary gold CTAs are not restyled. */

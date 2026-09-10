@@ -37,6 +37,7 @@ import './finalRev40MobileLoginFinalPolish.js'
 import './finalRev31MinorPolish.js'
 import App from './App.jsx'
 import './styles/finalRev54ThemeParity.css'
+import './styles/finalRev55UnifiedTheme.css'
 import AppErrorBoundary from './components/system/AppErrorBoundary.jsx'
 import { installOperationalMonitoring } from './lib/day18Monitoring.js'
 

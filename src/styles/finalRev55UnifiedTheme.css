@@ -1,0 +1,337 @@
+/* StayQR REV55 — unified theme closure
+   Scope: colour/theme only. No layout, typography, workflow, or data changes. */
+
+#root {
+  --sq55-danger-text: #ff8989;
+  --sq55-danger-bg: rgba(255, 92, 92, 0.10);
+  --sq55-danger-bg-hover: rgba(255, 92, 92, 0.16);
+  --sq55-danger-line: rgba(255, 92, 92, 0.32);
+  --sq55-danger-line-hover: rgba(255, 92, 92, 0.46);
+  --sq55-unified-theme: 1;
+}
+
+/* Destructive / cancel actions: one semantic treatment across StayQR. */
+#root .app-shell button.danger,
+#root .app-shell button.danger-button,
+#root .app-shell button.btn-danger,
+#root .app-shell button.button-danger,
+#root .app-shell button[data-variant="danger"],
+#root .app-shell button[data-tone="danger"],
+#root .app-shell button[data-variant="destructive"],
+#root .app-shell button[data-tone="destructive"],
+#root .stayqr-action-dialog button.danger,
+#root .commercial-btn.danger,
+#root .small-action.danger,
+#root .row-actions button.danger,
+#root .quick-hotel-actions button.danger {
+  color: var(--sq55-danger-text) !important;
+  background: var(--sq55-danger-bg) !important;
+  background-image: none !important;
+  border-color: var(--sq55-danger-line) !important;
+  box-shadow: inset 0 0 0 1px var(--sq55-danger-line) !important;
+}
+
+#root .app-shell button.danger:hover:not(:disabled),
+#root .app-shell button.danger-button:hover:not(:disabled),
+#root .app-shell button.btn-danger:hover:not(:disabled),
+#root .app-shell button.button-danger:hover:not(:disabled),
+#root .app-shell button[data-variant="danger"]:hover:not(:disabled),
+#root .app-shell button[data-tone="danger"]:hover:not(:disabled),
+#root .app-shell button[data-variant="destructive"]:hover:not(:disabled),
+#root .app-shell button[data-tone="destructive"]:hover:not(:disabled),
+#root .stayqr-action-dialog button.danger:hover:not(:disabled),
+#root .commercial-btn.danger:hover:not(:disabled),
+#root .small-action.danger:hover:not(:disabled),
+#root .row-actions button.danger:hover:not(:disabled),
+#root .quick-hotel-actions button.danger:hover:not(:disabled) {
+  color: var(--sq55-danger-text) !important;
+  background: var(--sq55-danger-bg-hover) !important;
+  border-color: var(--sq55-danger-line-hover) !important;
+  box-shadow: inset 0 0 0 1px var(--sq55-danger-line-hover) !important;
+}
+
+/* Super Admin: use the same REV54 blue-black surface system as every hotel workspace. */
+#root .commercial-shell {
+  color: var(--sq54-text) !important;
+  background: var(--sq54-bg) !important;
+  background-image: none !important;
+}
+
+#root .commercial-loading-shell {
+  color: var(--sq54-muted) !important;
+}
+
+#root .commercial-loading-shell strong,
+#root .commercial-hero h1,
+#root .panel-heading-row h2,
+#root .commercial-section-header h2,
+#root .commercial-metric strong,
+#root .quick-hotel-card strong,
+#root .commercial-table td > strong,
+#root .plan-card h3,
+#root .plan-price,
+#root .announcement-card h3,
+#root .commercial-dialog h2,
+#root .dialog-context-card strong,
+#root .ticket-summary h3,
+#root .usage-card strong {
+  color: var(--sq54-text) !important;
+}
+
+#root .commercial-hero p,
+#root .commercial-search,
+#root .commercial-result-count,
+#root .commercial-metric > span,
+#root .commercial-metric small,
+#root .commercial-list-row span,
+#root .quick-hotel-card span,
+#root .commercial-table td > span:not(.status-badge),
+#root .table-subtext,
+#root .plan-card-topline,
+#root .plan-price span,
+#root .plan-annual,
+#root .feature-list,
+#root .no-features,
+#root .event-row p,
+#root .event-row small,
+#root .announcement-meta span:not(.status-badge),
+#root .announcement-card p,
+#root .announcement-dates,
+#root .commercial-field small,
+#root .dialog-context-card span:not(.status-badge),
+#root .idempotency-note span,
+#root .idempotency-note code,
+#root .delivery-options label,
+#root .ticket-summary p,
+#root .usage-card span,
+#root .usage-card small,
+#root .commercial-empty,
+#root .inline-loading {
+  color: var(--sq54-muted) !important;
+}
+
+#root .commercial-kicker,
+#root .commercial-section-header > div > span,
+#root .text-action,
+#root .commercial-table th,
+#root .plan-code,
+#root .commercial-empty > span {
+  color: var(--sq54-accent) !important;
+}
+
+#root .commercial-loader {
+  border-color: rgba(232, 189, 69, 0.18) !important;
+  border-top-color: var(--sq54-accent) !important;
+}
+
+#root .commercial-runtime-strip {
+  border-color: var(--sq54-line) !important;
+  background: var(--sq54-line) !important;
+  background-image: none !important;
+}
+
+#root .commercial-runtime-strip > div,
+#root .commercial-card,
+#root .commercial-metric,
+#root .quick-hotel-card,
+#root .plan-card,
+#root .announcement-card {
+  border-color: var(--sq54-line) !important;
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+}
+
+#root .commercial-runtime-strip > div {
+  color: var(--sq54-muted) !important;
+}
+
+#root .commercial-runtime-strip strong,
+#root .commercial-list-row strong,
+#root .commercial-table td,
+#root .plan-limits strong,
+#root .event-row strong,
+#root .commercial-empty strong,
+#root .commercial-field,
+#root .check-control,
+#root .permission-grid label {
+  color: var(--sq54-text) !important;
+}
+
+#root .commercial-tabs {
+  border-color: var(--sq54-line) !important;
+  background: var(--sq54-elev) !important;
+  background-image: none !important;
+}
+
+#root .commercial-tabs button {
+  color: var(--sq54-muted) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+#root .commercial-tabs button > span {
+  color: var(--sq54-muted) !important;
+  background: var(--sq54-panel-2) !important;
+}
+
+#root .commercial-tabs button.active {
+  color: var(--sq54-accent) !important;
+  background: var(--sq54-panel-2) !important;
+  border-color: var(--sq54-line-2) !important;
+}
+
+#root .commercial-tabs button.active > span {
+  color: var(--sq54-accent) !important;
+  background: var(--sq54-elev) !important;
+}
+
+#root .commercial-alert pre,
+#root .commercial-search input,
+#root .commercial-field input,
+#root .commercial-field select,
+#root .commercial-field textarea,
+#root .check-control,
+#root .delivery-options,
+#root .segmented-control,
+#root .permission-grid label,
+#root .ticket-summary,
+#root .usage-card,
+#root .compact-code,
+#root .dialog-close {
+  color: var(--sq54-text) !important;
+  background: var(--sq54-elev) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+
+#root .commercial-search input:focus,
+#root .commercial-field input:focus,
+#root .commercial-field select:focus,
+#root .commercial-field textarea:focus {
+  border-color: var(--sq54-accent) !important;
+  outline-color: var(--sq54-accent) !important;
+  box-shadow: 0 0 0 3px rgba(232, 189, 69, 0.08) !important;
+}
+
+#root .commercial-field input[readonly],
+#root .plan-limits div,
+#root .dialog-context-card,
+#root .idempotency-note,
+#root .commercial-dialog > header {
+  color: var(--sq54-muted) !important;
+  background: var(--sq54-panel-2) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+
+#root .commercial-btn.primary,
+#root .segmented-control button.active {
+  color: #080b0f !important;
+  background: var(--sq54-accent) !important;
+  background-image: none !important;
+  border-color: var(--sq54-accent) !important;
+}
+
+#root .commercial-btn.secondary,
+#root .small-action:not(.danger),
+#root .row-actions button:not(.danger),
+#root .quick-hotel-actions button:not(.danger) {
+  color: var(--sq54-text) !important;
+  background: var(--sq54-elev) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line-2) !important;
+}
+
+#root .commercial-btn.warning {
+  color: #f2c56c !important;
+  background: rgba(242, 185, 86, 0.08) !important;
+  background-image: none !important;
+  border-color: rgba(242, 185, 86, 0.30) !important;
+}
+
+#root .commercial-list-row,
+#root .commercial-table th,
+#root .commercial-table td,
+#root .event-row {
+  border-color: var(--sq54-line) !important;
+}
+
+#root .commercial-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+
+#root .compact-code {
+  color: var(--sq54-muted) !important;
+}
+
+#root .status-badge:not(.status-active):not(.status-paid):not(.status-published):not(.status-processed):not(.status-success):not(.status-resolved):not(.status-trial):not(.status-trialing):not(.status-issued):not(.status-created):not(.status-open):not(.status-in-progress):not(.status-info):not(.status-past-due):not(.status-partially-paid):not(.status-waiting-on-hotel):not(.status-warning):not(.status-high):not(.status-suspended):not(.status-failed):not(.status-expired):not(.status-cancelled):not(.status-critical):not(.status-urgent) {
+  color: var(--sq54-muted) !important;
+  background: var(--sq54-panel-2) !important;
+  border-color: var(--sq54-line-2) !important;
+}
+
+#root .commercial-metric.gold {
+  color: var(--sq54-accent) !important;
+  border-color: rgba(232, 189, 69, 0.28) !important;
+}
+
+#root .plan-limits span {
+  color: var(--sq54-muted) !important;
+}
+
+#root .event-icon {
+  color: var(--sq54-accent) !important;
+  background: rgba(232, 189, 69, 0.09) !important;
+  border-color: rgba(232, 189, 69, 0.22) !important;
+}
+
+#root .commercial-dialog {
+  color: var(--sq54-text) !important;
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line-2) !important;
+}
+
+#root .commercial-dialog-backdrop {
+  background: rgba(3, 5, 8, 0.78) !important;
+}
+
+#root .commercial-field input[readonly] {
+  color: var(--sq54-muted) !important;
+}
+
+#root .check-control input,
+#root .delivery-options input,
+#root .permission-grid input,
+#root .danger-choice input {
+  accent-color: var(--sq54-accent) !important;
+}
+
+#root .cashfree-test-banner,
+#root .security-callout {
+  background: rgba(232, 189, 69, 0.07) !important;
+  border-color: rgba(232, 189, 69, 0.28) !important;
+}
+
+#root .cashfree-test-banner strong,
+#root .security-callout strong {
+  color: #f0cd70 !important;
+}
+
+#root .cashfree-test-banner span,
+#root .security-callout span {
+  color: #b39d61 !important;
+}
+
+#root .segmented-control button {
+  color: var(--sq54-muted) !important;
+  background: transparent !important;
+}
+
+#root .usage-bar {
+  background: var(--sq54-line) !important;
+}
+
+#root .usage-bar span {
+  background: var(--sq54-accent) !important;
+}

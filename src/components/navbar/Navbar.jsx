@@ -45,7 +45,7 @@ export default function Navbar({
   const notificationRef = useRef(null)
   const notificationRequestRef = useRef(0)
   const activeHotelIdRef = useRef(null)
-  const notificationAudioContextRef = useRef(null)
+  const notificationAudioRef = useRef(null)
   const notificationAudioArmedRef = useRef(false)
   const notificationInboxPrimedRef = useRef(false)
   const seenNotificationIdsRef = useRef(new Set())
@@ -102,28 +102,38 @@ export default function Navbar({
   }, [])
 
   useEffect(() => {
+    const ensureAudio = () => {
+      if (!notificationAudioRef.current) {
+        const audio = new Audio('/assets/stayqr-notification.wav')
+        audio.preload = 'auto'
+        audio.volume = 1
+        notificationAudioRef.current = audio
+      }
+      return notificationAudioRef.current
+    }
+
     const armAudio = () => {
       notificationAudioArmedRef.current = true
-      const AudioContextCtor = window.AudioContext || window.webkitAudioContext
-      if (!AudioContextCtor) return
       try {
-        if (!notificationAudioContextRef.current) {
-          notificationAudioContextRef.current = new AudioContextCtor()
-        }
-        if (notificationAudioContextRef.current.state === 'suspended') {
-          void notificationAudioContextRef.current.resume()
-        }
+        const audio = ensureAudio()
+        audio.load?.()
       } catch {
         // Notification audio is a progressive enhancement.
       }
     }
+
+    ensureAudio()
     window.addEventListener('pointerdown', armAudio, { passive: true })
     window.addEventListener('keydown', armAudio)
     return () => {
       window.removeEventListener('pointerdown', armAudio)
       window.removeEventListener('keydown', armAudio)
-      notificationAudioContextRef.current?.close?.().catch?.(() => {})
-      notificationAudioContextRef.current = null
+      const audio = notificationAudioRef.current
+      if (audio) {
+        audio.pause?.()
+        audio.currentTime = 0
+      }
+      notificationAudioRef.current = null
     }
   }, [])
 
@@ -142,26 +152,14 @@ export default function Navbar({
 
   function playNotificationChime(notification) {
     if (!notificationAudioArmedRef.current) return
-    const AudioContextCtor = window.AudioContext || window.webkitAudioContext
-    if (!AudioContextCtor) return
     try {
-      const context = notificationAudioContextRef.current || new AudioContextCtor()
-      notificationAudioContextRef.current = context
-      if (context.state === 'suspended') void context.resume()
-      const now = context.currentTime
-      const gain = context.createGain()
-      gain.gain.setValueAtTime(0.0001, now)
-      gain.gain.exponentialRampToValueAtTime(0.11, now + 0.015)
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34)
-      gain.connect(context.destination)
-      ;[740, 988].forEach((frequency, index) => {
-        const oscillator = context.createOscillator()
-        oscillator.type = 'sine'
-        oscillator.frequency.setValueAtTime(frequency, now + (index * 0.11))
-        oscillator.connect(gain)
-        oscillator.start(now + (index * 0.11))
-        oscillator.stop(now + 0.22 + (index * 0.11))
-      })
+      const audio = notificationAudioRef.current || new Audio('/assets/stayqr-notification.wav')
+      notificationAudioRef.current = audio
+      audio.preload = 'auto'
+      audio.volume = 1
+      audio.currentTime = 0
+      void audio.play().catch(() => {})
+
       if (document.visibilityState !== 'visible' && window.Notification?.permission === 'granted') {
         new window.Notification(notification?.title || 'StayQR', {
           body: notification?.message || 'New hotel activity',

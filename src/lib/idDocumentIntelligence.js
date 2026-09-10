@@ -4,7 +4,7 @@ const PAN_REGEX = /\b[A-Z]{5}\d{4}[A-Z]\b/i;
 const PASSPORT_REGEX = /\b[A-Z][0-9]{7}\b/i;
 const VOTER_REGEX = /\b[A-Z]{3}\d{7}\b/i;
 const DL_REGEX = /\b[A-Z]{2}[\s-]?\d{2}[\s-]?\d{4}[\s-]?\d{7}\b/i;
-const MAX_PROVIDER_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_PROVIDER_IMAGE_BYTES = 4 * 1024 * 1024;
 const CLIENT_OCR_TIMEOUT_MS = 45000;
 const OCR_RETRY_TARGET_DIMENSION = 1900;
 
@@ -312,7 +312,8 @@ export function sanitizeProviderIdentityAnalysis(analysis, fileName = "") {
       rejectedName = true;
     } else {
       const filenameHint = filenamePersonNameHint(fileName);
-      if (filenameHint) {
+      const strongProviderEvidence = analysis?.providerStructured === true || analysis?.identityConsensus === "strong";
+      if (filenameHint && !strongProviderEvidence) {
         const hintTokens = new Set(normalizedNameTokens(filenameHint));
         const candidateTokens = normalizedNameTokens(candidate);
         const overlap = candidateTokens.filter((token) => hintTokens.has(token)).length;
@@ -479,7 +480,7 @@ async function invokeBackendOcr(file, requestedDocumentType, options) {
   options.onProgress?.(42);
 
   const { supabase } = await import("./supabase");
-  const requestPromise = supabase.functions.invoke("id-document-ocr", {
+  const requestPromise = supabase.functions.invoke("id-document-ocr-v2", {
     body: {
       hotel_id: options.hotelId,
       file_name: file.name,

@@ -16,7 +16,7 @@ const scanner = read('src/lib/idDocumentIntelligence.js')
 const simpleCapture = read('src/components/guests/SimpleGuestIdCapture.jsx')
 const food = read('src/pages/food/FoodMenu.jsx')
 
-check('Notification chime uses Web Audio API', navbar.includes('notificationAudioContextRef') && navbar.includes('playNotificationChime'))
+check('Notification chime uses approved StayQR audio asset', navbar.includes('stayqr-notification.wav') && navbar.includes('playNotificationChime'))
 check('Notification chime waits until inbox is primed', navbar.includes('notificationInboxPrimedRef.current && newUnreadItems.length > 0'))
 check('Initial historical unread notifications do not chime', navbar.includes('notificationInboxPrimedRef.current = false') && navbar.includes('seenNotificationIdsRef.current = new Set()'))
 check('Notification alert uses recipient-scoped trusted inbox', navbar.includes('getNotificationInbox') && navbar.includes('recipient-scoped'))

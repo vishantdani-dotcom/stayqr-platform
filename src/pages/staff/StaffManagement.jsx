@@ -229,25 +229,72 @@ export default function StaffManagement() {
     setForm((current) => ({ ...current, [name]: value }))
   }
 
+  function formatStaffActionError(message) {
+    const normalized = String(message || '').trim()
+    const capacityMatch = normalized.match(
+      /Staff limit exceeded:\s*current\s+(\d+),\s*additional\s+(\d+),\s*limit\s+(\d+)/i
+    )
+
+    if (capacityMatch) {
+      const [, current, , limit] = capacityMatch
+      return `Staff capacity reached (${current}/${limit} active). This plan allows ${limit} active staff ${Number(limit) === 1 ? 'member' : 'members'}. Upgrade the hotel plan or deactivate another staff account, then try again.`
+    }
+
+    if (/staff limit exceeded/i.test(normalized)) {
+      return 'Staff capacity reached for the current subscription plan. Upgrade the hotel plan or deactivate another staff account, then try again.'
+    }
+
+    if (/failed to send a request to the edge function/i.test(normalized)) {
+      return 'StayQR could not reach the staff access service. Check the connection and retry.'
+    }
+
+    return normalized || 'Staff action failed. Please retry.'
+  }
+
+  async function readFunctionError(error) {
+    let message = error?.message || 'Staff action failed.'
+    const response = error?.context
+
+    if (response) {
+      try {
+        const readable = typeof response.clone === 'function' ? response.clone() : response
+        const errorBody = await readable.json()
+        message =
+          errorBody?.error ||
+          errorBody?.message ||
+          errorBody?.details ||
+          message
+      } catch {
+        try {
+          const readable = typeof response.clone === 'function' ? response.clone() : response
+          const rawText = (await readable.text())?.trim()
+          if (rawText) {
+            try {
+              const parsed = JSON.parse(rawText)
+              message = parsed?.error || parsed?.message || parsed?.details || rawText
+            } catch {
+              message = rawText
+            }
+          }
+        } catch {
+          // Keep the original Supabase Functions message if the response body is unavailable.
+        }
+      }
+    }
+
+    return formatStaffActionError(message)
+  }
+
   async function invokeStaffAction(body) {
     const { data, error } = await supabase.functions.invoke('manage-staff-user', {
       body,
     })
 
     if (error) {
-      let message = error.message
-
-      try {
-        const errorBody = await error.context?.json()
-        message = errorBody?.error || message
-      } catch {
-        // Keep the Supabase Functions error when no JSON response is available.
-      }
-
-      throw new Error(message)
+      throw new Error(await readFunctionError(error))
     }
 
-    if (data?.error) throw new Error(data.error)
+    if (data?.error) throw new Error(formatStaffActionError(data.error))
     return data
   }
 

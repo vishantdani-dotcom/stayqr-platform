@@ -37,89 +37,11 @@ export default function FoodOrders() {
   const [cancellation, setCancellation] = useState(null)
   const knownIds = useRef(new Set())
   const initialLoadDone = useRef(false)
-  const kitchenAudioRef = useRef(null)
-  const kitchenAudioArmedRef = useRef(false)
 
   const showToast = useCallback((message) => {
     setToast(String(message || ''))
     window.setTimeout(() => setToast(''), 3000)
   }, [])
-
-  const ensureKitchenAudio = useCallback(() => {
-    if (!kitchenAudioRef.current) {
-      const audio = new Audio('/assets/stayqr-kitchen-tone.wav')
-      audio.preload = 'auto'
-      audio.volume = 1
-      audio.dataset.stayqrNotificationSound = 'rev60-kitchen'
-      kitchenAudioRef.current = audio
-    }
-    return kitchenAudioRef.current
-  }, [])
-
-  useEffect(() => {
-    const armKitchenAudio = () => {
-      kitchenAudioArmedRef.current = true
-      try {
-        ensureKitchenAudio().load?.()
-      } catch (error) {
-        console.warn('Kitchen notification sound could not be preloaded:', error)
-      }
-    }
-
-    ensureKitchenAudio()
-
-    if (navigator.userActivation?.hasBeenActive) {
-      armKitchenAudio()
-    }
-
-    window.addEventListener('pointerdown', armKitchenAudio, { passive: true })
-    window.addEventListener('keydown', armKitchenAudio)
-
-    return () => {
-      window.removeEventListener('pointerdown', armKitchenAudio)
-      window.removeEventListener('keydown', armKitchenAudio)
-
-      const audio = kitchenAudioRef.current
-      if (audio) {
-        audio.pause?.()
-        audio.currentTime = 0
-      }
-      kitchenAudioRef.current = null
-      kitchenAudioArmedRef.current = false
-    }
-  }, [ensureKitchenAudio])
-
-  const playKitchenBell = useCallback(() => {
-    try {
-      const sharedPlayer = window.__stayqrPlayDepartmentNotificationSound
-      if (typeof sharedPlayer === 'function' && sharedPlayer('kitchen')) return
-    } catch {
-      // Fall through to the page-local Kitchen audio fallback.
-    }
-
-    const browserAlreadyActivated = Boolean(navigator.userActivation?.hasBeenActive)
-    if (!kitchenAudioArmedRef.current && !browserAlreadyActivated) {
-      console.warn('Kitchen notification sound is waiting for a browser user interaction.')
-      return
-    }
-
-    kitchenAudioArmedRef.current = true
-
-    const now = Date.now()
-    const previous = Number(window.__stayqrKitchenToneAt || 0)
-    if (now - previous < 1800) return
-    window.__stayqrKitchenToneAt = now
-
-    try {
-      const audio = ensureKitchenAudio()
-      audio.currentTime = 0
-      void audio.play().catch((error) => {
-        console.warn('Kitchen notification sound playback was blocked:', error)
-      })
-    } catch (error) {
-      console.warn('Kitchen notification sound unavailable:', error)
-    }
-  }, [ensureKitchenAudio])
 
   const loadOrders = useCallback(async (hotelId) => {
     const data = await loadDay15FoodOrders(hotelId)
@@ -127,11 +49,10 @@ export default function FoodOrders() {
     data.forEach((order) => knownIds.current.add(order.id))
     setOrders(data)
     if (initialLoadDone.current && newOrders.some((order) => order.order_status === 'pending')) {
-      playKitchenBell()
       showToast('New guest food order received.')
     }
     initialLoadDone.current = true
-  }, [playKitchenBell, showToast])
+  }, [showToast])
 
   const loadAnalytics = useCallback(async (hotelId) => {
     const from = new Date()

@@ -40,6 +40,7 @@ const SERVICE_DEPARTMENTS_BY_ROLE = Object.freeze({
 
 export function getAccountNotificationSoundKey(role) {
   const normalized = normalizeRole(role)
+
   if (HOUSEKEEPING_ROLES.has(normalized)) return 'housekeeping'
   if (KITCHEN_ROLES.has(normalized)) return 'kitchen'
   return 'dashboard'
@@ -47,6 +48,42 @@ export function getAccountNotificationSoundKey(role) {
 
 export function isLocalDepartmentNotification(notification) {
   return Boolean(notification?.metadata?.local_department_event)
+}
+
+export function isServiceRequestForRole(request, role) {
+  const normalized = normalizeRole(role)
+  const department = String(request?.department || '').trim().toLowerCase()
+  const allowed = SERVICE_DEPARTMENTS_BY_ROLE[normalized] || new Set()
+
+  return Boolean(department && allowed.has(department))
+}
+
+export function createServiceRequestNotification(request) {
+  const requestId = String(request?.id || '')
+  const requestType = String(request?.request_type || 'Guest service request').trim()
+  const details = String(request?.request_details || '').trim()
+  const department = String(request?.department || '').trim().toLowerCase()
+
+  return {
+    id: `local-service-request:${requestId}`,
+    outbox_id: null,
+    event_key: 'service_request.created',
+    source_type: 'service_request',
+    source_id: requestId,
+    title: requestType || 'Guest service request',
+    message: details || 'A new guest service request was received.',
+    severity: 'info',
+    status: 'unread',
+    business_date: null,
+    read_at: null,
+    created_at: request?.created_at || new Date().toISOString(),
+    metadata: {
+      local_department_event: true,
+      department,
+      guest_id: request?.guest_id || null,
+      room_id: request?.room_id || null,
+    },
+  }
 }
 
 export function createKitchenOrderNotification(order) {
@@ -77,16 +114,42 @@ export function createKitchenOrderNotification(order) {
   }
 }
 
+function sourceIdentity(item) {
+  const sourceType = String(item?.source_type || '').trim().toLowerCase()
+  const sourceId = String(item?.source_id || '').trim()
+
+  if (!sourceType || !sourceId) return ''
+  return `${sourceType}:${sourceId}`
+}
+
 export function mergeNotificationItems(serverItems = [], currentItems = []) {
   const localItems = currentItems.filter(isLocalDepartmentNotification)
-  const byId = new Map()
+  const serverById = new Map()
+  const serverSourceKeys = new Set()
 
-  for (const item of [...localItems, ...serverItems]) {
-    if (!item?.id || byId.has(item.id)) continue
-    byId.set(item.id, item)
+  for (const item of serverItems) {
+    if (!item?.id || serverById.has(item.id)) continue
+
+    serverById.set(item.id, item)
+
+    const key = sourceIdentity(item)
+    if (key) serverSourceKeys.add(key)
   }
 
-  return [...byId.values()]
+  const localById = new Map()
+
+  for (const item of localItems) {
+    if (!item?.id) continue
+
+    const key = sourceIdentity(item)
+    if (key && serverSourceKeys.has(key)) continue
+
+    if (!localById.has(item.id)) {
+      localById.set(item.id, item)
+    }
+  }
+
+  return [...localById.values(), ...serverById.values()]
     .sort(
       (a, b) =>
         new Date(b?.created_at || 0).getTime() -
@@ -153,10 +216,9 @@ export async function filterNotificationInboxForRole({
           )
         }
       } else {
-        // Fail closed. A service request whose department cannot be verified
-        // must not leak into an unrelated department account.
+        // Fail closed: an unverified service request never reaches another department.
         console.warn(
-          'StayQR notification department check failed closed:',
+          'StayQR notification department verification failed closed:',
           error.message
         )
       }
@@ -169,6 +231,7 @@ export async function filterNotificationInboxForRole({
     if (category === 'service') {
       const department =
         serviceDepartmentById.get(String(item?.source_id || '')) || ''
+
       return serviceDepartmentsForRole(normalized).has(department)
     }
 

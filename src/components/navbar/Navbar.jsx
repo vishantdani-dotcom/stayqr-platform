@@ -21,17 +21,19 @@ import {
 } from '../../lib/notificationPresentation'
 import {
   createKitchenOrderNotification,
+  createServiceRequestNotification,
   filterNotificationInboxForRole,
   getAccountNotificationSoundKey,
   isLocalDepartmentNotification,
+  isServiceRequestForRole,
   mergeNotificationItems,
 } from '../../lib/departmentNotificationRouting'
 import './Navbar.css'
 
 const NOTIFICATION_SOUND_ASSETS = Object.freeze({
-  dashboard: '/assets/stayqr-main-dashboard-tone.wav',
-  housekeeping: '/assets/stayqr-housekeeping-tone.wav',
-  kitchen: '/assets/stayqr-kitchen-tone.wav',
+  dashboard: '/assets/stayqr-rev61f4-main-dashboard.wav',
+  housekeeping: '/assets/stayqr-rev61f4-housekeeping.wav',
+  kitchen: '/assets/stayqr-rev61f4-kitchen.wav',
 })
 
 function ensureNotificationAudio(audioMap, soundKey) {
@@ -70,7 +72,6 @@ export default function Navbar({
   const userMenuRef = useRef(null)
   const notificationRef = useRef(null)
   const notificationRequestRef = useRef(0)
-  const activeHotelIdRef = useRef(null)
   const notificationAudioRefsRef = useRef(new Map())
   const notificationAudioArmedRef = useRef(false)
   const notificationInboxPrimedRef = useRef(false)
@@ -79,12 +80,11 @@ export default function Navbar({
   const hotelId = tenantContext?.selectedHotelId || currentStaff?.hotel_id || currentStaff?.hotels?.id
   const userName = currentStaff?.full_name || 'Admin'
   const hotelName = tenantContext?.selectedHotel?.hotel_name || currentStaff?.hotels?.hotel_name || currentStaff?.hotel_name || 'StayQR Hotel'
-  const normalizedRole = normalizeRole(currentRole || currentStaff?.role || 'manager')
+  const normalizedRole = normalizeRole(currentStaff?.role || currentRole || 'manager')
   const isPlatformAccount = Boolean(tenantContext?.isPlatformAdmin)
   const isPlatformSupportMode = Boolean(tenantContext?.isPlatformSupportMode)
   const roleName = formatRole(normalizedRole)
   const unreadCount = notifications.filter((item) => item.status === 'unread').length
-  activeHotelIdRef.current = hotelId || null
 
   useEffect(() => {
     notificationRequestRef.current += 1
@@ -101,6 +101,63 @@ export default function Navbar({
   }, [hotelId])
 
   useEffect(() => {
+    if (!hotelId) return undefined
+
+    const channel = supabase
+      .channel(
+        `rev61f4_service_notifications_${hotelId}_${normalizedRole}`
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'service_requests',
+          filter: `hotel_id=eq.${hotelId}`,
+        },
+        (payload) => {
+          const request = payload?.new
+          if (!request?.id) return
+          if (!isServiceRequestForRole(request, normalizedRole)) return
+
+          const notification = createServiceRequestNotification(request)
+
+          if (!seenNotificationIdsRef.current.has(notification.id)) {
+            seenNotificationIdsRef.current.add(notification.id)
+            setNotifications((current) =>
+              mergeNotificationItems([notification], current)
+            )
+          }
+
+          const soundKey = getAccountNotificationSoundKey(normalizedRole)
+          const sharedPlayer =
+            window.__stayqrPlayDepartmentNotificationSound
+
+          if (typeof sharedPlayer === 'function') {
+            sharedPlayer(soundKey)
+          } else {
+            try {
+              const audio = ensureNotificationAudio(
+                notificationAudioRefsRef.current,
+                soundKey
+              )
+              audio.pause?.()
+              audio.currentTime = 0
+              void audio.play().catch(() => {})
+            } catch {
+              // Keep the notification visible if browser audio is unavailable.
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [hotelId, normalizedRole])
+
+  useEffect(() => {
     if (
       !hotelId ||
       !['restaurant', 'kitchen', 'chef'].includes(normalizedRole)
@@ -109,7 +166,9 @@ export default function Navbar({
     }
 
     const channel = supabase
-      .channel(`rev60_kitchen_notifications_${hotelId}_${Date.now()}`)
+      .channel(
+        `rev61f4_kitchen_notifications_${hotelId}_${normalizedRole}`
+      )
       .on(
         'postgres_changes',
         {
@@ -123,40 +182,30 @@ export default function Navbar({
           if (!order?.id) return
 
           const notification = createKitchenOrderNotification(order)
-          if (seenNotificationIdsRef.current.has(notification.id)) return
 
-          seenNotificationIdsRef.current.add(notification.id)
-          setNotifications((current) =>
-            mergeNotificationItems([notification], current)
-          )
+          if (!seenNotificationIdsRef.current.has(notification.id)) {
+            seenNotificationIdsRef.current.add(notification.id)
+            setNotifications((current) =>
+              mergeNotificationItems([notification], current)
+            )
+          }
 
-          if (notificationInboxPrimedRef.current) {
-            const sharedPlayer =
-              window.__stayqrPlayDepartmentNotificationSound
+          const sharedPlayer =
+            window.__stayqrPlayDepartmentNotificationSound
 
-            if (typeof sharedPlayer === 'function') {
-              sharedPlayer('kitchen')
-            } else {
-              try {
-                const audio = ensureNotificationAudio(
-                  notificationAudioRefsRef.current,
-                  'kitchen'
-                )
-                audio.currentTime = 0
-                void audio.play().catch(() => {})
-              } catch {
-                // The Kitchen notification remains visible if browser audio is blocked.
-              }
-            }
-
-            if (
-              document.visibilityState !== 'visible' &&
-              window.Notification?.permission === 'granted'
-            ) {
-              new window.Notification(notification.title, {
-                body: notification.message,
-                tag: notification.id,
-              })
+          if (typeof sharedPlayer === 'function') {
+            sharedPlayer('kitchen')
+          } else {
+            try {
+              const audio = ensureNotificationAudio(
+                notificationAudioRefsRef.current,
+                'kitchen'
+              )
+              audio.pause?.()
+              audio.currentTime = 0
+              void audio.play().catch(() => {})
+            } catch {
+              // Keep the Kitchen notification visible if audio is unavailable.
             }
           }
         }
@@ -167,7 +216,6 @@ export default function Navbar({
       supabase.removeChannel(channel)
     }
   }, [hotelId, normalizedRole])
-
   useEffect(() => {
     const handlePointerDown = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -203,27 +251,32 @@ export default function Navbar({
         try {
           ensureNotificationAudio(audioMap, soundKey).load?.()
         } catch {
-          // Notification audio is a progressive enhancement.
+          // Notification audio is progressive enhancement.
         }
       })
     }
 
     const playDepartmentSound = (requestedKey) => {
-      const soundKey = NOTIFICATION_SOUND_ASSETS[requestedKey] ? requestedKey : 'dashboard'
-      const browserAlreadyActivated = Boolean(navigator.userActivation?.hasBeenActive)
+      const soundKey =
+        NOTIFICATION_SOUND_ASSETS[requestedKey]
+          ? requestedKey
+          : 'dashboard'
 
-      if (!notificationAudioArmedRef.current && !browserAlreadyActivated) return false
-      notificationAudioArmedRef.current = true
+      const browserAlreadyActivated =
+        Boolean(navigator.userActivation?.hasBeenActive)
 
-      if (soundKey === 'kitchen') {
-        const now = Date.now()
-        const previous = Number(window.__stayqrKitchenToneAt || 0)
-        if (now - previous < 1800) return true
-        window.__stayqrKitchenToneAt = now
+      if (
+        !notificationAudioArmedRef.current &&
+        !browserAlreadyActivated
+      ) {
+        return false
       }
+
+      notificationAudioArmedRef.current = true
 
       try {
         const audio = ensureNotificationAudio(audioMap, soundKey)
+        audio.pause?.()
         audio.currentTime = 0
         void audio.play().catch(() => {})
         return true
@@ -239,22 +292,37 @@ export default function Navbar({
 
     preloadAudio()
 
-    if (navigator.userActivation?.hasBeenActive) armAudio()
+    if (navigator.userActivation?.hasBeenActive) {
+      armAudio()
+    }
 
-    window.__stayqrPlayDepartmentNotificationSound = playDepartmentSound
-    window.__stayqrDepartmentToneVersion = 'rev60-role-account-routing'
+    window.__stayqrPlayDepartmentNotificationSound =
+      playDepartmentSound
+    window.__stayqrDepartmentToneVersion =
+      'rev61f4-lint-safe-routing'
 
-    window.addEventListener('pointerdown', armAudio, { passive: true })
+    window.addEventListener(
+      'pointerdown',
+      armAudio,
+      { passive: true }
+    )
     window.addEventListener('keydown', armAudio)
 
     return () => {
       window.removeEventListener('pointerdown', armAudio)
       window.removeEventListener('keydown', armAudio)
 
-      if (window.__stayqrPlayDepartmentNotificationSound === playDepartmentSound) {
+      if (
+        window.__stayqrPlayDepartmentNotificationSound ===
+        playDepartmentSound
+      ) {
         delete window.__stayqrPlayDepartmentNotificationSound
       }
-      if (window.__stayqrDepartmentToneVersion === 'rev60-role-account-routing') {
+
+      if (
+        window.__stayqrDepartmentToneVersion ===
+        'rev61f4-lint-safe-routing'
+      ) {
         delete window.__stayqrDepartmentToneVersion
       }
 
@@ -262,6 +330,7 @@ export default function Navbar({
         audio.pause?.()
         audio.currentTime = 0
       })
+
       audioMap.clear()
       notificationAudioArmedRef.current = false
     }
@@ -280,31 +349,65 @@ export default function Navbar({
   }, [])
 
   function playNotificationChime(notification) {
-    const browserAlreadyActivated = Boolean(navigator.userActivation?.hasBeenActive)
-    if (!notificationAudioArmedRef.current && !browserAlreadyActivated) return
+    const sourceType = String(notification?.source_type || '')
+      .trim()
+      .toLowerCase()
+
+    if (
+      sourceType === 'service_request' ||
+      sourceType === 'food_order'
+    ) {
+      return
+    }
+
+    const browserAlreadyActivated =
+      Boolean(navigator.userActivation?.hasBeenActive)
+
+    if (
+      !notificationAudioArmedRef.current &&
+      !browserAlreadyActivated
+    ) {
+      return
+    }
 
     notificationAudioArmedRef.current = true
 
     try {
-      const soundKey = getAccountNotificationSoundKey(normalizedRole)
-      const sharedPlayer = window.__stayqrPlayDepartmentNotificationSound
+      const soundKey =
+        getAccountNotificationSoundKey(normalizedRole)
+      const sharedPlayer =
+        window.__stayqrPlayDepartmentNotificationSound
 
       if (typeof sharedPlayer === 'function') {
         sharedPlayer(soundKey)
       } else {
-        const audio = ensureNotificationAudio(notificationAudioRefsRef.current, soundKey)
+        const audio = ensureNotificationAudio(
+          notificationAudioRefsRef.current,
+          soundKey
+        )
+        audio.pause?.()
         audio.currentTime = 0
         void audio.play().catch(() => {})
       }
 
-      if (document.visibilityState !== 'visible' && window.Notification?.permission === 'granted') {
-        new window.Notification(notification?.title || 'StayQR', {
-          body: notification?.message || 'New hotel activity',
-          tag: `stayqr-${notification?.id || Date.now()}`,
-        })
+      if (
+        document.visibilityState !== 'visible' &&
+        window.Notification?.permission === 'granted'
+      ) {
+        new window.Notification(
+          notification?.title || 'StayQR',
+          {
+            body:
+              notification?.message ||
+              'New hotel activity',
+            tag: notification?.id
+              ? `stayqr-${notification.id}`
+              : 'stayqr-notification',
+          }
+        )
       }
     } catch {
-      // Keep the notification inbox functional even if audio is unavailable.
+      // Keep notification inbox functional even when audio is unavailable.
     }
   }
 
@@ -317,10 +420,7 @@ export default function Navbar({
     try {
       const data = await getNotificationInbox(id, 30)
 
-      if (
-        notificationRequestRef.current !== requestId ||
-        activeHotelIdRef.current !== id
-      ) {
+      if (notificationRequestRef.current !== requestId) {
         return
       }
 

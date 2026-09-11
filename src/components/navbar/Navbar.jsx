@@ -248,12 +248,12 @@ export default function Navbar({
 
     const channel = supabase
       .channel(
-        `rev61f4_kitchen_notifications_${hotelId}_${normalizedRole}`
+        `kitchen_k2_order_cancel_${hotelId}_${normalizedRole}`
       )
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'food_orders',
           filter: `hotel_id=eq.${hotelId}`,
@@ -262,14 +262,54 @@ export default function Navbar({
           const order = payload?.new
           if (!order?.id) return
 
-          const notification = createKitchenOrderNotification(order)
+          const status = String(order?.order_status || '')
+            .trim()
+            .toLowerCase()
 
-          if (!seenNotificationIdsRef.current.has(notification.id)) {
-            seenNotificationIdsRef.current.add(notification.id)
-            setNotifications((current) =>
-              mergeNotificationItems([notification], current)
-            )
-          }
+          const isNewOrder = payload?.eventType === 'INSERT'
+          const isCancelled =
+            payload?.eventType === 'UPDATE' &&
+            status === 'cancelled'
+
+          if (!isNewOrder && !isCancelled) return
+
+          const baseNotification =
+            createKitchenOrderNotification(order)
+
+          const notification = isCancelled
+            ? {
+                ...baseNotification,
+                id: `local-food-order:${order.id}:cancelled`,
+                event_key: 'food_order.cancelled',
+                title: 'Food order cancelled',
+                message:
+                  order?.room_number || order?.rooms?.room_number
+                    ? `Food order from Room ${
+                        order?.room_number ||
+                        order?.rooms?.room_number
+                      } was cancelled.`
+                    : 'A guest food order was cancelled.',
+                created_at:
+                  order?.cancelled_at ||
+                  order?.updated_at ||
+                  new Date().toISOString(),
+                metadata: {
+                  ...baseNotification.metadata,
+                  order_status: 'cancelled',
+                  lifecycle_event: true,
+                },
+              }
+            : baseNotification
+
+          const isNewKitchenNotification =
+            !seenNotificationIdsRef.current.has(notification.id)
+
+          if (!isNewKitchenNotification) return
+
+          seenNotificationIdsRef.current.add(notification.id)
+          setNotifications((current) =>
+            mergeNotificationItems([notification], current)
+          )
 
           const sharedPlayer =
             window.__stayqrPlayDepartmentNotificationSound

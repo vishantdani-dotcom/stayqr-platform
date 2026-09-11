@@ -112,7 +112,7 @@ export default function FoodMenu() {
   const [selectedModifiers, setSelectedModifiers] = useState({})
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [busyId, setBusyId] = useState('')
+  const [cancellingOrderId, setCancellingOrderId] = useState('')
   const [toast, setToast] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -527,23 +527,65 @@ export default function FoodMenu() {
   }
 
   async function cancelOrder(order) {
-    if (!order?.can_cancel || busyId) return
-    if (!window.confirm(copy.cancelConfirm)) return
-    setBusyId(order.id)
-    try {
-      const valid = await validateAccess()
-      if (!valid) throw new Error(copy.accessUnavailableBody)
-      await cancelGuestFoodOrder(order.id)
-      await loadOrderData()
-      showToast(copy.orderCancelled)
-    } catch (error) {
-      showToast(error.message || copy.unableCancel)
-    } finally {
-      setBusyId('')
-    }
+  if (
+    !order?.id ||
+    !order?.can_cancel ||
+    cancellingOrderId
+  ) {
+    return
   }
 
-  function returnToGuide() {
+  setCancellingOrderId(order.id)
+
+  try {
+    const result = await cancelGuestFoodOrder(
+      order.id,
+      'Cancelled by guest from the secure dining menu'
+    )
+
+    if (result?.ok !== true) {
+      throw new Error(
+        result?.message || copy.unableCancel
+      )
+    }
+
+    setOrders((current) =>
+      current.map((item) =>
+        item.id === order.id
+          ? {
+              ...item,
+              order_status: 'cancelled',
+              can_cancel: false,
+              cancelled_at: new Date().toISOString(),
+              cancellation_reason:
+                'Cancelled by guest from the secure dining menu',
+            }
+          : item
+      )
+    )
+
+    showToast(copy.orderCancelled)
+
+    try {
+      await loadOrderData()
+    } catch {
+      // Keep the successful optimistic cancelled state until the next poll.
+    }
+  } catch (error) {
+    console.error('Food order cancellation failed:', error)
+    showToast(error.message || copy.unableCancel)
+
+    try {
+      await loadOrderData()
+    } catch {
+      // Preserve the explicit cancellation error.
+    }
+  } finally {
+    setCancellingOrderId('')
+  }
+}
+
+function returnToGuide() {
     const { hotelSlug: accessSlug, accessToken } = getGuestAccessContext('food')
     if (accessSlug && accessToken) {
       const target = `/guest/${encodeURIComponent(accessSlug)}/${encodeURIComponent(accessToken)}`
@@ -973,10 +1015,10 @@ export default function FoodMenu() {
                     {order.can_cancel && (
                       <button
                         className="food-cancel"
-                        disabled={busyId === order.id}
+                        disabled={Boolean(cancellingOrderId)}
                         onClick={() => cancelOrder(order)}
                       >
-                        {copy.cancelOrder}
+                        {cancellingOrderId === order.id ? 'Cancelling…' : copy.cancelOrder}
                       </button>
                     )}
                   </article>

@@ -475,6 +475,7 @@ export default function GuestGuide() {
   const [requests, setRequests] = useState([])
   const [serviceCatalog, setServiceCatalog] = useState([])
   const [requestLoading, setRequestLoading] = useState(false)
+  const [cancellingRequestId, setCancellingRequestId] = useState('')
   const [pendingDiningAmount, setPendingDiningAmount] = useState(0)
   const [feedbackRating, setFeedbackRating] = useState(5)
   const [feedbackMessage, setFeedbackMessage] = useState('')
@@ -856,28 +857,59 @@ export default function GuestGuide() {
   }
 
   async function cancelRequest(request) {
-    if (!request?.id || requestLoading || request.can_cancel === false) return
-    const confirmed = window.confirm(
-      `${copy.cancel} ${request.request_type || copy.requestService}?`
-    )
-    if (!confirmed) return
+    if (
+      !request?.id ||
+      request.can_cancel === false ||
+      cancellingRequestId
+    ) {
+      return
+    }
 
     try {
-      setRequestLoading(true)
-      const accessStillValid = await fetchActivePortal()
-      if (!accessStillValid) throw new Error(copy.accessUnavailable)
-      await cancelGuestServiceRequest(
+      setCancellingRequestId(request.id)
+
+      const result = await cancelGuestServiceRequest(
         request.id,
         'Cancelled by guest from the secure guide'
       )
-      showToast(`${request.request_type || copy.requestService}: ${copy.cancelled}`)
+
+      if (result?.ok !== true) {
+        throw new Error(
+          result?.message || 'Unable to cancel the service request.'
+        )
+      }
+
+      setRequests((current) =>
+        current.map((item) =>
+          item.id === request.id
+            ? {
+                ...item,
+                status: 'cancelled',
+                can_cancel: false,
+                cancelled_at: new Date().toISOString(),
+                cancellation_reason:
+                  'Cancelled by guest from the secure guide',
+              }
+            : item
+        )
+      )
+
+      showToast(
+        `${request.request_type || copy.requestService}: ${copy.cancelled}`
+      )
+
       await fetchMyRequests()
     } catch (error) {
       console.error('Cancel service request error:', error)
-      await fetchActivePortal()
       showToast(error.message || copy.actionNotConfigured)
+
+      try {
+        await fetchMyRequests()
+      } catch {
+        // Keep the explicit cancellation error visible.
+      }
     } finally {
-      setRequestLoading(false)
+      setCancellingRequestId('')
     }
   }
 
@@ -1369,9 +1401,12 @@ export default function GuestGuide() {
                       type="button"
                       className="ag-request-cancel"
                       onClick={() => void cancelRequest(request)}
-                      disabled={requestLoading}
+                      disabled={Boolean(cancellingRequestId)}
+                      aria-busy={cancellingRequestId === request.id}
                     >
-                      {copy.cancel}
+                      {cancellingRequestId === request.id
+                        ? 'Cancelling…'
+                        : copy.cancel}
                     </button>
                   )}
                 </article>

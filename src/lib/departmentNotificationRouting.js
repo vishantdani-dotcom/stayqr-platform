@@ -46,6 +46,10 @@ export function getAccountNotificationSoundKey(role) {
   return 'dashboard'
 }
 
+export function isDashboardNotificationRole(role) {
+  return DASHBOARD_ROLES.has(normalizeRole(role))
+}
+
 export function isLocalDepartmentNotification(notification) {
   return Boolean(notification?.metadata?.local_department_event)
 }
@@ -186,7 +190,7 @@ function allowedNonServiceCategory(category, role) {
   }
 
   if (DASHBOARD_ROLES.has(normalized)) {
-    return !['food', 'housekeeping', 'maintenance'].includes(category)
+    return true
   }
 
   return category === 'general'
@@ -198,6 +202,13 @@ export async function filterNotificationInboxForRole({
   role,
 }) {
   const normalized = normalizeRole(role)
+
+  // Hotel dashboard roles are the global operational observer.
+  // Department accounts remain isolated by the existing filters below.
+  if (DASHBOARD_ROLES.has(normalized)) {
+    return items
+  }
+
   const serviceItems = items.filter(
     (item) => getNotificationCategory(item) === 'service'
   )

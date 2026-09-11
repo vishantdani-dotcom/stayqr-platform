@@ -25,6 +25,7 @@ import {
   filterNotificationInboxForRole,
   getAccountNotificationSoundKey,
   isLocalDepartmentNotification,
+  isDashboardNotificationRole,
   isServiceRequestForRole,
   mergeNotificationItems,
 } from '../../lib/departmentNotificationRouting'
@@ -105,15 +106,22 @@ export default function Navbar({
 
     const housekeepingAccount =
       ['housekeeping', 'housekeeper'].includes(normalizedRole)
+    const dashboardObserver =
+      isDashboardNotificationRole(normalizedRole)
 
     const channel = supabase
       .channel(
-        `housekeeping_h4_final_lifecycle_tone_${hotelId}_${normalizedRole}`
+        dashboardObserver
+          ? `dashboard_d1_global_service_${hotelId}_${normalizedRole}`
+          : `housekeeping_h4_final_lifecycle_tone_${hotelId}_${normalizedRole}`
       )
       .on(
         'postgres_changes',
         {
-          event: housekeepingAccount ? '*' : 'INSERT',
+          event:
+            housekeepingAccount || dashboardObserver
+              ? '*'
+              : 'INSERT',
           schema: 'public',
           table: 'service_requests',
           filter: `hotel_id=eq.${hotelId}`,
@@ -121,7 +129,13 @@ export default function Navbar({
         (payload) => {
           const request = payload?.new
           if (!request?.id) return
-          if (!isServiceRequestForRole(request, normalizedRole)) return
+
+          if (
+            !dashboardObserver &&
+            !isServiceRequestForRole(request, normalizedRole)
+          ) {
+            return
+          }
 
           const baseNotification =
             createServiceRequestNotification(request)
@@ -194,6 +208,77 @@ export default function Navbar({
                 lifecycle_event: true,
               },
             }
+          } else if (dashboardObserver) {
+            const status = String(request?.status || 'pending')
+              .trim()
+              .toLowerCase()
+            const requestLabel =
+              String(
+                request?.request_type ||
+                  'Service request'
+              ).trim() || 'Service request'
+
+            const statusCopy = {
+              pending: {
+                eventKey: 'service_request.created',
+                label: 'New request',
+                message:
+                  request?.request_details ||
+                  `${requestLabel} was requested.`,
+              },
+              accepted: {
+                eventKey: 'service_request.accepted',
+                label: 'Accepted',
+                message: `${requestLabel} was accepted.`,
+              },
+              in_progress: {
+                eventKey: 'service_request.in_progress',
+                label: 'In progress',
+                message: `${requestLabel} is in progress.`,
+              },
+              escalated: {
+                eventKey: 'service_request.escalated',
+                label: 'Escalated',
+                message: `${requestLabel} was escalated.`,
+              },
+              completed: {
+                eventKey: 'service_request.completed',
+                label: 'Completed',
+                message: `${requestLabel} was completed.`,
+              },
+              cancelled: {
+                eventKey: 'service_request.cancelled',
+                label: 'Cancelled',
+                message: `${requestLabel} was cancelled.`,
+              },
+            }
+
+            const copy =
+              statusCopy[status] || {
+                eventKey: 'service_request.updated',
+                label: 'Updated',
+                message: `${requestLabel} was updated.`,
+              }
+
+            notification = {
+              ...baseNotification,
+              id: `local-dashboard-service:${request.id}:${status}`,
+              event_key: copy.eventKey,
+              title: `${requestLabel} · ${copy.label}`,
+              message: copy.message,
+              created_at:
+                request?.updated_at ||
+                request?.cancelled_at ||
+                request?.completed_at ||
+                request?.created_at ||
+                new Date().toISOString(),
+              metadata: {
+                ...baseNotification.metadata,
+                request_status: status,
+                lifecycle_event: true,
+                dashboard_global_observer: true,
+              },
+            }
           } else if (payload?.eventType !== 'INSERT') {
             return
           }
@@ -208,9 +293,11 @@ export default function Navbar({
             mergeNotificationItems([notification], current)
           )
 
-          const soundKey = housekeepingAccount
-            ? 'housekeeping'
-            : getAccountNotificationSoundKey(normalizedRole)
+          const soundKey = dashboardObserver
+            ? 'dashboard'
+            : housekeepingAccount
+              ? 'housekeeping'
+              : getAccountNotificationSoundKey(normalizedRole)
 
           const sharedPlayer =
             window.__stayqrPlayDepartmentNotificationSound
@@ -227,7 +314,7 @@ export default function Navbar({
               audio.currentTime = 0
               void audio.play().catch(() => {})
             } catch {
-              // Notification remains visible if browser audio is unavailable.
+              // Keep notification visible if audio is unavailable.
             }
           }
         }
@@ -239,16 +326,23 @@ export default function Navbar({
     }
   }, [hotelId, normalizedRole])
   useEffect(() => {
+    const kitchenAccount =
+      ['restaurant', 'kitchen', 'chef'].includes(normalizedRole)
+    const dashboardObserver =
+      isDashboardNotificationRole(normalizedRole)
+
     if (
       !hotelId ||
-      !['restaurant', 'kitchen', 'chef'].includes(normalizedRole)
+      (!kitchenAccount && !dashboardObserver)
     ) {
       return undefined
     }
 
     const channel = supabase
       .channel(
-        `kitchen_k2_order_cancel_${hotelId}_${normalizedRole}`
+        dashboardObserver
+          ? `dashboard_d1_global_food_${hotelId}_${normalizedRole}`
+          : `kitchen_k2_order_cancel_${hotelId}_${normalizedRole}`
       )
       .on(
         'postgres_changes',
@@ -262,7 +356,7 @@ export default function Navbar({
           const order = payload?.new
           if (!order?.id) return
 
-          const status = String(order?.order_status || '')
+          const status = String(order?.order_status || 'pending')
             .trim()
             .toLowerCase()
 
@@ -271,62 +365,150 @@ export default function Navbar({
             payload?.eventType === 'UPDATE' &&
             status === 'cancelled'
 
-          if (!isNewOrder && !isCancelled) return
+          let notification
 
-          const baseNotification =
-            createKitchenOrderNotification(order)
+          if (kitchenAccount) {
+            if (!isNewOrder && !isCancelled) return
 
-          const notification = isCancelled
-            ? {
-                ...baseNotification,
-                id: `local-food-order:${order.id}:cancelled`,
-                event_key: 'food_order.cancelled',
-                title: 'Food order cancelled',
+            const baseNotification =
+              createKitchenOrderNotification(order)
+
+            notification = isCancelled
+              ? {
+                  ...baseNotification,
+                  id: `local-food-order:${order.id}:cancelled`,
+                  event_key: 'food_order.cancelled',
+                  title: 'Food order cancelled',
+                  message:
+                    order?.room_number || order?.rooms?.room_number
+                      ? `Food order from Room ${
+                          order?.room_number ||
+                          order?.rooms?.room_number
+                        } was cancelled.`
+                      : 'A guest food order was cancelled.',
+                  created_at:
+                    order?.cancelled_at ||
+                    order?.updated_at ||
+                    new Date().toISOString(),
+                  metadata: {
+                    ...baseNotification.metadata,
+                    order_status: 'cancelled',
+                    lifecycle_event: true,
+                  },
+                }
+              : baseNotification
+          } else {
+            if (
+              payload?.eventType !== 'INSERT' &&
+              payload?.eventType !== 'UPDATE'
+            ) {
+              return
+            }
+
+            const baseNotification =
+              createKitchenOrderNotification(order)
+
+            const statusCopy = {
+              pending: {
+                eventKey: 'food_order.created',
+                label: 'New food order',
                 message:
                   order?.room_number || order?.rooms?.room_number
-                    ? `Food order from Room ${
+                    ? `New food order from Room ${
                         order?.room_number ||
                         order?.rooms?.room_number
-                      } was cancelled.`
-                    : 'A guest food order was cancelled.',
-                created_at:
-                  order?.cancelled_at ||
-                  order?.updated_at ||
-                  new Date().toISOString(),
-                metadata: {
-                  ...baseNotification.metadata,
-                  order_status: 'cancelled',
-                  lifecycle_event: true,
-                },
-              }
-            : baseNotification
+                      }.`
+                    : 'A new guest food order was placed.',
+              },
+              accepted: {
+                eventKey: 'food_order.accepted',
+                label: 'Food order accepted',
+                message: 'A food order was accepted by the restaurant.',
+              },
+              preparing: {
+                eventKey: 'food_order.preparing',
+                label: 'Food order preparing',
+                message: 'A food order moved to preparing.',
+              },
+              ready: {
+                eventKey: 'food_order.ready',
+                label: 'Food order ready',
+                message: 'A food order is ready.',
+              },
+              out_for_delivery: {
+                eventKey: 'food_order.out_for_delivery',
+                label: 'Food order on the way',
+                message: 'A food order is on the way to the guest.',
+              },
+              delivered: {
+                eventKey: 'food_order.delivered',
+                label: 'Food order delivered',
+                message: 'A food order was delivered.',
+              },
+              cancelled: {
+                eventKey: 'food_order.cancelled',
+                label: 'Food order cancelled',
+                message: 'A guest food order was cancelled.',
+              },
+            }
 
-          const isNewKitchenNotification =
+            const copy =
+              statusCopy[status] || {
+                eventKey: 'food_order.updated',
+                label: 'Food order updated',
+                message: 'A food order was updated.',
+              }
+
+            notification = {
+              ...baseNotification,
+              id: `local-dashboard-food-order:${order.id}:${status}`,
+              event_key: copy.eventKey,
+              title: copy.label,
+              message: copy.message,
+              created_at:
+                order?.updated_at ||
+                order?.cancelled_at ||
+                order?.created_at ||
+                new Date().toISOString(),
+              metadata: {
+                ...baseNotification.metadata,
+                order_status: status,
+                lifecycle_event: true,
+                dashboard_global_observer: true,
+              },
+            }
+          }
+
+          const isNewFoodNotification =
             !seenNotificationIdsRef.current.has(notification.id)
 
-          if (!isNewKitchenNotification) return
+          if (!isNewFoodNotification) return
 
           seenNotificationIdsRef.current.add(notification.id)
           setNotifications((current) =>
             mergeNotificationItems([notification], current)
           )
 
+          const soundKey = dashboardObserver
+            ? 'dashboard'
+            : 'kitchen'
+
           const sharedPlayer =
             window.__stayqrPlayDepartmentNotificationSound
 
           if (typeof sharedPlayer === 'function') {
-            sharedPlayer('kitchen')
+            sharedPlayer(soundKey)
           } else {
             try {
               const audio = ensureNotificationAudio(
                 notificationAudioRefsRef.current,
-                'kitchen'
+                soundKey
               )
               audio.pause?.()
               audio.currentTime = 0
               void audio.play().catch(() => {})
             } catch {
-              // Keep the Kitchen notification visible if audio is unavailable.
+              // Keep notification visible if audio is unavailable.
             }
           }
         }
@@ -556,7 +738,20 @@ export default function Navbar({
 
       if (notificationInboxPrimedRef.current && newUnreadItems.length > 0) {
         // get_notification_inbox is recipient-scoped, so only alerts visible to this logged-in staff account chime.
-        playNotificationChime(newUnreadItems[0])
+        {
+          // Dashboard is the global hotel observer: every newly visible inbox item
+          // gets a dashboard chime. Service/food items are intentionally skipped
+          // inside playNotificationChime because their direct realtime mirrors
+          // above already ring exactly once.
+          const chimeItems =
+            isDashboardNotificationRole(normalizedRole)
+              ? newUnreadItems
+              : [newUnreadItems[0]]
+
+          chimeItems.forEach((item) => {
+            playNotificationChime(item)
+          })
+        }
       }
 
       seenNotificationIdsRef.current = new Set([

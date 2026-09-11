@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import "./DocumentScanner.css";
 
 const MAX_CAPTURE_DIMENSION = 3200;
@@ -517,7 +518,7 @@ export default function DocumentScanner({ onCapture, disabled = false }) {
         />
       </div>
 
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <div className="document-scanner-modal" role="dialog" aria-modal="true" aria-label="Document camera scanner">
           <div className="document-scanner-card">
             <div className="document-scanner-head">
@@ -533,8 +534,10 @@ export default function DocumentScanner({ onCapture, disabled = false }) {
 
             {!preview ? (
               <div className="document-scanner-stage">
-                <video ref={videoRef} playsInline muted aria-label="Live document camera preview" />
-                <div className="document-scanner-frame" aria-hidden="true" />
+                <div className="document-camera-preview">
+                  <video ref={videoRef} playsInline muted aria-label="Live document camera preview" />
+                  <div className="document-scanner-frame" aria-hidden="true" />
+                </div>
 
                 <div className="document-camera-status">
                   <span>{cameraResolution ? `Live ${cameraResolution}` : "Preparing camera…"}</span>
@@ -639,7 +642,8 @@ export default function DocumentScanner({ onCapture, disabled = false }) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

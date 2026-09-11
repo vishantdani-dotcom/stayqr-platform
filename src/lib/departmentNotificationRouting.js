@@ -115,11 +115,19 @@ export function createKitchenOrderNotification(order) {
 }
 
 function sourceIdentity(item) {
-  const sourceType = String(item?.source_type || '').trim().toLowerCase()
+  const sourceType = String(item?.source_type || '')
+    .trim()
+    .toLowerCase()
   const sourceId = String(item?.source_id || '').trim()
+  const eventKey = String(item?.event_key || '')
+    .trim()
+    .toLowerCase()
 
   if (!sourceType || !sourceId) return ''
-  return `${sourceType}:${sourceId}`
+
+  return eventKey
+    ? `${sourceType}:${sourceId}:${eventKey}`
+    : `${sourceType}:${sourceId}`
 }
 
 export function mergeNotificationItems(serverItems = [], currentItems = []) {

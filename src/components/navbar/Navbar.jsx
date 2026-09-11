@@ -103,14 +103,17 @@ export default function Navbar({
   useEffect(() => {
     if (!hotelId) return undefined
 
+    const housekeepingAccount =
+      ['housekeeping', 'housekeeper'].includes(normalizedRole)
+
     const channel = supabase
       .channel(
-        `rev61f4_service_notifications_${hotelId}_${normalizedRole}`
+        `housekeeping_h2_service_lifecycle_${hotelId}_${normalizedRole}`
       )
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: housekeepingAccount ? '*' : 'INSERT',
           schema: 'public',
           table: 'service_requests',
           filter: `hotel_id=eq.${hotelId}`,
@@ -120,7 +123,80 @@ export default function Navbar({
           if (!request?.id) return
           if (!isServiceRequestForRole(request, normalizedRole)) return
 
-          const notification = createServiceRequestNotification(request)
+          const baseNotification =
+            createServiceRequestNotification(request)
+
+          let notification = baseNotification
+
+          if (housekeepingAccount) {
+            const status = String(request?.status || 'pending')
+              .trim()
+              .toLowerCase()
+
+            const statusCopy = {
+              pending: {
+                eventKey: 'service_request.created',
+                label: 'Request received',
+                message:
+                  request?.request_details ||
+                  'A new Housekeeping request was received.',
+              },
+              accepted: {
+                eventKey: 'service_request.accepted',
+                label: 'Request accepted',
+                message: 'The Housekeeping request was accepted.',
+              },
+              in_progress: {
+                eventKey: 'service_request.in_progress',
+                label: 'Request in progress',
+                message: 'The Housekeeping request is now in progress.',
+              },
+              escalated: {
+                eventKey: 'service_request.escalated',
+                label: 'Request escalated',
+                message: 'The Housekeeping request was escalated.',
+              },
+              completed: {
+                eventKey: 'service_request.completed',
+                label: 'Request completed',
+                message: 'The Housekeeping request was completed.',
+              },
+              cancelled: {
+                eventKey: 'service_request.cancelled',
+                label: 'Request cancelled',
+                message: 'The guest cancelled the Housekeeping request.',
+              },
+            }
+
+            const copy =
+              statusCopy[status] || {
+                eventKey: 'service_request.updated',
+                label: 'Request updated',
+                message: 'The Housekeeping request was updated.',
+              }
+
+            notification = {
+              ...baseNotification,
+              id: `local-service-request:${request.id}:${status}`,
+              event_key: copy.eventKey,
+              title:
+                `${request.request_type || 'Housekeeping'} · ${copy.label}`,
+              message: copy.message,
+              created_at:
+                request?.updated_at ||
+                request?.cancelled_at ||
+                request?.completed_at ||
+                request?.created_at ||
+                new Date().toISOString(),
+              metadata: {
+                ...baseNotification.metadata,
+                request_status: status,
+                lifecycle_event: true,
+              },
+            }
+          } else if (payload?.eventType !== 'INSERT') {
+            return
+          }
 
           if (!seenNotificationIdsRef.current.has(notification.id)) {
             seenNotificationIdsRef.current.add(notification.id)
@@ -129,7 +205,13 @@ export default function Navbar({
             )
           }
 
-          const soundKey = getAccountNotificationSoundKey(normalizedRole)
+          // H2 intentionally preserves the existing ringtone behavior:
+          // only a newly INSERTED request attempts the existing sound path.
+          // H3 will repair Housekeeping audio after lifecycle notifications pass.
+          if (payload?.eventType !== 'INSERT') return
+
+          const soundKey =
+            getAccountNotificationSoundKey(normalizedRole)
           const sharedPlayer =
             window.__stayqrPlayDepartmentNotificationSound
 
@@ -145,7 +227,7 @@ export default function Navbar({
               audio.currentTime = 0
               void audio.play().catch(() => {})
             } catch {
-              // Keep the notification visible if browser audio is unavailable.
+              // Notification remains visible if browser audio is unavailable.
             }
           }
         }
@@ -156,7 +238,6 @@ export default function Navbar({
       supabase.removeChannel(channel)
     }
   }, [hotelId, normalizedRole])
-
   useEffect(() => {
     if (
       !hotelId ||

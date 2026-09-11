@@ -19,19 +19,20 @@ import {
   getNotificationTone,
   timeAgo,
 } from '../../lib/notificationPresentation'
+import {
+  createKitchenOrderNotification,
+  filterNotificationInboxForRole,
+  getAccountNotificationSoundKey,
+  isLocalDepartmentNotification,
+  mergeNotificationItems,
+} from '../../lib/departmentNotificationRouting'
 import './Navbar.css'
 
 const NOTIFICATION_SOUND_ASSETS = Object.freeze({
-  dashboard: '/assets/stayqr-dashboard-notification.wav',
-  housekeeping: '/assets/stayqr-notification.wav',
-  kitchen: '/assets/stayqr-kitchen-notification.wav',
+  dashboard: '/assets/stayqr-main-dashboard-tone.wav',
+  housekeeping: '/assets/stayqr-housekeeping-tone.wav',
+  kitchen: '/assets/stayqr-kitchen-tone.wav',
 })
-
-function getWorkspaceNotificationSoundKey(activeSection) {
-  if (activeSection === 'housekeeping') return 'housekeeping'
-  if (activeSection === 'foodorders') return 'kitchen'
-  return 'dashboard'
-}
 
 function ensureNotificationAudio(audioMap, soundKey) {
   const safeKey = NOTIFICATION_SOUND_ASSETS[soundKey] ? soundKey : 'dashboard'
@@ -40,7 +41,7 @@ function ensureNotificationAudio(audioMap, soundKey) {
     audio = new Audio(NOTIFICATION_SOUND_ASSETS[safeKey])
     audio.preload = 'auto'
     audio.volume = 1
-    audio.dataset.stayqrNotificationSound = `rev59-${safeKey}`
+    audio.dataset.stayqrNotificationSound = `rev60-${safeKey}`
     audioMap.set(safeKey, audio)
   }
   return audio
@@ -98,6 +99,74 @@ export default function Navbar({
     loadNotifications(hotelId)
     return subscribeToNotificationInbox(hotelId, () => loadNotifications(hotelId))
   }, [hotelId])
+
+  useEffect(() => {
+    if (
+      !hotelId ||
+      !['restaurant', 'kitchen', 'chef'].includes(normalizedRole)
+    ) {
+      return undefined
+    }
+
+    const channel = supabase
+      .channel(`rev60_kitchen_notifications_${hotelId}_${Date.now()}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'food_orders',
+          filter: `hotel_id=eq.${hotelId}`,
+        },
+        (payload) => {
+          const order = payload?.new
+          if (!order?.id) return
+
+          const notification = createKitchenOrderNotification(order)
+          if (seenNotificationIdsRef.current.has(notification.id)) return
+
+          seenNotificationIdsRef.current.add(notification.id)
+          setNotifications((current) =>
+            mergeNotificationItems([notification], current)
+          )
+
+          if (notificationInboxPrimedRef.current) {
+            const sharedPlayer =
+              window.__stayqrPlayDepartmentNotificationSound
+
+            if (typeof sharedPlayer === 'function') {
+              sharedPlayer('kitchen')
+            } else {
+              try {
+                const audio = ensureNotificationAudio(
+                  notificationAudioRefsRef.current,
+                  'kitchen'
+                )
+                audio.currentTime = 0
+                void audio.play().catch(() => {})
+              } catch {
+                // The Kitchen notification remains visible if browser audio is blocked.
+              }
+            }
+
+            if (
+              document.visibilityState !== 'visible' &&
+              window.Notification?.permission === 'granted'
+            ) {
+              new window.Notification(notification.title, {
+                body: notification.message,
+                tag: notification.id,
+              })
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [hotelId, normalizedRole])
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -173,7 +242,7 @@ export default function Navbar({
     if (navigator.userActivation?.hasBeenActive) armAudio()
 
     window.__stayqrPlayDepartmentNotificationSound = playDepartmentSound
-    window.__stayqrDepartmentToneVersion = 'rev59-fix7-workspace-routing'
+    window.__stayqrDepartmentToneVersion = 'rev60-role-account-routing'
 
     window.addEventListener('pointerdown', armAudio, { passive: true })
     window.addEventListener('keydown', armAudio)
@@ -185,7 +254,7 @@ export default function Navbar({
       if (window.__stayqrPlayDepartmentNotificationSound === playDepartmentSound) {
         delete window.__stayqrPlayDepartmentNotificationSound
       }
-      if (window.__stayqrDepartmentToneVersion === 'rev59-fix7-workspace-routing') {
+      if (window.__stayqrDepartmentToneVersion === 'rev60-role-account-routing') {
         delete window.__stayqrDepartmentToneVersion
       }
 
@@ -217,7 +286,7 @@ export default function Navbar({
     notificationAudioArmedRef.current = true
 
     try {
-      const soundKey = getWorkspaceNotificationSoundKey(activeSection)
+      const soundKey = getAccountNotificationSoundKey(normalizedRole)
       const sharedPlayer = window.__stayqrPlayDepartmentNotificationSound
 
       if (typeof sharedPlayer === 'function') {
@@ -255,7 +324,11 @@ export default function Navbar({
         return
       }
 
-      const nextItems = data?.items || []
+      const nextItems = await filterNotificationInboxForRole({
+        items: data?.items || [],
+        hotelId: id,
+        role: normalizedRole,
+      })
       const newUnreadItems = nextItems.filter((item) =>
         item?.id && item.status === 'unread' && !seenNotificationIdsRef.current.has(item.id)
       )
@@ -270,7 +343,9 @@ export default function Navbar({
         ...nextItems.map((item) => item?.id).filter(Boolean),
       ])
       notificationInboxPrimedRef.current = true
-      setNotifications(nextItems)
+      setNotifications((current) =>
+        mergeNotificationItems(nextItems, current)
+      )
       setNotifError('')
     } catch (error) {
       if (notificationRequestRef.current === requestId) {
@@ -296,6 +371,17 @@ export default function Navbar({
     try {
       await markInboxAllRead(hotelId)
       await loadNotifications(hotelId)
+      setNotifications((current) =>
+        current.map((item) =>
+          isLocalDepartmentNotification(item)
+            ? {
+                ...item,
+                status: 'read',
+                read_at: new Date().toISOString(),
+              }
+            : item
+        )
+      )
     } catch (error) {
       console.error('Mark all notifications read failed:', error)
       setNotifError('Could not mark notifications as read.')
@@ -309,9 +395,26 @@ export default function Navbar({
     setNotifBusy(true)
     setNotifError('')
 
+    const localDepartmentEvent =
+      isLocalDepartmentNotification(notification)
+
     try {
       if (notification.status === 'unread') {
-        await markInboxNotificationRead(notification.id)
+        if (localDepartmentEvent) {
+          setNotifications((current) =>
+            current.map((item) =>
+              item.id === notification.id
+                ? {
+                    ...item,
+                    status: 'read',
+                    read_at: new Date().toISOString(),
+                  }
+                : item
+            )
+          )
+        } else {
+          await markInboxNotificationRead(notification.id)
+        }
       }
 
       const destination = getNotificationDestination(notification)
@@ -319,7 +422,10 @@ export default function Navbar({
       if (onNavigate) {
         onNavigate(destination.section, destination.detail)
       }
-      await loadNotifications(hotelId)
+
+      if (!localDepartmentEvent) {
+        await loadNotifications(hotelId)
+      }
     } catch (error) {
       console.error('Notification action failed:', error)
       setNotifError('Could not open this notification. Try again.')
@@ -327,7 +433,6 @@ export default function Navbar({
       setNotifBusy(false)
     }
   }
-
   const handleLogout = async () => {
     if (onLogout) {
       await onLogout()

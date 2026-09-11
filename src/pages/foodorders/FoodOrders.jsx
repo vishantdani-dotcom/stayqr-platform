@@ -47,10 +47,10 @@ export default function FoodOrders() {
 
   const ensureKitchenAudio = useCallback(() => {
     if (!kitchenAudioRef.current) {
-      const audio = new Audio('/assets/stayqr-kitchen-notification.wav')
+      const audio = new Audio('/assets/stayqr-kitchen-tone.wav')
       audio.preload = 'auto'
       audio.volume = 1
-      audio.dataset.stayqrNotificationSound = 'rev59-kitchen'
+      audio.dataset.stayqrNotificationSound = 'rev60-kitchen'
       kitchenAudioRef.current = audio
     }
     return kitchenAudioRef.current

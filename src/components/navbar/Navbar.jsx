@@ -21,6 +21,31 @@ import {
 } from '../../lib/notificationPresentation'
 import './Navbar.css'
 
+const NOTIFICATION_SOUND_ASSETS = Object.freeze({
+  dashboard: '/assets/stayqr-dashboard-notification.wav',
+  housekeeping: '/assets/stayqr-notification.wav',
+  kitchen: '/assets/stayqr-kitchen-notification.wav',
+})
+
+function getWorkspaceNotificationSoundKey(activeSection) {
+  if (activeSection === 'housekeeping') return 'housekeeping'
+  if (activeSection === 'foodorders') return 'kitchen'
+  return 'dashboard'
+}
+
+function ensureNotificationAudio(audioMap, soundKey) {
+  const safeKey = NOTIFICATION_SOUND_ASSETS[soundKey] ? soundKey : 'dashboard'
+  let audio = audioMap.get(safeKey)
+  if (!audio) {
+    audio = new Audio(NOTIFICATION_SOUND_ASSETS[safeKey])
+    audio.preload = 'auto'
+    audio.volume = 1
+    audio.dataset.stayqrNotificationSound = `rev59-${safeKey}`
+    audioMap.set(safeKey, audio)
+  }
+  return audio
+}
+
 export default function Navbar({
   sidebarCollapsed,
   onMobileMenuToggle,
@@ -45,7 +70,7 @@ export default function Navbar({
   const notificationRef = useRef(null)
   const notificationRequestRef = useRef(0)
   const activeHotelIdRef = useRef(null)
-  const notificationAudioRef = useRef(null)
+  const notificationAudioRefsRef = useRef(new Map())
   const notificationAudioArmedRef = useRef(false)
   const notificationInboxPrimedRef = useRef(false)
   const seenNotificationIdsRef = useRef(new Set())
@@ -102,41 +127,76 @@ export default function Navbar({
   }, [])
 
   useEffect(() => {
-    const ensureAudio = () => {
-      if (!notificationAudioRef.current) {
-        const audio = new Audio('/assets/stayqr-notification.wav')
-        audio.preload = 'auto'
-        audio.volume = 1
-        notificationAudioRef.current = audio
+    const audioMap = notificationAudioRefsRef.current
+
+    const preloadAudio = () => {
+      Object.keys(NOTIFICATION_SOUND_ASSETS).forEach((soundKey) => {
+        try {
+          ensureNotificationAudio(audioMap, soundKey).load?.()
+        } catch {
+          // Notification audio is a progressive enhancement.
+        }
+      })
+    }
+
+    const playDepartmentSound = (requestedKey) => {
+      const soundKey = NOTIFICATION_SOUND_ASSETS[requestedKey] ? requestedKey : 'dashboard'
+      const browserAlreadyActivated = Boolean(navigator.userActivation?.hasBeenActive)
+
+      if (!notificationAudioArmedRef.current && !browserAlreadyActivated) return false
+      notificationAudioArmedRef.current = true
+
+      if (soundKey === 'kitchen') {
+        const now = Date.now()
+        const previous = Number(window.__stayqrKitchenToneAt || 0)
+        if (now - previous < 1800) return true
+        window.__stayqrKitchenToneAt = now
       }
-      return notificationAudioRef.current
+
+      try {
+        const audio = ensureNotificationAudio(audioMap, soundKey)
+        audio.currentTime = 0
+        void audio.play().catch(() => {})
+        return true
+      } catch {
+        return false
+      }
     }
 
     const armAudio = () => {
       notificationAudioArmedRef.current = true
-      try {
-        const audio = ensureAudio()
-        audio.load?.()
-      } catch {
-        // Notification audio is a progressive enhancement.
-      }
+      preloadAudio()
     }
 
-    ensureAudio()
+    preloadAudio()
+
+    if (navigator.userActivation?.hasBeenActive) armAudio()
+
+    window.__stayqrPlayDepartmentNotificationSound = playDepartmentSound
+    window.__stayqrDepartmentToneVersion = 'rev59-fix7-workspace-routing'
+
     window.addEventListener('pointerdown', armAudio, { passive: true })
     window.addEventListener('keydown', armAudio)
+
     return () => {
       window.removeEventListener('pointerdown', armAudio)
       window.removeEventListener('keydown', armAudio)
-      const audio = notificationAudioRef.current
-      if (audio) {
+
+      if (window.__stayqrPlayDepartmentNotificationSound === playDepartmentSound) {
+        delete window.__stayqrPlayDepartmentNotificationSound
+      }
+      if (window.__stayqrDepartmentToneVersion === 'rev59-fix7-workspace-routing') {
+        delete window.__stayqrDepartmentToneVersion
+      }
+
+      audioMap.forEach((audio) => {
         audio.pause?.()
         audio.currentTime = 0
-      }
-      notificationAudioRef.current = null
+      })
+      audioMap.clear()
+      notificationAudioArmedRef.current = false
     }
   }, [])
-
   useEffect(() => {
     const handleSearchShortcut = (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -151,14 +211,22 @@ export default function Navbar({
   }, [])
 
   function playNotificationChime(notification) {
-    if (!notificationAudioArmedRef.current) return
+    const browserAlreadyActivated = Boolean(navigator.userActivation?.hasBeenActive)
+    if (!notificationAudioArmedRef.current && !browserAlreadyActivated) return
+
+    notificationAudioArmedRef.current = true
+
     try {
-      const audio = notificationAudioRef.current || new Audio('/assets/stayqr-notification.wav')
-      notificationAudioRef.current = audio
-      audio.preload = 'auto'
-      audio.volume = 1
-      audio.currentTime = 0
-      void audio.play().catch(() => {})
+      const soundKey = getWorkspaceNotificationSoundKey(activeSection)
+      const sharedPlayer = window.__stayqrPlayDepartmentNotificationSound
+
+      if (typeof sharedPlayer === 'function') {
+        sharedPlayer(soundKey)
+      } else {
+        const audio = ensureNotificationAudio(notificationAudioRefsRef.current, soundKey)
+        audio.currentTime = 0
+        void audio.play().catch(() => {})
+      }
 
       if (document.visibilityState !== 'visible' && window.Notification?.permission === 'granted') {
         new window.Notification(notification?.title || 'StayQR', {

@@ -37,11 +37,89 @@ export default function FoodOrders() {
   const [cancellation, setCancellation] = useState(null)
   const knownIds = useRef(new Set())
   const initialLoadDone = useRef(false)
+  const kitchenAudioRef = useRef(null)
+  const kitchenAudioArmedRef = useRef(false)
 
   const showToast = useCallback((message) => {
     setToast(String(message || ''))
     window.setTimeout(() => setToast(''), 3000)
   }, [])
+
+  const ensureKitchenAudio = useCallback(() => {
+    if (!kitchenAudioRef.current) {
+      const audio = new Audio('/assets/stayqr-kitchen-notification.wav')
+      audio.preload = 'auto'
+      audio.volume = 1
+      audio.dataset.stayqrNotificationSound = 'rev59-kitchen'
+      kitchenAudioRef.current = audio
+    }
+    return kitchenAudioRef.current
+  }, [])
+
+  useEffect(() => {
+    const armKitchenAudio = () => {
+      kitchenAudioArmedRef.current = true
+      try {
+        ensureKitchenAudio().load?.()
+      } catch (error) {
+        console.warn('Kitchen notification sound could not be preloaded:', error)
+      }
+    }
+
+    ensureKitchenAudio()
+
+    if (navigator.userActivation?.hasBeenActive) {
+      armKitchenAudio()
+    }
+
+    window.addEventListener('pointerdown', armKitchenAudio, { passive: true })
+    window.addEventListener('keydown', armKitchenAudio)
+
+    return () => {
+      window.removeEventListener('pointerdown', armKitchenAudio)
+      window.removeEventListener('keydown', armKitchenAudio)
+
+      const audio = kitchenAudioRef.current
+      if (audio) {
+        audio.pause?.()
+        audio.currentTime = 0
+      }
+      kitchenAudioRef.current = null
+      kitchenAudioArmedRef.current = false
+    }
+  }, [ensureKitchenAudio])
+
+  const playKitchenBell = useCallback(() => {
+    try {
+      const sharedPlayer = window.__stayqrPlayDepartmentNotificationSound
+      if (typeof sharedPlayer === 'function' && sharedPlayer('kitchen')) return
+    } catch {
+      // Fall through to the page-local Kitchen audio fallback.
+    }
+
+    const browserAlreadyActivated = Boolean(navigator.userActivation?.hasBeenActive)
+    if (!kitchenAudioArmedRef.current && !browserAlreadyActivated) {
+      console.warn('Kitchen notification sound is waiting for a browser user interaction.')
+      return
+    }
+
+    kitchenAudioArmedRef.current = true
+
+    const now = Date.now()
+    const previous = Number(window.__stayqrKitchenToneAt || 0)
+    if (now - previous < 1800) return
+    window.__stayqrKitchenToneAt = now
+
+    try {
+      const audio = ensureKitchenAudio()
+      audio.currentTime = 0
+      void audio.play().catch((error) => {
+        console.warn('Kitchen notification sound playback was blocked:', error)
+      })
+    } catch (error) {
+      console.warn('Kitchen notification sound unavailable:', error)
+    }
+  }, [ensureKitchenAudio])
 
   const loadOrders = useCallback(async (hotelId) => {
     const data = await loadDay15FoodOrders(hotelId)
@@ -53,7 +131,7 @@ export default function FoodOrders() {
       showToast('New guest food order received.')
     }
     initialLoadDone.current = true
-  }, [showToast])
+  }, [playKitchenBell, showToast])
 
   const loadAnalytics = useCallback(async (hotelId) => {
     const from = new Date()
@@ -308,24 +386,6 @@ function KitchenCard({ order, busy, onMove, onEta, onCancel, onPrint }) {
 function Metric({ label, value }) { return <div className="day15-metric"><span>{label}</span><strong>{value}</strong></div> }
 function Status({ status }) { return <span className={`day15-status ${status}`}>{String(status || '').replaceAll('_', ' ')}</span> }
 function money(value, currency = 'INR') { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: currency || 'INR', maximumFractionDigits: 2 }).format(Number(value || 0)) }
-
-function playKitchenBell() {
-  try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext
-    if (!AudioContextClass) return
-    const context = new AudioContextClass()
-    const oscillator = context.createOscillator()
-    const gain = context.createGain()
-    oscillator.connect(gain)
-    gain.connect(context.destination)
-    oscillator.frequency.value = 880
-    gain.gain.setValueAtTime(0.001, context.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.22, context.currentTime + 0.02)
-    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.35)
-    oscillator.start()
-    oscillator.stop(context.currentTime + 0.36)
-  } catch (error) { console.warn('Kitchen alert unavailable:', error) }
-}
 
 function renderKot(ticket, hotelName) {
   const items = (ticket.items || []).map((item) => `<tr><td><strong>${escapeHtml(item.quantity)} × ${escapeHtml(item.item_name)}</strong>${(item.modifiers || []).length ? `<small>${item.modifiers.map(escapeHtml).join(', ')}</small>` : ''}</td></tr>`).join('')

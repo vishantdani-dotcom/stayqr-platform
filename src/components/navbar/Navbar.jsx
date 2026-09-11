@@ -108,7 +108,7 @@ export default function Navbar({
 
     const channel = supabase
       .channel(
-        `housekeeping_h2_service_lifecycle_${hotelId}_${normalizedRole}`
+        `housekeeping_h4_final_lifecycle_tone_${hotelId}_${normalizedRole}`
       )
       .on(
         'postgres_changes',
@@ -198,20 +198,20 @@ export default function Navbar({
             return
           }
 
-          if (!seenNotificationIdsRef.current.has(notification.id)) {
-            seenNotificationIdsRef.current.add(notification.id)
-            setNotifications((current) =>
-              mergeNotificationItems([notification], current)
-            )
-          }
+          const isNewLifecycleNotification =
+            !seenNotificationIdsRef.current.has(notification.id)
 
-          // H2 intentionally preserves the existing ringtone behavior:
-          // only a newly INSERTED request attempts the existing sound path.
-          // H3 will repair Housekeeping audio after lifecycle notifications pass.
-          if (payload?.eventType !== 'INSERT') return
+          if (!isNewLifecycleNotification) return
 
-          const soundKey =
-            getAccountNotificationSoundKey(normalizedRole)
+          seenNotificationIdsRef.current.add(notification.id)
+          setNotifications((current) =>
+            mergeNotificationItems([notification], current)
+          )
+
+          const soundKey = housekeepingAccount
+            ? 'housekeeping'
+            : getAccountNotificationSoundKey(normalizedRole)
+
           const sharedPlayer =
             window.__stayqrPlayDepartmentNotificationSound
 

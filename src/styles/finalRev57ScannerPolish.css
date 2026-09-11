@@ -1,0 +1,343 @@
+/*
+  StayQR REV57 — MOBILE DOCUMENT SCANNER + SIMPLE ID CAPTURE POLISH
+  Scope: the check-in ID scanner / scan-upload surface only.
+  No OCR, persistence, workflow, API, database, auth, RLS, or provider changes.
+  Visual authority: REV54 blue-black surface palette + REV55 destructive semantics.
+*/
+#root {
+  --sq57-scanner-polish: 1;
+  --sq57-warning-text: #f2c56c;
+  --sq57-warning-bg: rgba(242, 185, 86, 0.09);
+  --sq57-warning-line: rgba(242, 185, 86, 0.30);
+}
+
+/* Scan / Upload section: remove the remaining legacy neutral-grey card family. */
+#root .app-shell .simple-id-capture {
+  color: var(--sq54-text) !important;
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+  box-shadow: none !important;
+}
+#root .app-shell .simple-id-capture-head h3,
+#root .app-shell .simple-id-action strong,
+#root .app-shell .simple-id-result-head strong,
+#root .app-shell .simple-id-result-grid strong,
+#root .app-shell .simple-id-progress strong {
+  color: var(--sq54-text) !important;
+}
+#root .app-shell .simple-id-capture-head p,
+#root .app-shell .simple-id-action small,
+#root .app-shell .simple-id-or,
+#root .app-shell .simple-id-result-head small,
+#root .app-shell .simple-id-result-grid span,
+#root .app-shell .simple-id-privacy,
+#root .app-shell .simple-id-progress small {
+  color: var(--sq54-muted) !important;
+}
+#root .app-shell .simple-id-icon {
+  color: var(--sq54-accent) !important;
+  background: rgba(232, 189, 69, 0.09) !important;
+  border-color: rgba(232, 189, 69, 0.24) !important;
+}
+#root .app-shell .simple-id-action {
+  color: var(--sq54-text) !important;
+  background: var(--sq54-elev) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .simple-id-action--scan {
+  background: rgba(232, 189, 69, 0.055) !important;
+  background-image: none !important;
+  border-color: rgba(232, 189, 69, 0.62) !important;
+}
+#root .app-shell .simple-id-action > span {
+  color: var(--sq54-accent) !important;
+}
+#root .app-shell .simple-id-progress,
+#root .app-shell .simple-id-result {
+  color: var(--sq54-text) !important;
+  background: var(--sq54-elev) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .simple-id-progress > div {
+  background: var(--sq54-line) !important;
+}
+#root .app-shell .simple-id-progress > div > span {
+  background: var(--sq54-accent) !important;
+}
+#root .app-shell .simple-id-result-grid {
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .simple-id-result-grid > div {
+  background: var(--sq54-panel-2) !important;
+  border-color: var(--sq54-line) !important;
+}
+
+/* Remove is destructive: exact REV55 semantic treatment. */
+#root .app-shell .simple-id-clear {
+  color: var(--sq55-danger-text) !important;
+  background: var(--sq55-danger-bg) !important;
+  background-image: none !important;
+  border: 1px solid var(--sq55-danger-line) !important;
+  box-shadow: inset 0 0 0 1px var(--sq55-danger-line) !important;
+  white-space: nowrap;
+}
+#root .app-shell .simple-id-clear:hover:not(:disabled) {
+  color: var(--sq55-danger-text) !important;
+  background: var(--sq55-danger-bg-hover) !important;
+  border-color: var(--sq55-danger-line-hover) !important;
+  box-shadow: inset 0 0 0 1px var(--sq55-danger-line-hover) !important;
+}
+
+/* Result badges: warning/review must look intentional and must not wrap vertically. */
+#root .app-shell .simple-id-result-head {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+#root .app-shell .simple-id-result-head > div {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+#root .app-shell .simple-id-result-head > span {
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+#root .app-shell .simple-id-result-head > span.review {
+  color: var(--sq57-warning-text) !important;
+  background: var(--sq57-warning-bg) !important;
+  border-color: var(--sq57-warning-line) !important;
+}
+#root .app-shell .simple-id-result-head > span.auto {
+  color: #6ce2aa !important;
+  background: rgba(61, 220, 151, 0.08) !important;
+  border-color: rgba(61, 220, 151, 0.27) !important;
+}
+#root .app-shell .simple-id-message.review {
+  color: var(--sq57-warning-text) !important;
+  background: var(--sq57-warning-bg) !important;
+  border: 1px solid var(--sq57-warning-line) !important;
+}
+
+/* Document scanner modal: same accepted StayQR surface system. */
+#root .app-shell .document-scanner-modal {
+  background: rgba(3, 5, 8, 0.86) !important;
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+}
+#root .app-shell .document-scanner-card {
+  color: var(--sq54-text) !important;
+  background: var(--sq54-panel) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line-2) !important;
+}
+#root .app-shell .document-scanner-head h3,
+#root .app-shell .document-quality strong,
+#root .app-shell .document-crop-controls legend {
+  color: var(--sq54-text) !important;
+}
+#root .app-shell .document-scanner-head p,
+#root .app-shell .document-camera-status,
+#root .app-shell .document-crop-controls p,
+#root .app-shell .document-crop-controls small {
+  color: var(--sq54-muted) !important;
+}
+#root .app-shell .document-scanner-head .guest-directory-kicker,
+#root .app-shell .document-camera-status span:last-child,
+#root .app-shell .document-crop-controls legend {
+  color: var(--sq54-accent) !important;
+}
+#root .app-shell .document-scanner-stage video,
+#root .app-shell .document-scanner-stage canvas {
+  background: var(--sq54-bg) !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .document-scanner-frame {
+  border-color: rgba(232, 189, 69, 0.92) !important;
+  box-shadow: 0 0 0 999px rgba(3, 5, 8, 0.28) !important;
+}
+#root .app-shell .document-camera-controls,
+#root .app-shell .document-crop-controls {
+  color: var(--sq54-text) !important;
+  background: var(--sq54-elev) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line) !important;
+}
+#root .app-shell .document-camera-controls label,
+#root .app-shell .document-crop-grid label {
+  color: var(--sq54-text) !important;
+}
+#root .app-shell .document-camera-controls input[type="range"],
+#root .app-shell .document-crop-grid input[type="range"] {
+  accent-color: var(--sq54-accent) !important;
+}
+#root .app-shell .document-scanner-head > button.secondary,
+#root .app-shell .document-camera-controls > button.secondary,
+#root .app-shell .document-crop-controls > button.secondary,
+#root .app-shell .document-scanner-actions > button.secondary {
+  color: var(--sq54-text) !important;
+  background: var(--sq54-panel-2) !important;
+  background-image: none !important;
+  border-color: var(--sq54-line-2) !important;
+}
+#root .app-shell .document-scanner-stage > button:not(.secondary),
+#root .app-shell .document-scanner-actions > button:not(.secondary) {
+  color: #080b0f !important;
+  background: var(--sq54-accent) !important;
+  background-image: none !important;
+  border-color: var(--sq54-accent) !important;
+  font-weight: 800;
+}
+
+/* Mobile scanner: use the whole phone viewport instead of a cramped floating card. */
+@media (max-width: 640px) {
+  #root .app-shell .document-scanner-modal {
+    display: flex !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    padding: 0 !important;
+  }
+  #root .app-shell .document-scanner-card {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    padding: 0 14px calc(16px + env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    border-width: 0 !important;
+    border-radius: 0 !important;
+  }
+  #root .app-shell .document-scanner-head {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start !important;
+    gap: 10px 12px !important;
+    margin: 0 -14px 14px !important;
+    padding: calc(12px + env(safe-area-inset-top)) 14px 12px !important;
+    background: rgba(15, 20, 26, 0.98) !important;
+    border-bottom: 1px solid var(--sq54-line) !important;
+  }
+  #root .app-shell .document-scanner-head > div {
+    min-width: 0;
+  }
+  #root .app-shell .document-scanner-head h3 {
+    margin: 2px 0 4px !important;
+    font-size: 18px !important;
+    line-height: 1.2 !important;
+  }
+  #root .app-shell .document-scanner-head p {
+    max-width: 255px;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+  }
+  #root .app-shell .document-scanner-head > button.secondary {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto !important;
+    min-width: 64px;
+    min-height: 36px;
+    padding: 8px 11px !important;
+    align-self: start;
+  }
+  #root .app-shell .document-scanner-stage {
+    gap: 10px !important;
+    padding-bottom: 2px;
+  }
+  #root .app-shell .document-scanner-stage video {
+    width: 100% !important;
+    height: clamp(220px, 39dvh, 340px) !important;
+    max-height: none !important;
+    object-fit: cover !important;
+    border-radius: 14px !important;
+  }
+  #root .app-shell .document-scanner-stage canvas {
+    width: 100% !important;
+    max-height: 44dvh !important;
+    object-fit: contain !important;
+    border-radius: 14px !important;
+  }
+  #root .app-shell .document-scanner-frame {
+    inset: 13% 7% auto !important;
+    height: 60% !important;
+    border-radius: 11px !important;
+  }
+  #root .app-shell .document-camera-status {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 10px !important;
+  }
+  #root .app-shell .document-camera-controls,
+  #root .app-shell .document-crop-controls {
+    padding: 11px !important;
+    border-radius: 12px !important;
+  }
+  #root .app-shell .document-scanner-stage > button:not(.secondary) {
+    width: 100% !important;
+    min-height: 44px;
+  }
+  #root .app-shell .document-scanner-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px !important;
+  }
+  #root .app-shell .document-scanner-actions > button {
+    width: 100% !important;
+    min-height: 42px;
+  }
+  #root .app-shell .document-scanner-actions > button:last-child {
+    grid-column: 1 / -1;
+  }
+  #root .app-shell .simple-id-capture {
+    padding: 16px !important;
+    gap: 16px !important;
+  }
+  #root .app-shell .simple-id-capture-head {
+    align-items: flex-start !important;
+  }
+  #root .app-shell .simple-id-clear {
+    min-height: 34px;
+    padding: 7px 10px !important;
+  }
+  #root .app-shell .simple-id-actions,
+  #root .app-shell .simple-id-capture.compact .simple-id-actions {
+    gap: 10px !important;
+  }
+  #root .app-shell .simple-id-action {
+    min-height: 96px !important;
+  }
+  #root .app-shell .simple-id-result {
+    padding: 14px !important;
+  }
+  #root .app-shell .simple-id-result-head > span {
+    padding: 6px 9px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  #root .app-shell .document-scanner-card {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  #root .app-shell .document-scanner-head {
+    margin-left: -12px !important;
+    margin-right: -12px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  #root .app-shell .document-scanner-head p {
+    max-width: 220px;
+  }
+  #root .app-shell .document-scanner-stage video {
+    height: clamp(210px, 37dvh, 315px) !important;
+  }
+}

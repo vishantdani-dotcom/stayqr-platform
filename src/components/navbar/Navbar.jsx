@@ -70,6 +70,7 @@ export default function Navbar({
   const [notifications, setNotifications] = useState([])
   const [notifBusy, setNotifBusy] = useState(false)
   const [notifError, setNotifError] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
   const userMenuRef = useRef(null)
   const notificationRef = useRef(null)
   const notificationRequestRef = useRef(0)
@@ -86,6 +87,29 @@ export default function Navbar({
   const isPlatformSupportMode = Boolean(tenantContext?.isPlatformSupportMode)
   const roleName = formatRole(normalizedRole)
   const unreadCount = notifications.filter((item) => item.status === 'unread').length
+
+  useEffect(() => {
+    let cancelled = false
+    const avatarPath = currentStaff?.avatar_path
+
+    if (!avatarPath) {
+      setAvatarUrl('')
+      return undefined
+    }
+
+    supabase.storage
+      .from('staff-avatars')
+      .createSignedUrl(avatarPath, 3600)
+      .then(({ data, error }) => {
+        if (!cancelled) {
+          setAvatarUrl(error ? '' : data?.signedUrl || '')
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentStaff?.avatar_path])
 
   useEffect(() => {
     notificationRequestRef.current += 1
@@ -1062,7 +1086,13 @@ export default function Navbar({
               <span className="navbar-user-hotel">{hotelName}</span>
             </div>
 
-            <div className="navbar-avatar">{userName.charAt(0).toUpperCase()}</div>
+            <div className="navbar-avatar">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={`${userName} profile`} />
+              ) : (
+                userName.charAt(0).toUpperCase()
+              )}
+            </div>
             <UserChevronIcon open={userMenuOpen} />
           </button>
 
@@ -1070,7 +1100,11 @@ export default function Navbar({
             <div className="navbar-user-menu" role="menu">
               <div className="navbar-user-menu-header">
                 <div className="navbar-user-menu-avatar">
-                  {userName.charAt(0).toUpperCase()}
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={`${userName} profile`} />
+                  ) : (
+                    userName.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div>
                   <strong>{userName}</strong>

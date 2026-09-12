@@ -727,3 +727,22 @@
   .staff-table td[data-label="Staff"],.staff-table td[data-label="Actions"]{grid-column:auto!important}
   .staff-actions{grid-template-columns:1fr 1fr!important}
 }
+
+
+/* STAYQR PHONE STATUS BADGE LOCK */
+.staff-phone-label {
+  justify-content: flex-start !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+}
+
+.staff-phone-label b,
+.staff-phone-label .verified,
+.staff-phone-label .unverified,
+.staff-self-profile .unverified {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  line-height: 1 !important;
+}

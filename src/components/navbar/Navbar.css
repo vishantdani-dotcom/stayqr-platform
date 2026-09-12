@@ -982,3 +982,19 @@
     gap: 10px;
   }
 }
+
+
+/* STAYQR STAFF IDENTITY AVATAR */
+.navbar-avatar,
+.navbar-user-menu-avatar {
+  overflow: hidden;
+}
+
+.navbar-avatar img,
+.navbar-user-menu-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
+}

@@ -27,6 +27,7 @@ export default function StaffManagement() {
   const [currentHotel, setCurrentHotel] = useState(null)
   const [currentStaff, setCurrentStaff] = useState(null)
   const [staff, setStaff] = useState([])
+  const [staffAvatarUrls, setStaffAvatarUrls] = useState({})
   const [roles, setRoles] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -50,6 +51,48 @@ export default function StaffManagement() {
   const [phoneVerifying, setPhoneVerifying] = useState(false)
 
   const pageSize = 8
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function resolveStaffAvatars() {
+      const members = staff.filter(
+        (member) => member?.id && member?.avatar_path
+      )
+
+      if (members.length === 0) {
+        if (!cancelled) setStaffAvatarUrls({})
+        return
+      }
+
+      const resolved = await Promise.all(
+        members.map(async (member) => {
+          const { data, error } = await supabase.storage
+            .from(STAFF_AVATAR_BUCKET)
+            .createSignedUrl(member.avatar_path, 3600)
+
+          return [
+            member.id,
+            error ? '' : data?.signedUrl || '',
+          ]
+        })
+      )
+
+      if (!cancelled) {
+        setStaffAvatarUrls(
+          Object.fromEntries(
+            resolved.filter(([, url]) => Boolean(url))
+          )
+        )
+      }
+    }
+
+    resolveStaffAvatars()
+
+    return () => {
+      cancelled = true
+    }
+  }, [staff])
 
   useEffect(() => {
     initPage()
@@ -773,16 +816,25 @@ export default function StaffManagement() {
               <tbody>
                 {paginatedStaff.map((member) => {
                   const isSelf = member.auth_user_id === currentStaff?.auth_user_id
+                  const memberAvatarUrl =
+                    (isSelf && profilePreview) ||
+                    staffAvatarUrls[member.id] ||
+                    ''
 
                   return (
                     <tr key={member.id}>
                       <td data-label="Staff">
                         <div className="staff-person">
                           <div className="staff-avatar">
-                            {isSelf && profilePreview ? (
-                              <img src={profilePreview} alt="" />
+                            {memberAvatarUrl ? (
+                              <img
+                                src={memberAvatarUrl}
+                                alt={`${member.full_name || 'Staff'} profile`}
+                              />
                             ) : (
-                              (member.full_name || member.email || '?').charAt(0).toUpperCase()
+                              (member.full_name || member.email || '?')
+                                .charAt(0)
+                                .toUpperCase()
                             )}
                           </div>
                           <div>

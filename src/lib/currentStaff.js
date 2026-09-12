@@ -166,6 +166,18 @@ export function hasPermission(permissions, permissionKey) {
 export function canAccessSection(role, section, permissions = []) {
   const normalizedRole = normalizeRole(role)
 
+  // Every authenticated HOTEL staff identity may manage
+  // its own profile. This does not grant Staff Management.
+  if (section === 'profile') {
+    return Boolean(normalizedRole) &&
+      ![
+        'platform_admin',
+        'super_admin',
+        'platform_support',
+        'onboarding',
+      ].includes(normalizedRole)
+  }
+
   if (['platform_admin', 'super_admin'].includes(normalizedRole)) {
     return (ROLE_ACCESS[normalizedRole] || []).includes(section)
   }

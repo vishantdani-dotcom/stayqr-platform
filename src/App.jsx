@@ -46,6 +46,7 @@ const QRGenerator = lazy(() => import('./pages/qr/QRGenerator'))
 const SuperAdmin = lazy(() => import('./pages/superadmin/SuperAdmin'))
 const MenuManagement = lazy(() => import('./pages/menumanagement/MenuManagement'))
 const StaffManagement = lazy(() => import('./pages/staff/StaffManagement'))
+const MyProfile = lazy(() => import('./pages/staff/MyProfile'))
 const Reservations = lazy(() => import('./pages/reservations/Reservations'))
 const BookingCalendar = lazy(() => import('./pages/calendar/BookingCalendar'))
 const ReservationOperations = lazy(() => import('./pages/operations/ReservationOperations'))
@@ -92,6 +93,7 @@ const SECTION_TITLES = {
   invoices: 'invoices',
   menu: 'menu management',
   staff: 'staff management',
+  profile: 'my profile',
   superadmin: 'platform administration',
   onboarding: 'hotel onboarding',
   revenue: 'revenue and insights',
@@ -611,6 +613,14 @@ export default function App() {
     setActiveSection(section)
     setMobileMenuOpen(false)
   }
+  const handleProfileUpdated = (context) => {
+    if (!context) return
+
+    setTenantContext(context)
+    setCurrentStaff(context.currentStaff || null)
+    setCurrentRole(context.currentRole || '')
+  }
+
 
   const handleMobileMenuToggle = () => {
     setMobileMenuOpen((prev) => !prev)
@@ -746,6 +756,12 @@ export default function App() {
         return <MenuManagement />
       case 'staff':
         return <StaffManagement />
+      case 'profile':
+        return (
+          <MyProfile
+            onProfileUpdated={handleProfileUpdated}
+          />
+        )
       case 'superadmin':
         return <SuperAdmin onNavigate={handleNavigate} onViewHotel={handleAuditedHotelView} />
       case 'onboarding':

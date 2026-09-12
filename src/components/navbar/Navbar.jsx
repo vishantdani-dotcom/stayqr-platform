@@ -882,6 +882,7 @@ export default function Navbar({
     foodorders: 'Food Orders',
     menu: 'Menu Management',
     staff: 'Staff',
+    profile: 'My Profile',
     settings: 'Settings',
     operationscenter: 'Operations Centre',
     superadmin: 'Super Admin',
@@ -1102,6 +1103,20 @@ export default function Navbar({
                       error={hotelSwitchError}
                       variant="navbar"
                     />
+
+                    {onNavigate && (
+                      <button
+                        type="button"
+                        className="navbar-platform-return"
+                        style={{ width: '100%' }}
+                        onClick={() => {
+                          setUserMenuOpen(false)
+                          onNavigate('profile')
+                        }}
+                      >
+                        My Profile
+                      </button>
+                    )}
                   </>
                 )}
               </div>

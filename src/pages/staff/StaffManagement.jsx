@@ -672,7 +672,7 @@ export default function StaffManagement() {
           <label className="staff-phone-field">
             <span className="staff-phone-label">
               Phone number
-              <b className={displayedPhoneVerified ? 'verified' : 'unverified'}>
+              <b hidden={!displayedPhoneVerified} className={displayedPhoneVerified ? 'verified' : 'unverified'}>
                 {displayedPhoneVerified ? 'Verified' : 'Unverified'}
               </b>
             </span>
@@ -688,7 +688,7 @@ export default function StaffManagement() {
             />
             <small>Use international format with country code.</small>
             {!displayedPhoneVerified && !phoneVerificationSent && (
-              <button className="staff-secondary-btn compact" type="button" onClick={beginPhoneVerification} disabled={phoneVerifying}>
+              <button hidden className="staff-secondary-btn compact" type="button" onClick={beginPhoneVerification} disabled={phoneVerifying}>
                 {phoneVerifying ? 'Sending…' : 'Verify phone'}
               </button>
             )}

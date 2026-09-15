@@ -416,7 +416,7 @@ export default function MyProfile({ onProfileUpdated }) {
             <span className="staff-phone-label">
               Phone number
 
-              <b
+              <b hidden={!displayedPhoneVerified}
                 className={
                   displayedPhoneVerified
                     ? 'verified'
@@ -450,7 +450,7 @@ export default function MyProfile({ onProfileUpdated }) {
 
             {!displayedPhoneVerified &&
               !phoneVerificationSent && (
-                <button
+                <button hidden
                   className="staff-secondary-btn compact"
                   type="button"
                   onClick={beginPhoneVerification}

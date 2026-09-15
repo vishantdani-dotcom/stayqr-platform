@@ -22,7 +22,6 @@ import {
 import {
   createKitchenOrderNotification,
   createServiceRequestNotification,
-  filterNotificationInboxForRole,
   getAccountNotificationSoundKey,
   isLocalDepartmentNotification,
   isDashboardNotificationRole,
@@ -70,7 +69,6 @@ export default function Navbar({
   const [notifications, setNotifications] = useState([])
   const [notifBusy, setNotifBusy] = useState(false)
   const [notifError, setNotifError] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState('')
   const userMenuRef = useRef(null)
   const notificationRef = useRef(null)
   const notificationRequestRef = useRef(0)
@@ -83,33 +81,11 @@ export default function Navbar({
   const userName = currentStaff?.full_name || 'Admin'
   const hotelName = tenantContext?.selectedHotel?.hotel_name || currentStaff?.hotels?.hotel_name || currentStaff?.hotel_name || 'StayQR Hotel'
   const normalizedRole = normalizeRole(currentStaff?.role || currentRole || 'manager')
+  const currentStaffId = currentStaff?.id || null
   const isPlatformAccount = Boolean(tenantContext?.isPlatformAdmin)
   const isPlatformSupportMode = Boolean(tenantContext?.isPlatformSupportMode)
   const roleName = formatRole(normalizedRole)
   const unreadCount = notifications.filter((item) => item.status === 'unread').length
-
-  useEffect(() => {
-    let cancelled = false
-    const avatarPath = currentStaff?.avatar_path
-
-    if (!avatarPath) {
-      setAvatarUrl('')
-      return undefined
-    }
-
-    supabase.storage
-      .from('staff-avatars')
-      .createSignedUrl(avatarPath, 3600)
-      .then(({ data, error }) => {
-        if (!cancelled) {
-          setAvatarUrl(error ? '' : data?.signedUrl || '')
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [currentStaff?.avatar_path])
 
   useEffect(() => {
     notificationRequestRef.current += 1
@@ -543,6 +519,57 @@ export default function Navbar({
       supabase.removeChannel(channel)
     }
   }, [hotelId, normalizedRole])
+  // STAYQR_REV62G_HOUSEKEEPING_TASK_REALTIME
+  useEffect(() => {
+    const housekeepingAccount = ['housekeeping', 'housekeeper'].includes(normalizedRole)
+    const dashboardObserver = isDashboardNotificationRole(normalizedRole)
+    if (!hotelId || (!housekeepingAccount && !dashboardObserver)) return undefined
+
+    const channel = supabase
+      .channel(`rev62g_housekeeping_tasks_${hotelId}_${normalizedRole}_${currentStaffId || 'observer'}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'housekeeping_tasks', filter: `hotel_id=eq.${hotelId}` },
+        (payload) => {
+          const task = payload?.new
+          if (!task?.id) return
+          if (housekeepingAccount && task?.assigned_staff_id && currentStaffId && String(task.assigned_staff_id) !== String(currentStaffId)) return
+
+          const taskLabel = String(task?.task_type || 'room_cleaning').trim().replaceAll('_', ' ').replace(/\b\w/g, (value) => value.toUpperCase())
+          const roomLabel = task?.room_number ? `Room ${task.room_number}` : 'Room'
+          const notification = {
+            id: `local-housekeeping-task:${task.id}`,
+            outbox_id: null,
+            event_key: 'housekeeping.task_created',
+            source_type: 'housekeeping_task',
+            source_id: String(task.id),
+            title: `${roomLabel} · Housekeeping`,
+            message: `${taskLabel} task is ready for action.`,
+            severity: String(task?.priority || '').toLowerCase() === 'urgent' ? 'warning' : 'info',
+            status: 'unread', read_at: null,
+            created_at: task?.created_at || new Date().toISOString(),
+            metadata: { local_department_event: true, room_id: task?.room_id || null, room_number: task?.room_number || null, task_type: task?.task_type || null, assigned_staff_id: task?.assigned_staff_id || null },
+          }
+          if (seenNotificationIdsRef.current.has(notification.id)) return
+          seenNotificationIdsRef.current.add(notification.id)
+          setNotifications((current) => mergeNotificationItems([notification], current))
+
+          const soundKey = housekeepingAccount ? 'housekeeping' : 'dashboard'
+          const sharedPlayer = window.__stayqrPlayDepartmentNotificationSound
+          if (typeof sharedPlayer === 'function') sharedPlayer(soundKey)
+          else {
+            try {
+              const audio = ensureNotificationAudio(notificationAudioRefsRef.current, soundKey)
+              audio.pause?.(); audio.currentTime = 0; void audio.play().catch(() => {})
+            } catch { /* visual notification remains available */ }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [hotelId, normalizedRole, currentStaffId])
+
   useEffect(() => {
     const handlePointerDown = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -751,11 +778,7 @@ export default function Navbar({
         return
       }
 
-      const nextItems = await filterNotificationInboxForRole({
-        items: data?.items || [],
-        hotelId: id,
-        role: normalizedRole,
-      })
+      const nextItems = Array.isArray(data?.items) ? data.items : []
       const newUnreadItems = nextItems.filter((item) =>
         item?.id && item.status === 'unread' && !seenNotificationIdsRef.current.has(item.id)
       )
@@ -813,7 +836,10 @@ export default function Navbar({
       await loadNotifications(hotelId)
       setNotifications((current) =>
         current.map((item) =>
-          isLocalDepartmentNotification(item)
+          (
+            isLocalDepartmentNotification(item) ||
+            String(item?.id || '').startsWith('local-housekeeping-task:')
+          )
             ? {
                 ...item,
                 status: 'read',
@@ -836,7 +862,8 @@ export default function Navbar({
     setNotifError('')
 
     const localDepartmentEvent =
-      isLocalDepartmentNotification(notification)
+      isLocalDepartmentNotification(notification) ||
+      String(notification?.id || '').startsWith('local-housekeeping-task:')
 
     try {
       if (notification.status === 'unread') {
@@ -857,7 +884,10 @@ export default function Navbar({
         }
       }
 
-      const destination = getNotificationDestination(notification)
+      const destination =
+        notification?.source_type === 'housekeeping_task'
+          ? { section: 'housekeeping', detail: null }
+          : getNotificationDestination(notification)
       setNotifOpen(false)
       if (onNavigate) {
         onNavigate(destination.section, destination.detail)
@@ -906,7 +936,6 @@ export default function Navbar({
     foodorders: 'Food Orders',
     menu: 'Menu Management',
     staff: 'Staff',
-    profile: 'My Profile',
     settings: 'Settings',
     operationscenter: 'Operations Centre',
     superadmin: 'Super Admin',
@@ -1086,13 +1115,7 @@ export default function Navbar({
               <span className="navbar-user-hotel">{hotelName}</span>
             </div>
 
-            <div className="navbar-avatar">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={`${userName} profile`} />
-              ) : (
-                userName.charAt(0).toUpperCase()
-              )}
-            </div>
+            <div className="navbar-avatar">{userName.charAt(0).toUpperCase()}</div>
             <UserChevronIcon open={userMenuOpen} />
           </button>
 
@@ -1100,11 +1123,7 @@ export default function Navbar({
             <div className="navbar-user-menu" role="menu">
               <div className="navbar-user-menu-header">
                 <div className="navbar-user-menu-avatar">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt={`${userName} profile`} />
-                  ) : (
-                    userName.charAt(0).toUpperCase()
-                  )}
+                  {userName.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <strong>{userName}</strong>
@@ -1137,20 +1156,6 @@ export default function Navbar({
                       error={hotelSwitchError}
                       variant="navbar"
                     />
-
-                    {onNavigate && (
-                      <button
-                        type="button"
-                        className="navbar-platform-return"
-                        style={{ width: '100%' }}
-                        onClick={() => {
-                          setUserMenuOpen(false)
-                          onNavigate('profile')
-                        }}
-                      >
-                        My Profile
-                      </button>
-                    )}
                   </>
                 )}
               </div>

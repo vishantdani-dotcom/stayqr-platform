@@ -84,10 +84,10 @@ export default function QRGenerator() {
 
   async function rotateStayAccess(room) {
     if (!currentHotel?.id || !room?.guest_session_id || busyId) return
-    const mode = room.access_active ? 'rotate' : 'restore'
+    const mode = room.access_active ? 'rotate' : 'activate'
     const confirmed = window.confirm(
-      mode === 'restore'
-        ? `Restore guest-guide access for the current stay in Room ${room.room_number}?`
+      mode === 'activate'
+        ? `Activate a new secure guest link for the current stay in Room ${room.room_number}? This explicitly restores guest access after a revoke, expiry or security pause.`
         : `Rotate the current stay access for Room ${room.room_number}? Any previously copied direct guest link will stop working, while the permanent room QR will continue to work.`
     )
     if (!confirmed) return
@@ -99,9 +99,9 @@ export default function QRGenerator() {
       await rotateGuestAccessToken({
         hotelId: currentHotel.id,
         guestSessionId: room.guest_session_id,
-        reason: mode === 'restore' ? 'Guest access restored from Room QR Guides' : 'Guest access rotated from Room QR Guides',
+        reason: mode === 'activate' ? 'Guest access explicitly activated from Room QR Guides' : 'Guest access rotated from Room QR Guides',
       })
-      setNotice(`${mode === 'restore' ? 'Guest access restored' : 'Guest access rotated'} for Room ${room.room_number}.`)
+      setNotice(`${mode === 'activate' ? 'New secure guest access activated' : 'Guest access rotated'} for Room ${room.room_number}.`)
       await loadRooms(currentHotel.id)
     } catch (actionError) {
       console.error('Guest access rotation error:', actionError)
@@ -200,10 +200,15 @@ export default function QRGenerator() {
 }
 
 function RoomQrCard({ room, busy, url, onCopy, onDownload, onRotate, onRevoke, onRegenerate }) {
+  const accessStatus = String(room.access_status || '').toLowerCase()
   const status = room.stay_active
     ? room.access_active
       ? { label: 'Guide active', tone: 'active' }
-      : { label: 'Access paused', tone: 'warning' }
+      : accessStatus === 'revoked'
+        ? { label: 'Access revoked', tone: 'warning' }
+        : accessStatus === 'expired'
+          ? { label: 'Access expired', tone: 'warning' }
+          : { label: 'Access paused', tone: 'warning' }
     : { label: 'Vacant · QR ready', tone: 'neutral' }
 
   return (
@@ -232,7 +237,7 @@ function RoomQrCard({ room, busy, url, onCopy, onDownload, onRotate, onRevoke, o
         {room.stay_active ? (
           <>
             <div><span>CURRENT STAY</span><strong>{room.guest_name || 'Checked-in guest'}{Number(room.occupant_count || 1) > 1 ? ` + ${Number(room.occupant_count) - 1}` : ''}</strong></div>
-            <div><span>ACCESS</span><strong>{room.access_active ? 'Automatically active' : 'Paused by security control'}</strong></div>
+            <div><span>ACCESS</span><strong>{room.access_active ? 'Automatically active' : accessStatus === 'revoked' ? 'Revoked · explicit activation required' : accessStatus === 'expired' ? 'Expired · explicit activation required' : 'Paused by security control'}</strong></div>
             <div><span>VALID UNTIL</span><strong>{formatDateTime(room.stay_expires_at)}</strong></div>
           </>
         ) : (
@@ -246,7 +251,7 @@ function RoomQrCard({ room, busy, url, onCopy, onDownload, onRotate, onRevoke, o
         <div className="secure-qr-actions">
           {room.stay_active && (
             <button type="button" className="secure-qr-button secondary" disabled={busy} onClick={onRotate}>
-              {busy ? 'Working…' : room.access_active ? 'Rotate active stay access' : 'Restore guest access'}
+              {busy ? 'Working…' : room.access_active ? 'Rotate active stay access' : 'Activate new secure link'}
             </button>
           )}
           {room.stay_active && room.access_active && (

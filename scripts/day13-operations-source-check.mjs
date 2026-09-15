@@ -60,7 +60,7 @@ const requiredContracts = [
   ['src/pages/maintenance/Maintenance.jsx', 'Verify & release'],
   ['src/pages/maintenance/Maintenance.jsx', 'Require housekeeping cleaning'],
   ['src/pages/services/ServiceRequests.jsx', "navigateToSection('guests'"],
-  ['src/pages/services/ServiceRequests.jsx', 'Open settlement'],
+  ['src/pages/services/ServiceRequests.jsx', 'Open Guest Bill'],
 ]
 
 const unsafePatterns = [

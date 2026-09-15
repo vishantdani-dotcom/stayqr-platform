@@ -26,7 +26,7 @@ const all = Object.values(source).join('\n')
 const required = [
   ['public verification route', source['src/App.jsx'].includes('/invoice/verify/')],
   ['verification component route', source['src/App.jsx'].includes('<InvoiceVerification />')],
-  ['invoice audit navigation', source['src/components/sidebar/Sidebar.jsx'].includes('Invoices & Audit')],
+  ['invoice audit navigation', /\{\s*id:\s*['"]invoices['"],\s*label:\s*['"]Invoices['"]/.test(source['src/components/sidebar/Sidebar.jsx'])],
   ['day12 security script registered', source['package.json'].includes('security:day12')],
   ['workspace loader', all.includes('loadDay12Workspace')],
   ['invoice snapshot RPC', all.includes("invoke('get_invoice_snapshot'")],

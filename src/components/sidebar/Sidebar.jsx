@@ -1,3 +1,4 @@
+import StaffAvatar from '../staff/StaffAvatar'
 // src/components/sidebar/Sidebar.jsx
 import './Sidebar.css'
 import { normalizeRole, canAccessSection } from '../../lib/currentStaff'
@@ -181,7 +182,7 @@ export default function Sidebar({
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <div className="user-avatar">
-              {userName.charAt(0).toUpperCase()}
+              <StaffAvatar staff={currentStaff} name={userName} />
             </div>
 
             <div className="user-info">

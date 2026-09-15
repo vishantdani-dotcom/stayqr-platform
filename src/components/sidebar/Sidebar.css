@@ -396,3 +396,21 @@
     line-height: 1;
   }
 }
+
+
+/* StayQR staff identity avatar propagation */
+.stayqr-staff-avatar-image{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  border-radius:inherit;
+}
+.stayqr-staff-avatar-fallback{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:inherit;
+}

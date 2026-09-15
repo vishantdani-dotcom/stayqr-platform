@@ -497,7 +497,15 @@ async function invokeBackendOcr(file, requestedDocumentType, options) {
   options.onProgress?.(60);
   const { data, error } = await Promise.race([requestPromise, timeoutPromise]);
   if (error) {
-    const message = data?.error || error?.message || "Unable to read this ID automatically.";
+    const rawMessage =
+      data?.error ||
+      error?.message ||
+      "Unable to read this ID automatically.";
+
+    const message =
+      /failed to send a request to the edge function/i.test(rawMessage)
+        ? "ID auto-fill service could not be reached. You can continue by entering the guest details manually."
+        : rawMessage;
     throw new Error(message);
   }
   if (!data?.ok) throw new Error(data?.error || "Unable to read this ID automatically.");

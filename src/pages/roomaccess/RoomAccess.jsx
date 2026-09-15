@@ -32,7 +32,8 @@ export default function RoomAccess() {
 
       window.location.replace(data.guest_path)
     } catch (resolveError) {
-      setError(resolveError?.message || 'Guest access is currently unavailable. Please contact reception.')
+      console.error('StayQR room QR resolution failed:', resolveError)
+      setError('Guest access is currently unavailable. Please contact reception.')
     } finally {
       setOpening(false)
       setLoading(false)
@@ -61,7 +62,8 @@ export default function RoomAccess() {
         await openCurrentStay()
       } catch (loadError) {
         if (active) {
-          setError(loadError?.message || 'This room QR is unavailable. Please contact reception.')
+          console.error('StayQR room guide loading failed:', loadError)
+      setError('This room QR is unavailable. Please contact reception.')
           setLoading(false)
         }
       }

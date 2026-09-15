@@ -190,7 +190,22 @@ export default function Sidebar({
             </div>
           </div>
 
+
           <button
+            type="button"
+            className="sidebar-mobile-my-profile"
+            onClick={() => onNavigate('profile')}
+            aria-label="Open My Profile"
+          >
+            <span>My Profile</span>
+            <span
+              className="sidebar-mobile-my-profile-arrow"
+              aria-hidden="true"
+            >
+              ›
+            </span>
+          </button>
+<button
             type="button"
             className="sidebar-logout"
             onClick={onLogout}

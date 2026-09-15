@@ -74,6 +74,7 @@ export default function Navbar({
   const notificationRequestRef = useRef(0)
   const notificationAudioRefsRef = useRef(new Map())
   const notificationAudioArmedRef = useRef(false)
+  const notificationHousekeepingAudioUnlockedRef = useRef(false)
   const notificationInboxPrimedRef = useRef(false)
   const seenNotificationIdsRef = useRef(new Set())
 
@@ -632,16 +633,84 @@ export default function Navbar({
         const audio = ensureNotificationAudio(audioMap, soundKey)
         audio.pause?.()
         audio.currentTime = 0
-        void audio.play().catch(() => {})
+
+        if (soundKey === 'housekeeping') {
+          audio.muted = false
+          audio.volume = 1
+        }
+
+        const playAttempt = audio.play()
+        if (playAttempt?.then) {
+          void playAttempt
+            .then(() => {
+              if (soundKey === 'housekeeping') {
+                notificationHousekeepingAudioUnlockedRef.current = true
+              }
+            })
+            .catch((error) => {
+              if (soundKey === 'housekeeping') {
+                console.warn(
+                  'Housekeeping notification sound was blocked by the browser:',
+                  error
+                )
+              }
+            })
+        }
+
         return true
       } catch {
         return false
       }
     }
 
+    // STAYQR_REV62J_HOUSEKEEPING_AUDIO_UNLOCK
+    const unlockHousekeepingAudio = () => {
+      if (notificationHousekeepingAudioUnlockedRef.current) {
+        return
+      }
+
+      try {
+        const audio = ensureNotificationAudio(
+          audioMap,
+          'housekeeping'
+        )
+
+        audio.pause?.()
+        audio.currentTime = 0
+        audio.muted = true
+        audio.volume = 1
+
+        const unlockAttempt = audio.play()
+
+        if (unlockAttempt?.then) {
+          void unlockAttempt
+            .then(() => {
+              audio.pause?.()
+              audio.currentTime = 0
+              audio.muted = false
+              audio.volume = 1
+              notificationHousekeepingAudioUnlockedRef.current = true
+            })
+            .catch(() => {
+              audio.muted = false
+              audio.volume = 1
+            })
+        } else {
+          audio.pause?.()
+          audio.currentTime = 0
+          audio.muted = false
+          audio.volume = 1
+          notificationHousekeepingAudioUnlockedRef.current = true
+        }
+      } catch {
+        // Keep visual notifications available when the browser refuses media unlock.
+      }
+    }
+
     const armAudio = () => {
       notificationAudioArmedRef.current = true
       preloadAudio()
+      unlockHousekeepingAudio()
     }
 
     preloadAudio()
@@ -687,6 +756,7 @@ export default function Navbar({
 
       audioMap.clear()
       notificationAudioArmedRef.current = false
+      notificationHousekeepingAudioUnlockedRef.current = false
     }
   }, [])
   useEffect(() => {

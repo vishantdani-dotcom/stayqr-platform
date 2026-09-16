@@ -1,6 +1,6 @@
 // src/components/navbar/Navbar.jsx
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { normalizeRole } from '../../lib/currentStaff'
 import { clearSelectedTenantHotel } from '../../lib/tenantContext'
@@ -77,6 +77,10 @@ export default function Navbar({
   const notificationAudioArmedRef = useRef(false)
   const notificationInboxPrimedRef = useRef(false)
   const seenNotificationIdsRef = useRef(new Set())
+  const kitchenRecoveryBusyRef = useRef(false)
+  const kitchenRecoveryPrimedRef = useRef(false)
+  const kitchenRecoveryStartedAtRef = useRef(0)
+  const pendingKitchenSoundRef = useRef(false)
 
   const hotelId = tenantContext?.selectedHotelId || currentStaff?.hotel_id || currentStaff?.hotels?.id
   const userName = currentStaff?.full_name || 'Admin'
@@ -88,6 +92,51 @@ export default function Navbar({
   const roleName = formatRole(normalizedRole)
   const unreadCount = notifications.filter((item) => item.status === 'unread').length
 
+  const playKitchenNotificationSound = useCallback(() => {
+    const browserAlreadyActivated =
+      Boolean(navigator.userActivation?.hasBeenActive)
+    const sharedPlayer =
+      window.__stayqrPlayDepartmentNotificationSound
+
+    if (typeof sharedPlayer === 'function') {
+      const accepted = sharedPlayer('kitchen')
+      pendingKitchenSoundRef.current = accepted === false
+      return accepted !== false
+    }
+
+    if (
+      !notificationAudioArmedRef.current &&
+      !browserAlreadyActivated
+    ) {
+      pendingKitchenSoundRef.current = true
+      return false
+    }
+
+    notificationAudioArmedRef.current = true
+
+    try {
+      const audio = ensureNotificationAudio(
+        notificationAudioRefsRef.current,
+        'kitchen'
+      )
+      audio.pause?.()
+      audio.currentTime = 0
+      audio.muted = false
+      audio.volume = 1
+      void audio.play()
+        .then(() => {
+          pendingKitchenSoundRef.current = false
+        })
+        .catch(() => {
+          pendingKitchenSoundRef.current = true
+        })
+      return true
+    } catch {
+      pendingKitchenSoundRef.current = true
+      return false
+    }
+  }, [])
+
   useEffect(() => {
     notificationRequestRef.current += 1
     setNotifications([])
@@ -95,6 +144,10 @@ export default function Navbar({
     setNotifOpen(false)
     notificationInboxPrimedRef.current = false
     seenNotificationIdsRef.current = new Set()
+    kitchenRecoveryBusyRef.current = false
+    kitchenRecoveryPrimedRef.current = false
+    kitchenRecoveryStartedAtRef.current = Date.now()
+    pendingKitchenSoundRef.current = false
 
     if (!hotelId) return undefined
 
@@ -490,10 +543,12 @@ export default function Navbar({
             mergeNotificationItems([notification], current)
           )
 
-          const soundKey = dashboardObserver
-            ? 'dashboard'
-            : 'kitchen'
+          if (!dashboardObserver) {
+            playKitchenNotificationSound()
+            return
+          }
 
+          const soundKey = 'dashboard'
           const sharedPlayer =
             window.__stayqrPlayDepartmentNotificationSound
 
@@ -519,7 +574,222 @@ export default function Navbar({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [hotelId, normalizedRole])
+  }, [hotelId, normalizedRole, playKitchenNotificationSound])
+  // STAYQR_KITCHEN_NOTIFICATION_RECOVERY_REV1
+  // Realtime remains the primary path above. This lightweight reconciliation
+  // closes the only observed gap: a kitchen browser can miss a Postgres
+  // realtime frame during subscribe/reconnect while the order itself is safely
+  // committed. Existing orders are primed silently; only order/cancellation
+  // activity that happened after this kitchen session started can alert.
+  useEffect(() => {
+    const kitchenAccount =
+      ['restaurant', 'kitchen', 'chef'].includes(normalizedRole)
+
+    if (!hotelId || !kitchenAccount) return undefined
+
+    let disposed = false
+    const startedAt =
+      kitchenRecoveryStartedAtRef.current || Date.now()
+    kitchenRecoveryStartedAtRef.current = startedAt
+
+    const buildRecoveredNotification = (order, kind) => {
+      const baseNotification =
+        createKitchenOrderNotification(order)
+
+      if (kind !== 'cancelled') {
+        return baseNotification
+      }
+
+      return {
+        ...baseNotification,
+        id: `local-food-order:${order.id}:cancelled`,
+        event_key: 'food_order.cancelled',
+        title: 'Food order cancelled',
+        message:
+          order?.rooms?.room_number
+            ? `Food order from Room ${order.rooms.room_number} was cancelled.`
+            : 'A guest food order was cancelled.',
+        created_at:
+          order?.cancelled_at ||
+          order?.updated_at ||
+          new Date().toISOString(),
+        metadata: {
+          ...baseNotification.metadata,
+          order_status: 'cancelled',
+          lifecycle_event: true,
+          recovered_realtime_gap: true,
+        },
+      }
+    }
+
+    const publishRecoveredNotification = (notification) => {
+      if (
+        disposed ||
+        !notification?.id ||
+        seenNotificationIdsRef.current.has(notification.id)
+      ) {
+        return false
+      }
+
+      seenNotificationIdsRef.current.add(notification.id)
+      setNotifications((current) =>
+        mergeNotificationItems([notification], current)
+      )
+      playKitchenNotificationSound()
+      return true
+    }
+
+    const reconcileKitchenOrders = async () => {
+      if (
+        disposed ||
+        kitchenRecoveryBusyRef.current
+      ) {
+        return
+      }
+
+      kitchenRecoveryBusyRef.current = true
+
+      try {
+        const { data, error } = await supabase
+          .from('food_orders')
+          .select(`
+            id,
+            room_id,
+            guest_session_id,
+            order_status,
+            created_at,
+            updated_at,
+            cancelled_at,
+            rooms (room_number)
+          `)
+          .eq('hotel_id', hotelId)
+          .order('created_at', { ascending: false })
+          .limit(50)
+
+        if (error) {
+          console.warn(
+            'StayQR kitchen notification recovery skipped:',
+            error.message
+          )
+          return
+        }
+
+        const rows = Array.isArray(data)
+          ? [...data].reverse()
+          : []
+        const alreadyPrimed =
+          kitchenRecoveryPrimedRef.current
+
+        for (const order of rows) {
+          if (!order?.id) continue
+
+          const status = String(
+            order?.order_status || 'pending'
+          ).trim().toLowerCase()
+          const baseId =
+            `local-food-order:${order.id}`
+          const cancelledId =
+            `${baseId}:cancelled`
+          const createdAtMs =
+            new Date(order?.created_at || 0).getTime()
+          const cancelledAtMs =
+            new Date(
+              order?.cancelled_at ||
+              order?.updated_at ||
+              0
+            ).getTime()
+
+          const createdDuringSession =
+            Number.isFinite(createdAtMs) &&
+            createdAtMs >= startedAt
+          const cancelledDuringSession =
+            status === 'cancelled' &&
+            Number.isFinite(cancelledAtMs) &&
+            cancelledAtMs >= startedAt
+
+          if (
+            !alreadyPrimed &&
+            !createdDuringSession
+          ) {
+            seenNotificationIdsRef.current.add(baseId)
+          }
+
+          if (
+            status === 'cancelled' &&
+            !alreadyPrimed &&
+            !cancelledDuringSession
+          ) {
+            seenNotificationIdsRef.current.add(cancelledId)
+          }
+
+          if (
+            status !== 'cancelled' &&
+            (alreadyPrimed || createdDuringSession) &&
+            !seenNotificationIdsRef.current.has(baseId)
+          ) {
+            publishRecoveredNotification(
+              buildRecoveredNotification(order, 'created')
+            )
+          }
+
+          if (
+            status === 'cancelled' &&
+            (alreadyPrimed || cancelledDuringSession) &&
+            !seenNotificationIdsRef.current.has(cancelledId)
+          ) {
+            publishRecoveredNotification(
+              buildRecoveredNotification(order, 'cancelled')
+            )
+          }
+        }
+
+        kitchenRecoveryPrimedRef.current = true
+      } catch (error) {
+        console.warn(
+          'StayQR kitchen notification recovery failed safely:',
+          error?.message || error
+        )
+      } finally {
+        kitchenRecoveryBusyRef.current = false
+      }
+    }
+
+    const handleKitchenReturn = () => {
+      if (
+        document.visibilityState === 'visible'
+      ) {
+        void reconcileKitchenOrders()
+      }
+    }
+
+    void reconcileKitchenOrders()
+
+    const interval = window.setInterval(
+      () => void reconcileKitchenOrders(),
+      8000
+    )
+
+    window.addEventListener('focus', handleKitchenReturn)
+    document.addEventListener(
+      'visibilitychange',
+      handleKitchenReturn
+    )
+
+    return () => {
+      disposed = true
+      window.clearInterval(interval)
+      window.removeEventListener(
+        'focus',
+        handleKitchenReturn
+      )
+      document.removeEventListener(
+        'visibilitychange',
+        handleKitchenReturn
+      )
+      kitchenRecoveryBusyRef.current = false
+    }
+  }, [hotelId, normalizedRole, playKitchenNotificationSound])
+
   // STAYQR_REV62G_HOUSEKEEPING_TASK_REALTIME
   useEffect(() => {
     const housekeepingAccount = ['housekeeping', 'housekeeper'].includes(normalizedRole)
@@ -752,7 +1022,15 @@ export default function Navbar({
       notificationAudioArmedRef.current = true
       preloadHtmlAudio()
       preloadWebAudio()
-      void unlockWebAudio()
+      void unlockWebAudio().finally(() => {
+        if (
+          !disposed &&
+          pendingKitchenSoundRef.current
+        ) {
+          pendingKitchenSoundRef.current = false
+          playDepartmentSound('kitchen')
+        }
+      })
     }
 
     preloadHtmlAudio()

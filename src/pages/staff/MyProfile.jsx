@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { getCurrentHotel } from '../../lib/currentHotel'
 import { getCurrentStaff } from '../../lib/currentStaff'
 import { loadTenantContext } from '../../lib/tenantContext'
+import BackgroundPushCard from './BackgroundPushCard'
 import './StaffManagement.css'
 
 const STAFF_AVATAR_BUCKET = 'staff-avatars'
@@ -521,6 +522,8 @@ export default function MyProfile({ onProfileUpdated }) {
           </button>
         </div>
       </section>
+
+      <BackgroundPushCard hotelId={currentHotel?.id || null} />
     </div>
   )
 }

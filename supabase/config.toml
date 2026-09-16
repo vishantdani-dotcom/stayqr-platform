@@ -41,3 +41,8 @@ verify_jwt = false
 
 [functions.purge-guest-retention]
 verify_jwt = false
+
+# Post-launch Background Push. Database Webhook authenticates with the service key;
+# authenticated staff test pushes are verified inside the function.
+[functions.stayqr-background-push]
+verify_jwt = false

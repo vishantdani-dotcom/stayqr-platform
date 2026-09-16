@@ -10,6 +10,10 @@ import {
 } from './lib/tenantContext'
 import { canAccessSection } from './lib/currentStaff'
 import { NAVIGATE_EVENT } from './lib/bookingCalendar'
+import {
+  consumePendingBackgroundPushNavigation,
+  disableCurrentDevicePushBeforeLogout,
+} from './lib/backgroundPush'
 import { setMonitoringContext } from './lib/day18Monitoring'
 
 import Sidebar from './components/sidebar/Sidebar'
@@ -283,6 +287,25 @@ export default function App() {
     window.addEventListener(NAVIGATE_EVENT, handleExternalNavigation)
     return () => window.removeEventListener(NAVIGATE_EVENT, handleExternalNavigation)
   }, [currentRole, tenantContext?.permissions])
+
+  useEffect(() => {
+    if (!currentRole || !tenantContext?.selectedHotelId) return
+
+    const detail = consumePendingBackgroundPushNavigation(tenantContext?.selectedHotelId)
+    const section = detail?.section
+    if (!section) return
+
+    if (!canAccessSection(currentRole, section, tenantContext?.permissions || [])) {
+      return
+    }
+
+    setNavigationRequest({
+      ...detail,
+      requestId: `${Date.now()}-background-push`,
+    })
+    setActiveSection(section)
+    setMobileMenuOpen(false)
+  }, [currentRole, tenantContext?.permissions, tenantContext?.selectedHotelId])
 
   if (window.location.pathname === '/privacy') {
     return (
@@ -581,6 +604,7 @@ export default function App() {
     const confirmed = window.confirm('Logout from StayQR?')
     if (!confirmed) return
     try {
+      await disableCurrentDevicePushBeforeLogout()
       clearSelectedTenantHotel()
       clearTenantContextCache()
       await supabase.auth.signOut()

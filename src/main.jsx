@@ -42,8 +42,10 @@ import './styles/finalRev57ScannerPolish.css'
 import './styles/finalRev58ScannerRework.css'
 import AppErrorBoundary from './components/system/AppErrorBoundary.jsx'
 import { installOperationalMonitoring } from './lib/day18Monitoring.js'
+import { installBackgroundPushClientBridge } from './lib/backgroundPush.js'
 
 installOperationalMonitoring()
+installBackgroundPushClientBridge()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -63,3 +63,18 @@
 
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Background Push service worker: never serve a stale worker script.
+[[headers]]
+  for = "/stayqr-sw.js"
+
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "application/manifest+json; charset=utf-8"

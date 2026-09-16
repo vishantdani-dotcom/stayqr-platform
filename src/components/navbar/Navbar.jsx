@@ -6,6 +6,7 @@ import { normalizeRole } from '../../lib/currentStaff'
 import { clearSelectedTenantHotel } from '../../lib/tenantContext'
 import HotelSwitcher from '../hotel/HotelSwitcher'
 import GlobalSearch from '../search/GlobalSearch'
+import StaffAvatar from '../staff/StaffAvatar'
 import {
   getNotificationInbox,
   markInboxAllRead,
@@ -1239,7 +1240,7 @@ export default function Navbar({
               <span className="navbar-user-hotel">{hotelName}</span>
             </div>
 
-            <div className="navbar-avatar">{userName.charAt(0).toUpperCase()}</div>
+            <div className="navbar-avatar"><StaffAvatar staff={currentStaff} name={userName} /></div>
             <UserChevronIcon open={userMenuOpen} />
           </button>
 
@@ -1247,7 +1248,7 @@ export default function Navbar({
             <div className="navbar-user-menu" role="menu">
               <div className="navbar-user-menu-header">
                 <div className="navbar-user-menu-avatar">
-                  {userName.charAt(0).toUpperCase()}
+                  <StaffAvatar staff={currentStaff} name={userName} />
                 </div>
                 <div>
                   <strong>{userName}</strong>
@@ -1283,6 +1284,20 @@ export default function Navbar({
                   </>
                 )}
               </div>
+
+              {!isPlatformAccount && onNavigate && (
+                <button
+                  className="navbar-platform-return"
+                  style={{ width: '100%', marginBottom: '8px' }}
+                  type="button"
+                  onClick={() => {
+                    setUserMenuOpen(false)
+                    onNavigate('profile')
+                  }}
+                >
+                  My Profile
+                </button>
+              )}
 
               <button className="navbar-logout-btn" onClick={handleLogout} type="button">
                 <LogoutIcon />

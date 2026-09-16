@@ -825,8 +825,12 @@ export default function Navbar({
       .trim()
       .toLowerCase()
 
+    const housekeepingInboxSound =
+      sourceType === 'service_request' &&
+      ['housekeeping', 'housekeeper'].includes(normalizedRole)
+
     if (
-      sourceType === 'service_request' ||
+      (sourceType === 'service_request' && !housekeepingInboxSound) ||
       sourceType === 'food_order'
     ) {
       return
@@ -846,7 +850,9 @@ export default function Navbar({
 
     try {
       const soundKey =
-        getAccountNotificationSoundKey(normalizedRole)
+        housekeepingInboxSound
+          ? 'housekeeping'
+          : getAccountNotificationSoundKey(normalizedRole)
       const sharedPlayer =
         window.__stayqrPlayDepartmentNotificationSound
 

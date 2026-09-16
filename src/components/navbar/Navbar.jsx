@@ -74,7 +74,6 @@ export default function Navbar({
   const notificationRequestRef = useRef(0)
   const notificationAudioRefsRef = useRef(new Map())
   const notificationAudioArmedRef = useRef(false)
-  const notificationHousekeepingAudioUnlockedRef = useRef(false)
   const notificationInboxPrimedRef = useRef(false)
   const seenNotificationIdsRef = useRef(new Set())
 
@@ -600,15 +599,124 @@ export default function Navbar({
 
   useEffect(() => {
     const audioMap = notificationAudioRefsRef.current
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext
+    const audioContext = AudioContextCtor ? new AudioContextCtor() : null
+    const decodedBuffers = new Map()
+    const bufferPromises = new Map()
+    let disposed = false
 
-    const preloadAudio = () => {
+    const preloadHtmlAudio = () => {
       Object.keys(NOTIFICATION_SOUND_ASSETS).forEach((soundKey) => {
         try {
-          ensureNotificationAudio(audioMap, soundKey).load?.()
+          const audio = ensureNotificationAudio(audioMap, soundKey)
+          audio.muted = false
+          audio.volume = 1
+          audio.load?.()
         } catch {
-          // Notification audio is progressive enhancement.
+          // Keep visual notifications available if media preload fails.
         }
       })
+    }
+
+    const loadWebAudioBuffer = (soundKey) => {
+      if (!audioContext) return Promise.resolve(null)
+      if (decodedBuffers.has(soundKey)) {
+        return Promise.resolve(decodedBuffers.get(soundKey))
+      }
+      if (bufferPromises.has(soundKey)) {
+        return bufferPromises.get(soundKey)
+      }
+
+      const asset = NOTIFICATION_SOUND_ASSETS[soundKey]
+      const promise = fetch(asset, { cache: 'force-cache' })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Notification sound failed to load (${response.status})`)
+          }
+          return response.arrayBuffer()
+        })
+        .then((bytes) => audioContext.decodeAudioData(bytes.slice(0)))
+        .then((buffer) => {
+          if (!disposed) decodedBuffers.set(soundKey, buffer)
+          return buffer
+        })
+        .catch((error) => {
+          bufferPromises.delete(soundKey)
+          console.warn(`StayQR ${soundKey} notification sound preload failed:`, error)
+          return null
+        })
+
+      bufferPromises.set(soundKey, promise)
+      return promise
+    }
+
+    const preloadWebAudio = () => {
+      Object.keys(NOTIFICATION_SOUND_ASSETS).forEach((soundKey) => {
+        void loadWebAudioBuffer(soundKey)
+      })
+    }
+
+    const unlockWebAudio = async () => {
+      if (!audioContext) return false
+      try {
+        if (audioContext.state !== 'running') {
+          await audioContext.resume()
+        }
+        if (audioContext.state !== 'running') return false
+
+        const silentBuffer = audioContext.createBuffer(1, 1, 22050)
+        const silentSource = audioContext.createBufferSource()
+        const silentGain = audioContext.createGain()
+        silentGain.gain.value = 0
+        silentSource.buffer = silentBuffer
+        silentSource.connect(silentGain)
+        silentGain.connect(audioContext.destination)
+        silentSource.start(0)
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    const playWebAudio = async (soundKey) => {
+      if (!audioContext) return false
+
+      try {
+        if (audioContext.state !== 'running') {
+          await audioContext.resume()
+        }
+        if (audioContext.state !== 'running' || disposed) return false
+
+        const buffer = await loadWebAudioBuffer(soundKey)
+        if (!buffer || disposed) return false
+
+        const source = audioContext.createBufferSource()
+        const gain = audioContext.createGain()
+        gain.gain.value = 1
+        source.buffer = buffer
+        source.connect(gain)
+        gain.connect(audioContext.destination)
+        source.start(0)
+        return true
+      } catch (error) {
+        console.warn(`StayQR ${soundKey} Web Audio playback failed:`, error)
+        return false
+      }
+    }
+
+    const playHtmlAudio = async (soundKey) => {
+      try {
+        const audio = ensureNotificationAudio(audioMap, soundKey)
+        audio.pause?.()
+        audio.currentTime = 0
+        audio.muted = false
+        audio.volume = 1
+        await audio.play()
+        return true
+      } catch (error) {
+        console.warn(`StayQR ${soundKey} HTML audio playback failed:`, error)
+        return false
+      }
     }
 
     const playDepartmentSound = (requestedKey) => {
@@ -629,91 +737,25 @@ export default function Navbar({
 
       notificationAudioArmedRef.current = true
 
-      try {
-        const audio = ensureNotificationAudio(audioMap, soundKey)
-        audio.pause?.()
-        audio.currentTime = 0
-
-        if (soundKey === 'housekeeping') {
-          audio.muted = false
-          audio.volume = 1
+      void (async () => {
+        const playedWithWebAudio = await playWebAudio(soundKey)
+        if (!playedWithWebAudio) {
+          await playHtmlAudio(soundKey)
         }
+      })()
 
-        const playAttempt = audio.play()
-        if (playAttempt?.then) {
-          void playAttempt
-            .then(() => {
-              if (soundKey === 'housekeeping') {
-                notificationHousekeepingAudioUnlockedRef.current = true
-              }
-            })
-            .catch((error) => {
-              if (soundKey === 'housekeeping') {
-                console.warn(
-                  'Housekeeping notification sound was blocked by the browser:',
-                  error
-                )
-              }
-            })
-        }
-
-        return true
-      } catch {
-        return false
-      }
-    }
-
-    // STAYQR_REV62J_HOUSEKEEPING_AUDIO_UNLOCK
-    const unlockHousekeepingAudio = () => {
-      if (notificationHousekeepingAudioUnlockedRef.current) {
-        return
-      }
-
-      try {
-        const audio = ensureNotificationAudio(
-          audioMap,
-          'housekeeping'
-        )
-
-        audio.pause?.()
-        audio.currentTime = 0
-        audio.muted = true
-        audio.volume = 1
-
-        const unlockAttempt = audio.play()
-
-        if (unlockAttempt?.then) {
-          void unlockAttempt
-            .then(() => {
-              audio.pause?.()
-              audio.currentTime = 0
-              audio.muted = false
-              audio.volume = 1
-              notificationHousekeepingAudioUnlockedRef.current = true
-            })
-            .catch(() => {
-              audio.muted = false
-              audio.volume = 1
-            })
-        } else {
-          audio.pause?.()
-          audio.currentTime = 0
-          audio.muted = false
-          audio.volume = 1
-          notificationHousekeepingAudioUnlockedRef.current = true
-        }
-      } catch {
-        // Keep visual notifications available when the browser refuses media unlock.
-      }
+      return true
     }
 
     const armAudio = () => {
       notificationAudioArmedRef.current = true
-      preloadAudio()
-      unlockHousekeepingAudio()
+      preloadHtmlAudio()
+      preloadWebAudio()
+      void unlockWebAudio()
     }
 
-    preloadAudio()
+    preloadHtmlAudio()
+    preloadWebAudio()
 
     if (navigator.userActivation?.hasBeenActive) {
       armAudio()
@@ -722,7 +764,7 @@ export default function Navbar({
     window.__stayqrPlayDepartmentNotificationSound =
       playDepartmentSound
     window.__stayqrDepartmentToneVersion =
-      'rev61f4-lint-safe-routing'
+      'rev62k-webaudio-department-ringtones'
 
     window.addEventListener(
       'pointerdown',
@@ -732,6 +774,7 @@ export default function Navbar({
     window.addEventListener('keydown', armAudio)
 
     return () => {
+      disposed = true
       window.removeEventListener('pointerdown', armAudio)
       window.removeEventListener('keydown', armAudio)
 
@@ -744,7 +787,7 @@ export default function Navbar({
 
       if (
         window.__stayqrDepartmentToneVersion ===
-        'rev61f4-lint-safe-routing'
+        'rev62k-webaudio-department-ringtones'
       ) {
         delete window.__stayqrDepartmentToneVersion
       }
@@ -755,8 +798,13 @@ export default function Navbar({
       })
 
       audioMap.clear()
+      decodedBuffers.clear()
+      bufferPromises.clear()
       notificationAudioArmedRef.current = false
-      notificationHousekeepingAudioUnlockedRef.current = false
+
+      if (audioContext && audioContext.state !== 'closed') {
+        void audioContext.close().catch(() => {})
+      }
     }
   }, [])
   useEffect(() => {

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
+import { getCurrentStaff } from "../../lib/currentStaff";
 import { navigateToSection } from "../../lib/bookingCalendar";
 import { recordGuestDocumentExtraction } from "../../lib/guestCompliance";
+import { printCheckInPack, printRegistrationCard } from "../../lib/checkInPrintPack";
 import SimpleGuestIdCapture from "../../components/guests/SimpleGuestIdCapture";
 import "./CheckIn.css";
 
@@ -182,6 +184,7 @@ function isExistingStorageObjectError(error) {
 export default function CheckIn() {
   const defaults = useMemo(() => getDefaultTimes(), []);
   const [currentHotel, setCurrentHotel] = useState(null);
+  const [currentStaff, setCurrentStaff] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [roomId, setRoomId] = useState("");
   const [roomCharge, setRoomCharge] = useState("");
@@ -205,6 +208,9 @@ export default function CheckIn() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null);
+  const [savedPrintDocuments, setSavedPrintDocuments] = useState([]);
+  const [printingPack, setPrintingPack] = useState(false);
+  const [printError, setPrintError] = useState("");
 
   const occupancy = useMemo(() => {
     const companionAdults = companions.filter(
@@ -266,7 +272,10 @@ export default function CheckIn() {
       setError("");
 
       try {
-        const hotel = await getCurrentHotel();
+        const [hotel, staff] = await Promise.all([
+          getCurrentHotel(),
+          getCurrentStaff(),
+        ]);
 
         if (!hotel) {
           throw new Error("No active hotel is assigned to this account.");
@@ -275,6 +284,7 @@ export default function CheckIn() {
         if (cancelled) return;
 
         setCurrentHotel(hotel);
+        setCurrentStaff(staff);
         await fetchAvailableRooms(hotel.id);
       } catch (initError) {
         console.error("Check-in initialization error:", initError);
@@ -525,6 +535,9 @@ export default function CheckIn() {
     setError("");
     setMessage("");
     setResult(null);
+    setSavedPrintDocuments([]);
+    setPrintingPack(false);
+    setPrintError("");
   };
 
   const handleRoomChange = (nextRoomId) => {
@@ -659,10 +672,11 @@ export default function CheckIn() {
 
   const saveCapturedIdsAfterCheckin = async (checkinResult) => {
     const warnings = [];
+    const documents = [];
 
     if (idCapture?.file) {
       try {
-        await saveCapturedIdForGuest({
+        const savedDocumentId = await saveCapturedIdForGuest({
           capture: idCapture,
           guestId: checkinResult?.guest_id,
           guestSessionId: checkinResult?.guest_session_id,
@@ -670,6 +684,15 @@ export default function CheckIn() {
           documentRequestId: idRequestId,
           fallbackGuest: guest,
         });
+        if (savedDocumentId) {
+          documents.push({
+            documentId: savedDocumentId,
+            guestName: guest.full_name || "Primary guest",
+            idType: guest.id_type,
+            idNumber: guest.id_number,
+            capture: idCapture,
+          });
+        }
       } catch (documentError) {
         console.error("Primary guest ID save error:", documentError);
         warnings.push(
@@ -698,7 +721,7 @@ export default function CheckIn() {
       }
 
       try {
-        await saveCapturedIdForGuest({
+        const savedDocumentId = await saveCapturedIdForGuest({
           capture: companion.id_capture,
           guestId: resultCompanion.guest_id,
           guestSessionId: checkinResult?.guest_session_id,
@@ -706,6 +729,15 @@ export default function CheckIn() {
           documentRequestId: companion.id_request_id,
           fallbackGuest: companion,
         });
+        if (savedDocumentId) {
+          documents.push({
+            documentId: savedDocumentId,
+            guestName: companion.full_name || "Companion",
+            idType: companion.id_type,
+            idNumber: companion.id_number,
+            capture: companion.id_capture,
+          });
+        }
       } catch (documentError) {
         console.error("Companion ID save error:", documentError);
         warnings.push(
@@ -714,7 +746,7 @@ export default function CheckIn() {
       }
     }
 
-    return warnings;
+    return { warnings, documents };
   };
 
   const handleCheckIn = async () => {
@@ -784,9 +816,12 @@ export default function CheckIn() {
 
       if (rpcError) throw rpcError;
 
-      const documentWarnings = await saveCapturedIdsAfterCheckin(data);
+      const { warnings: documentWarnings, documents: printDocuments } =
+        await saveCapturedIdsAfterCheckin(data);
       const documentWarning = documentWarnings.join(" ");
       setIdSaveWarning(documentWarning);
+      setSavedPrintDocuments(printDocuments);
+      setPrintError("");
 
       setResult(data);
       setMessage(
@@ -801,6 +836,60 @@ export default function CheckIn() {
       setError(checkInError.message || "Unable to complete walk-in check-in.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const printSnapshot = () => ({
+    hotel: currentHotel,
+    staff: currentStaff,
+    guest,
+    companions,
+    stayDetails,
+    result,
+    roomCharge,
+    checkinTime,
+    checkoutTime,
+    notes,
+    documentEntries: savedPrintDocuments,
+  });
+
+  const capturedIdCount =
+    (idCapture?.file ? 1 : 0) +
+    companions.filter((item) => item.id_capture?.file).length;
+  const printDocumentsReady = capturedIdCount === savedPrintDocuments.length;
+
+  const handlePrintPack = async () => {
+    if (!result || printingPack) return;
+    if (!printDocumentsReady) {
+      setPrintError(
+        "One or more captured ID documents were not saved securely. Print the registration card only until the ID save issue is resolved."
+      );
+      return;
+    }
+    setPrintingPack(true);
+    setPrintError("");
+    try {
+      await printCheckInPack(printSnapshot());
+    } catch (printPackError) {
+      console.error("Check-in pack print error:", printPackError);
+      setPrintError(
+        printPackError.message || "Unable to prepare the check-in pack for printing."
+      );
+    } finally {
+      setPrintingPack(false);
+    }
+  };
+
+  const handlePrintRegistrationCard = () => {
+    if (!result) return;
+    setPrintError("");
+    try {
+      printRegistrationCard(printSnapshot());
+    } catch (registrationPrintError) {
+      console.error("Registration card print error:", registrationPrintError);
+      setPrintError(
+        registrationPrintError.message || "Unable to prepare the registration card for printing."
+      );
     }
   };
 
@@ -859,8 +948,36 @@ export default function CheckIn() {
                 <small>Captured ID documents were saved privately to the correct guest profiles.</small>
               )}
               {idSaveWarning && <div className="checkin-alert checkin-alert--warning">{idSaveWarning}</div>}
+              {printError && <div className="checkin-alert checkin-alert--error">{printError}</div>}
+              <div className="simple-checkin-print-note">
+                <strong>Front-desk paperwork ready</strong>
+                <span>Print a guest registration card, or include securely captured ID copies. The browser print dialog also supports Save as PDF.</span>
+              </div>
             </div>
-            <button type="button" onClick={resetForm}>Check in another guest</button>
+            <div className="simple-checkin-success-actions">
+              <button
+                type="button"
+                className="simple-print-pack-action"
+                onClick={handlePrintPack}
+                disabled={printingPack || !printDocumentsReady}
+              >
+                {printingPack
+                  ? "Preparing pack…"
+                  : !printDocumentsReady
+                    ? "ID save issue — pack unavailable"
+                    : "Print check-in pack"}
+              </button>
+              <button
+                type="button"
+                className="simple-registration-action"
+                onClick={handlePrintRegistrationCard}
+              >
+                Registration card only
+              </button>
+              <button type="button" className="simple-next-checkin-action" onClick={resetForm}>
+                Check in another guest
+              </button>
+            </div>
           </section>
         ) : (
           <>

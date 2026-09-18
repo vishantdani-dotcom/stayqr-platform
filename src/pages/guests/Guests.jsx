@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
+import { loadTenantContext } from "../../lib/tenantContext";
+import { printStoredCheckInPaperwork } from "../../lib/checkInPrintPack";
 import { checkoutGuestSession } from "../../lib/day5Reservations";
 import { issuedCheckoutTotals } from "../../lib/issuedCheckout";
 import { notifyCalendarInvalidated } from "../../lib/bookingCalendar";
@@ -16,6 +18,9 @@ export default function Guests({
   const [activeView, setActiveView] = useState("active");
   const [loading, setLoading] = useState(true);
   const [currentHotel, setCurrentHotel] = useState(null);
+  const [currentStaff, setCurrentStaff] = useState(null);
+  const [canPrintPaperwork, setCanPrintPaperwork] = useState(false);
+  const [paperworkLoading, setPaperworkLoading] = useState({ sessionId: null, mode: null });
   const [focusedSessionId, setFocusedSessionId] = useState(null);
   const [checkoutLoadingId, setCheckoutLoadingId] =
     useState(null);
@@ -130,6 +135,25 @@ export default function Guests({
     }
 
     setCurrentHotel(hotel);
+
+    try {
+      const context = await loadTenantContext();
+      const permissions = Array.isArray(context?.permissions) ? context.permissions : [];
+      const staff = context?.currentStaff || null;
+      const role = String(staff?.role || "").trim().toLowerCase().replace(/\s+/g, "_");
+      const permissionAllowed = permissions.some((permission) =>
+        ["guests.manage", "checkin.manage", "checkout.manage"].includes(permission)
+      );
+      const roleAllowed = ["owner", "manager", "reception", "front_desk", "frontdesk"].includes(role);
+
+      setCurrentStaff(staff);
+      setCanPrintPaperwork(permissions.length > 0 ? permissionAllowed : roleAllowed);
+    } catch (contextError) {
+      console.error("Guest paperwork access context error:", contextError);
+      setCurrentStaff(null);
+      setCanPrintPaperwork(false);
+    }
+
     await fetchGuests(hotel.id);
   }
 
@@ -769,6 +793,42 @@ export default function Guests({
     }, 6500);
   }
 
+  async function handleStoredPaperwork(session, includeDocuments) {
+    if (!session?.id || !currentHotel?.id) return;
+
+    if (!canPrintPaperwork) {
+      showNotice("error", "Your StayQR role does not allow sensitive check-in paperwork printing.");
+      return;
+    }
+
+    const mode = includeDocuments ? "pack" : "registration";
+    setPaperworkLoading({ sessionId: session.id, mode });
+
+    try {
+      const result = await printStoredCheckInPaperwork({
+        hotel: currentHotel,
+        staff: currentStaff,
+        sessionId: session.id,
+        includeDocuments,
+      });
+
+      showNotice(
+        "success",
+        includeDocuments
+          ? `Check-in pack opened${result?.documentCount ? ` with ${result.documentCount} stored ID cop${result.documentCount === 1 ? "y" : "ies"}` : ""}.`
+          : "Registration card opened for printing or PDF save."
+      );
+    } catch (paperworkError) {
+      console.error("Existing stay paperwork error:", paperworkError);
+      showNotice(
+        "error",
+        paperworkError.message || "Unable to prepare the saved check-in paperwork."
+      );
+    } finally {
+      setPaperworkLoading({ sessionId: null, mode: null });
+    }
+  }
+
   async function openSettlementModal(session) {
     const guest = session.guests;
     const room = session.rooms;
@@ -1213,6 +1273,34 @@ export default function Guests({
                         {extendLoading && selectedSession?.id === session.id ? "Preparing..." : "Extend Stay"}
                       </button>
                     )}
+                    {canPrintPaperwork && (
+                      <div className="guest-paperwork-actions">
+                        <div className="guest-paperwork-copy">
+                          <span>FRONT DESK PAPERWORK</span>
+                          <small>Reprint the registration pack for this active checked-in stay.</small>
+                        </div>
+                        <button
+                          type="button"
+                          className="checkout-btn guest-print-pack-btn"
+                          disabled={paperworkLoading.sessionId === session.id}
+                          onClick={() => handleStoredPaperwork(session, true)}
+                        >
+                          {paperworkLoading.sessionId === session.id && paperworkLoading.mode === "pack"
+                            ? "Preparing pack..."
+                            : "Print check-in pack"}
+                        </button>
+                        <button
+                          type="button"
+                          className="checkout-btn guest-registration-btn"
+                          disabled={paperworkLoading.sessionId === session.id}
+                          onClick={() => handleStoredPaperwork(session, false)}
+                        >
+                          {paperworkLoading.sessionId === session.id && paperworkLoading.mode === "registration"
+                            ? "Preparing card..."
+                            : "Registration card"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </article>
               )
@@ -1374,6 +1462,32 @@ export default function Guests({
                               ? "Preparing..."
                               : "Extend Stay"}
                           </button>
+                        )}
+                        {canPrintPaperwork && (
+                          <>
+                            <button
+                              type="button"
+                              className="checkout-btn guest-print-pack-btn"
+                              disabled={paperworkLoading.sessionId === session.id}
+                              onClick={() => handleStoredPaperwork(session, true)}
+                              title="Open the saved registration card and securely stored ID copies"
+                            >
+                              {paperworkLoading.sessionId === session.id && paperworkLoading.mode === "pack"
+                                ? "Preparing..."
+                                : "Print Pack"}
+                            </button>
+                            <button
+                              type="button"
+                              className="checkout-btn guest-registration-btn"
+                              disabled={paperworkLoading.sessionId === session.id}
+                              onClick={() => handleStoredPaperwork(session, false)}
+                              title="Open the registration card without ID-copy pages"
+                            >
+                              {paperworkLoading.sessionId === session.id && paperworkLoading.mode === "registration"
+                                ? "Preparing..."
+                                : "Reg Card"}
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>

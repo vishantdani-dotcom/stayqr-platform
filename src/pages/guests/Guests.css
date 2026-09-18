@@ -412,3 +412,165 @@
     min-height: 46px;
   }
 }
+
+/* Check-in Print Pack REV3: active-stay reprint actions. */
+.guest-print-pack-btn,
+.guest-registration-btn {
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.guest-print-pack-btn {
+  background: rgba(212, 175, 55, 0.12);
+  color: #f2cf58;
+}
+
+.guest-registration-btn {
+  background: rgba(255, 255, 255, 0.025);
+  color: #d9dee4;
+  border-color: #343e49;
+}
+
+.guest-print-pack-btn:hover:not(:disabled),
+.guest-registration-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(232, 189, 69, 0.75);
+  background: rgba(232, 189, 69, 0.11);
+}
+
+.guest-print-pack-btn:disabled,
+.guest-registration-btn:disabled {
+  opacity: 0.56;
+  cursor: wait;
+}
+
+.guest-paperwork-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 3px;
+  padding: 11px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.055), rgba(255, 255, 255, 0.015));
+}
+
+.guest-paperwork-copy {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 1px 2px 3px;
+}
+
+.guest-paperwork-copy span {
+  color: #d9b548;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.guest-paperwork-copy small {
+  color: #8f99a4;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .guest-paperwork-actions {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .guest-paperwork-actions .checkout-btn {
+    min-height: 44px !important;
+    width: 100% !important;
+  }
+
+  .guest-paperwork-copy {
+    grid-column: 1;
+  }
+}
+
+/* Check-in Print Pack REV3: active-stay reprint actions. */
+.guest-print-pack-btn,
+.guest-registration-btn {
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.guest-print-pack-btn {
+  background: rgba(212, 175, 55, 0.12);
+  color: #f2cf58;
+}
+
+.guest-registration-btn {
+  background: rgba(255, 255, 255, 0.025);
+  color: #d9dee4;
+  border-color: #343e49;
+}
+
+.guest-print-pack-btn:hover:not(:disabled),
+.guest-registration-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(232, 189, 69, 0.75);
+  background: rgba(232, 189, 69, 0.11);
+}
+
+.guest-print-pack-btn:disabled,
+.guest-registration-btn:disabled {
+  opacity: 0.56;
+  cursor: wait;
+}
+
+.guest-paperwork-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 3px;
+  padding: 11px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.055), rgba(255, 255, 255, 0.015));
+}
+
+.guest-paperwork-copy {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 1px 2px 3px;
+}
+
+.guest-paperwork-copy span {
+  color: #d9b548;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.guest-paperwork-copy small {
+  color: #8f99a4;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .guest-paperwork-actions {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .guest-paperwork-actions .checkout-btn {
+    min-height: 44px !important;
+    width: 100% !important;
+  }
+
+  .guest-paperwork-copy {
+    grid-column: 1;
+  }
+}

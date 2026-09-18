@@ -1,4 +1,5 @@
 import { auditGuestDocumentAccess } from './guestCompliance'
+import { supabase } from './supabase'
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -50,6 +51,30 @@ function formatIdType(value) {
     form_c: 'Form C',
     other: 'Other ID',
   }[normalized] || safeText(value, 'ID document')
+}
+
+
+function maskIdReference(value, idType = '') {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (/x/i.test(raw)) return raw
+
+  const compact = raw.replace(/\s+/g, '')
+  const last4 = compact.slice(-4)
+  const normalized = String(idType || '').trim().toLowerCase()
+
+  if (!last4) return 'Masked'
+  if (normalized === 'aadhaar') return `XXXX XXXX ${last4}`
+  if (normalized === 'pan') return `XXXXX${last4}`
+  return `•••• ${last4}`
+}
+
+function guestRecordForPrint(guest, maskedReference = '') {
+  if (!guest) return null
+  return {
+    ...guest,
+    id_number: maskedReference || maskIdReference(guest.id_number, guest.id_type),
+  }
 }
 
 function formatGender(value) {
@@ -136,10 +161,11 @@ function documentPages(documentEntries = []) {
     .map((entry) => {
       const capture = entry?.capture
       const file = capture?.file
+      const mimeType = String(file?.type || entry?.mimeType || '').toLowerCase()
       const dataUrl = entry?.dataUrl
-      const isImage = file?.type === 'image/jpeg' || file?.type === 'image/png'
-      const isPdf = file?.type === 'application/pdf'
-      const fileLabel = safeText(file?.name, 'Captured ID')
+      const isImage = mimeType === 'image/jpeg' || mimeType === 'image/png'
+      const isPdf = mimeType === 'application/pdf'
+      const fileLabel = safeText(file?.name || entry?.fileName, 'Captured ID')
 
       let documentVisual = '<div class="document-missing">No printable ID image was available.</div>'
       if (isImage && dataUrl) {
@@ -195,12 +221,28 @@ function printStyles() {
     .screen-only{position:fixed;right:18px;top:18px;z-index:100;border:1px solid #d6a71e;border-radius:11px;background:linear-gradient(135deg,#f5c33b,#dca315);color:#111;padding:12px 17px;font-weight:900;cursor:pointer;box-shadow:0 12px 30px rgba(15,23,42,.20)}
     .screen-only:hover{transform:translateY(-1px)}.screen-only:disabled{opacity:.55;cursor:wait;transform:none}
     @media screen and (max-width:860px){
-      body{padding:70px 10px 28px}
-      .page,.document-page{width:100%;min-height:auto;margin-bottom:16px;border-radius:10px}
+      body{padding:76px 10px 28px}
+      .page,.document-page{width:100%;min-height:auto;margin-bottom:16px;border-radius:12px}
       .page,.document-page{padding:18px}
       .brand-head{align-items:flex-start}.pack-title{text-align:left}
-      .stay-summary{grid-template-columns:repeat(2,1fr)}.details-grid{grid-template-columns:repeat(2,1fr)}
-      .audit-footer{position:static;margin-top:24px}.document-image-wrap{height:auto;min-height:60vh;padding:22px 0}
+      .stay-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.details-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .audit-footer{position:static;margin-top:24px}.document-image-wrap{height:auto;min-height:54vh;padding:22px 0}
+      .screen-only{top:12px;right:12px;left:12px;width:calc(100% - 24px);min-height:48px}
+    }
+    @media screen and (max-width:560px){
+      body{padding:72px 7px 20px}
+      .page,.document-page{padding:14px;border-radius:11px}
+      .brand-head{flex-direction:column;padding:15px;gap:12px}
+      .brand h1{font-size:18px}.brand p{font-size:10px}.pack-title strong{font-size:14px}
+      .stay-summary{grid-template-columns:1fr 1fr;gap:7px}.summary-box{padding:9px}
+      .person-title{align-items:flex-start;flex-direction:column;gap:4px}
+      .details-grid{grid-template-columns:1fr}.stay-notes{grid-template-columns:1fr}
+      table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+      .signatures{grid-template-columns:1fr;gap:18px}.signature{padding-top:22px}
+      .document-page-head{flex-direction:column;gap:9px}.doc-meta{text-align:left}
+      .document-image-wrap{min-height:40vh;padding:16px 0}
+      .document-signature-line{grid-template-columns:1fr;gap:20px}
+      .audit-footer{flex-direction:column;gap:4px;font-size:7px}
     }
     @media print{
       html,body{background:#fff!important}
@@ -297,10 +339,23 @@ function openPrintWindow() {
 
 async function prepareDocumentEntries(entries = []) {
   return Promise.all(
-    entries.map(async (entry) => ({
-      ...entry,
-      dataUrl: entry?.capture?.file ? await readFileAsDataUrl(entry.capture.file) : null,
-    }))
+    entries.map(async (entry) => {
+      if (entry?.capture?.file) {
+        return { ...entry, dataUrl: await readFileAsDataUrl(entry.capture.file) }
+      }
+
+      const mimeType = String(entry?.mimeType || '').toLowerCase()
+      if (entry?.storagePath && (mimeType === 'image/jpeg' || mimeType === 'image/png')) {
+        const { data, error } = await supabase.storage
+          .from(entry?.storageBucket || 'guest-documents')
+          .createSignedUrl(entry.storagePath, 300)
+        if (error) throw error
+        if (!data?.signedUrl) throw new Error(`Unable to open ${safeText(entry?.guestName, 'guest')} ID for printing.`)
+        return { ...entry, dataUrl: data.signedUrl }
+      }
+
+      return { ...entry, dataUrl: null }
+    })
   )
 }
 
@@ -327,28 +382,167 @@ function writePrintPreview(popup, html) {
   }
 }
 
+async function auditedPreparedDocuments(snapshot) {
+  const documentEntries = Array.isArray(snapshot?.documentEntries)
+    ? snapshot.documentEntries.filter((entry) => entry?.capture?.file || entry?.storagePath)
+    : []
+
+  for (const entry of documentEntries) {
+    if (!entry?.documentId) {
+      throw new Error(`${safeText(entry?.guestName, 'Guest')} ID was not saved securely, so StayQR will not print that document copy.`)
+    }
+
+    await auditGuestDocumentAccess({
+      hotelId: snapshot?.hotel?.id,
+      documentId: entry.documentId,
+      action: 'print',
+      reason: 'Front desk check-in pack print',
+    })
+  }
+
+  return prepareDocumentEntries(documentEntries)
+}
+
+async function loadStoredCheckInPackSnapshot({ hotel, staff, sessionId }) {
+  if (!hotel?.id || !sessionId) throw new Error('StayQR could not identify this active stay.')
+
+  const sessionSelect = `
+    id, hotel_id, guest_id, room_id, status, checkin_time, checkout_time, extended_until,
+    guests (
+      id, full_name, phone, email, id_type, id_number, date_of_birth, gender, nationality,
+      country_of_residence, address_line1, address_line2, city, state_region, postal_code, purpose_of_visit
+    ),
+    rooms (id, room_number, room_type)
+  `
+
+  const { data: session, error: sessionError } = await supabase
+    .from('guest_sessions')
+    .select(sessionSelect)
+    .eq('hotel_id', hotel.id)
+    .eq('id', sessionId)
+    .maybeSingle()
+  if (sessionError) throw sessionError
+  if (!session) throw new Error('The selected StayQR stay could not be found.')
+  if (session.status !== 'active') throw new Error('Check-in paperwork reprint is available only for an active checked-in stay.')
+
+  const [companionsResult, stayResult, paymentsResult, documentsResult] = await Promise.all([
+    supabase
+      .from('guest_companions')
+      .select('guest_id, relationship, guest_category')
+      .eq('hotel_id', hotel.id)
+      .eq('guest_session_id', sessionId)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('guest_stay_details')
+      .select('*')
+      .eq('hotel_id', hotel.id)
+      .eq('guest_session_id', sessionId)
+      .maybeSingle(),
+    supabase
+      .from('payments')
+      .select('amount, payment_type, created_at')
+      .eq('hotel_id', hotel.id)
+      .eq('guest_session_id', sessionId)
+      .eq('payment_type', 'room_charge')
+      .order('created_at', { ascending: true })
+      .limit(1),
+    supabase
+      .from('guest_documents')
+      .select('id, guest_id, document_type, storage_bucket, storage_path, original_file_name, mime_type, document_number_masked, created_at')
+      .eq('hotel_id', hotel.id)
+      .eq('guest_session_id', sessionId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true }),
+  ])
+
+  if (companionsResult.error) throw companionsResult.error
+  if (stayResult.error) throw stayResult.error
+  if (paymentsResult.error) throw paymentsResult.error
+  if (documentsResult.error) throw documentsResult.error
+
+  const memberships = companionsResult.data || []
+  const companionIds = [...new Set(memberships.map((item) => item.guest_id).filter(Boolean))]
+  let companionGuests = []
+
+  if (companionIds.length) {
+    const { data, error } = await supabase
+      .from('guests')
+      .select('id, full_name, phone, email, id_type, id_number, date_of_birth, gender, nationality, country_of_residence, address_line1, address_line2, city, state_region, postal_code, purpose_of_visit')
+      .eq('hotel_id', hotel.id)
+      .in('id', companionIds)
+    if (error) throw error
+    companionGuests = data || []
+  }
+
+  const documents = documentsResult.data || []
+  const documentByGuest = new Map()
+  for (const document of documents) {
+    if (!documentByGuest.has(document.guest_id)) documentByGuest.set(document.guest_id, document)
+  }
+
+  const primaryDocument = documentByGuest.get(session.guest_id)
+  const guest = guestRecordForPrint(
+    session.guests,
+    primaryDocument?.document_number_masked || maskIdReference(session.guests?.id_number, session.guests?.id_type)
+  )
+
+  const guestMap = new Map(companionGuests.map((item) => [item.id, item]))
+  const companions = memberships.map((membership) => {
+    const record = guestMap.get(membership.guest_id) || {}
+    const document = documentByGuest.get(membership.guest_id)
+    return {
+      ...guestRecordForPrint(
+        record,
+        document?.document_number_masked || maskIdReference(record?.id_number, record?.id_type)
+      ),
+      relationship: membership.relationship,
+      guest_category: membership.guest_category,
+    }
+  })
+
+  const namesByGuestId = new Map([[session.guest_id, guest?.full_name || 'Primary guest']])
+  for (const companion of companions) namesByGuestId.set(companion.id, companion.full_name || 'Guest')
+
+  const documentEntries = documents.map((document) => ({
+    documentId: document.id,
+    guestName: namesByGuestId.get(document.guest_id) || 'Guest',
+    idType: document.document_type,
+    idNumber: document.document_number_masked || 'Masked reference not available',
+    storageBucket: document.storage_bucket || 'guest-documents',
+    storagePath: document.storage_path,
+    mimeType: document.mime_type,
+    fileName: document.original_file_name || 'Stored ID document',
+  }))
+
+  const roomCharge = Number(paymentsResult.data?.[0]?.amount || 0)
+  const effectiveCheckout = session.extended_until || session.checkout_time
+
+  return {
+    hotel,
+    staff,
+    guest,
+    companions,
+    stayDetails: stayResult.data || {},
+    result: {
+      guest_session_id: session.id,
+      room_number: session.rooms?.room_number,
+      checkin_time: session.checkin_time,
+      checkout_time: effectiveCheckout,
+      room_charge: roomCharge,
+    },
+    roomCharge,
+    checkinTime: session.checkin_time,
+    checkoutTime: effectiveCheckout,
+    notes: stayResult.data?.special_notes || '',
+    documentEntries,
+  }
+}
+
 export async function printCheckInPack(snapshot) {
   const popup = openPrintWindow()
 
   try {
-    const documentEntries = Array.isArray(snapshot?.documentEntries)
-      ? snapshot.documentEntries.filter((entry) => entry?.capture?.file)
-      : []
-
-    for (const entry of documentEntries) {
-      if (!entry?.documentId) {
-        throw new Error(`${safeText(entry?.guestName, 'Guest')} ID was not saved securely, so StayQR will not print that document copy.`)
-      }
-
-      await auditGuestDocumentAccess({
-        hotelId: snapshot?.hotel?.id,
-        documentId: entry.documentId,
-        action: 'print',
-        reason: 'Front desk check-in pack print',
-      })
-    }
-
-    const preparedEntries = await prepareDocumentEntries(documentEntries)
+    const preparedEntries = await auditedPreparedDocuments(snapshot)
     const html = buildRegistrationHtml({ ...snapshot, documentEntries: preparedEntries, includeDocuments: true })
     writePrintPreview(popup, html)
   } catch (error) {
@@ -361,4 +555,23 @@ export function printRegistrationCard(snapshot) {
   const popup = openPrintWindow()
   const html = buildRegistrationHtml({ ...snapshot, documentEntries: [], includeDocuments: false })
   writePrintPreview(popup, html)
+}
+
+export async function printStoredCheckInPaperwork({ hotel, staff, sessionId, includeDocuments = true }) {
+  const popup = openPrintWindow()
+
+  try {
+    const snapshot = await loadStoredCheckInPackSnapshot({ hotel, staff, sessionId })
+    const preparedEntries = includeDocuments ? await auditedPreparedDocuments(snapshot) : []
+    const html = buildRegistrationHtml({
+      ...snapshot,
+      documentEntries: preparedEntries,
+      includeDocuments,
+    })
+    writePrintPreview(popup, html)
+    return { documentCount: preparedEntries.length }
+  } catch (error) {
+    popup.close()
+    throw error
+  }
 }

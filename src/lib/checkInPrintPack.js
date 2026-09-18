@@ -170,8 +170,11 @@ function printStyles() {
   return `
     @page{size:A4;margin:10mm}
     *{box-sizing:border-box}
-    body{margin:0;background:#fff;color:#111827;font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .page{min-height:277mm;padding:7mm 8mm 5mm;position:relative}
+    html{background:#e9edf2}
+    body{margin:0;padding:72px 16px 40px;background:#e9edf2;color:#111827;font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .page,.document-page{width:210mm;min-height:297mm;margin:0 auto 24px;background:#fff;position:relative;box-shadow:0 22px 60px rgba(15,23,42,.14);border:1px solid #dce2e8}
+    .page{padding:17mm 18mm 15mm}
+    .document-page{padding:18mm}
     .page-break{break-before:page;page-break-before:always}
     .brand-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 20px;border-radius:14px;background:#0b1118;color:#fff;border-bottom:4px solid #e8b62f}
     .brand{display:flex;align-items:center;gap:14px}.brand img{width:52px;height:52px;object-fit:contain;border-radius:10px;background:#fff;padding:5px}.brand h1{margin:0;font-size:22px}.brand p{margin:4px 0 0;color:#cbd5e1;font-size:11px}
@@ -184,16 +187,33 @@ function printStyles() {
     .stay-notes{display:grid;grid-template-columns:1fr 1fr;gap:10px}.note-box{border:1px solid #d7dde5;border-radius:10px;padding:10px}.note-box small{display:block;color:#6b7280;font-size:8px}.note-box strong,.note-box p{font-size:10px;line-height:1.5}.note-box p{margin:5px 0 0}
     .declaration{margin-top:13px;padding:12px 14px;border-radius:10px;background:#f7f4e8;border:1px solid #eadca8;font-size:9px;line-height:1.55}
     .signatures{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:24px}.signature{padding-top:28px;border-top:1px solid #4b5563;font-size:8px;color:#4b5563;text-align:center}
-    .audit-footer{position:absolute;left:8mm;right:8mm;bottom:4mm;display:flex;justify-content:space-between;gap:16px;border-top:1px solid #e5e7eb;padding-top:5px;color:#6b7280;font-size:7px}
-    .document-page{min-height:277mm;padding:8mm;position:relative}.document-page-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding-bottom:10px;border-bottom:3px solid #e8b62f}.document-page-head small{color:#9a6e00;font-size:9px;font-weight:900;letter-spacing:.14em}.document-page-head h2{margin:4px 0 0;font-size:20px}.doc-meta{text-align:right}.doc-meta span{display:block;color:#6b7280;font-size:9px}.doc-meta strong{display:block;margin-top:4px;font-size:11px}
+    .audit-footer{position:absolute;left:18mm;right:18mm;bottom:10mm;display:flex;justify-content:space-between;gap:16px;border-top:1px solid #e5e7eb;padding-top:5px;color:#6b7280;font-size:7px}
+    .document-page-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding-bottom:10px;border-bottom:3px solid #e8b62f}.document-page-head small{color:#9a6e00;font-size:9px;font-weight:900;letter-spacing:.14em}.document-page-head h2{margin:4px 0 0;font-size:20px}.doc-meta{text-align:right}.doc-meta span{display:block;color:#6b7280;font-size:9px}.doc-meta strong{display:block;margin-top:4px;font-size:11px}
     .document-image-wrap{height:220mm;display:flex;align-items:center;justify-content:center;padding:12mm 4mm}.document-image-wrap img{max-width:100%;max-height:100%;object-fit:contain;border:1px solid #d7dde5;border-radius:8px;box-shadow:0 10px 28px rgba(15,23,42,.08)}
     .document-pdf-note,.document-missing{margin:70mm auto 0;max-width:130mm;padding:22px;border:1px solid #d7dde5;border-radius:12px;text-align:center}.document-pdf-note strong{display:block;font-size:16px}.document-pdf-note span{display:block;margin-top:8px;color:#6b7280;font-size:11px}.document-pdf-note p{font-size:10px;line-height:1.6;color:#4b5563}
     .document-signature-line{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:4mm}.document-signature-line span{padding-top:14px;border-top:1px solid #4b5563;text-align:center;font-size:8px;color:#4b5563}
-    .screen-only{position:fixed;right:16px;top:16px;z-index:10;border:0;border-radius:9px;background:#e8b62f;color:#111;padding:10px 14px;font-weight:800;cursor:pointer}
-    @media print{.screen-only{display:none!important}}
+    .screen-only{position:fixed;right:18px;top:18px;z-index:100;border:1px solid #d6a71e;border-radius:11px;background:linear-gradient(135deg,#f5c33b,#dca315);color:#111;padding:12px 17px;font-weight:900;cursor:pointer;box-shadow:0 12px 30px rgba(15,23,42,.20)}
+    .screen-only:hover{transform:translateY(-1px)}.screen-only:disabled{opacity:.55;cursor:wait;transform:none}
+    @media screen and (max-width:860px){
+      body{padding:70px 10px 28px}
+      .page,.document-page{width:100%;min-height:auto;margin-bottom:16px;border-radius:10px}
+      .page,.document-page{padding:18px}
+      .brand-head{align-items:flex-start}.pack-title{text-align:left}
+      .stay-summary{grid-template-columns:repeat(2,1fr)}.details-grid{grid-template-columns:repeat(2,1fr)}
+      .audit-footer{position:static;margin-top:24px}.document-image-wrap{height:auto;min-height:60vh;padding:22px 0}
+    }
+    @media print{
+      html,body{background:#fff!important}
+      body{padding:0!important}
+      .screen-only{display:none!important}
+      .page,.document-page{width:auto;min-height:277mm;margin:0;border:0;border-radius:0;box-shadow:none;break-after:page;page-break-after:always}
+      .page{padding:7mm 8mm 5mm}
+      .document-page{padding:8mm}
+      .audit-footer{left:8mm;right:8mm;bottom:4mm}
+      .document-page:last-child{break-after:auto;page-break-after:auto}
+    }
   `
 }
-
 function buildRegistrationHtml({
   hotel,
   staff,
@@ -260,12 +280,7 @@ function buildRegistrationHtml({
       <div class="audit-footer"><span>Printed by ${escapeHtml(printedBy)} · ${escapeHtml(role)}</span><span>${escapeHtml(printedAt)} · StayQR Check-in Pack</span></div>
     </section>`
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(hotelName)} — Room ${escapeHtml(roomNumber)} check-in pack</title><style>${printStyles()}</style></head><body><button class="screen-only" onclick="window.print()">Print / Save PDF</button>${registrationPage}${includeDocuments ? documentPages(documentEntries) : ''}<script>
-    (()=>{
-      const waitForImages=()=>Promise.all(Array.from(document.images).map((img)=>img.complete?Promise.resolve():new Promise((resolve)=>{img.onload=resolve;img.onerror=resolve})))
-      waitForImages().then(()=>setTimeout(()=>window.print(),180))
-    })()
-  </script></body></html>`
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(hotelName)} — Room ${escapeHtml(roomNumber)} check-in pack</title><style>${printStyles()}</style></head><body><button id="stayqr-print-button" class="screen-only" type="button">Print / Save PDF</button>${registrationPage}${includeDocuments ? documentPages(documentEntries) : ''}</body></html>`
 }
 
 function openPrintWindow() {
@@ -287,6 +302,29 @@ async function prepareDocumentEntries(entries = []) {
       dataUrl: entry?.capture?.file ? await readFileAsDataUrl(entry.capture.file) : null,
     }))
   )
+}
+
+function bindPrintButton(popup) {
+  const button = popup?.document?.getElementById('stayqr-print-button')
+  if (!button) return
+
+  button.addEventListener('click', () => {
+    popup.focus()
+    popup.print()
+  })
+}
+
+function writePrintPreview(popup, html) {
+  popup.document.open()
+  popup.document.write(html)
+  popup.document.close()
+
+  const arm = () => bindPrintButton(popup)
+  if (popup.document.readyState === 'complete') {
+    arm()
+  } else {
+    popup.addEventListener('load', arm, { once: true })
+  }
 }
 
 export async function printCheckInPack(snapshot) {
@@ -312,9 +350,7 @@ export async function printCheckInPack(snapshot) {
 
     const preparedEntries = await prepareDocumentEntries(documentEntries)
     const html = buildRegistrationHtml({ ...snapshot, documentEntries: preparedEntries, includeDocuments: true })
-    popup.document.open()
-    popup.document.write(html)
-    popup.document.close()
+    writePrintPreview(popup, html)
   } catch (error) {
     popup.close()
     throw error
@@ -324,7 +360,5 @@ export async function printCheckInPack(snapshot) {
 export function printRegistrationCard(snapshot) {
   const popup = openPrintWindow()
   const html = buildRegistrationHtml({ ...snapshot, documentEntries: [], includeDocuments: false })
-  popup.document.open()
-  popup.document.write(html)
-  popup.document.close()
+  writePrintPreview(popup, html)
 }

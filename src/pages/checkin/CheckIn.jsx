@@ -675,11 +675,22 @@ export default function CheckIn() {
     const savedDocument = registration?.document || registration;
     const savedDocumentId = savedDocument?.id || documentId;
     if (analysis) {
-      await recordGuestDocumentExtraction({
-        hotelId: currentHotel.id,
-        documentId: savedDocumentId,
-        analysis,
-      });
+      try {
+        await recordGuestDocumentExtraction({
+          hotelId: currentHotel.id,
+          documentId: savedDocumentId,
+          analysis,
+        });
+      } catch (extractionError) {
+        // The private document is already uploaded and registered at this point.
+        // Extraction evidence is supplementary metadata, so its failure must not
+        // falsely downgrade a securely saved ID into an "ID save issue" or
+        // block the audited print-pack workflow.
+        console.warn(
+          "Guest ID saved, but extraction metadata could not be recorded:",
+          extractionError
+        );
+      }
     }
     return savedDocumentId;
   };

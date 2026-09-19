@@ -249,6 +249,7 @@ function printStyles() {
       body{padding:0!important}
       .screen-only{display:none!important}
       .page,.document-page{width:auto;min-height:277mm;margin:0;border:0;border-radius:0;box-shadow:none;break-after:page;page-break-after:always}
+      .page-break{break-before:auto!important;page-break-before:auto!important}
       .page{padding:7mm 8mm 5mm}
       .document-page{padding:8mm}
       .audit-footer{left:8mm;right:8mm;bottom:4mm}

@@ -192,6 +192,7 @@ export default function CheckIn() {
   const [rooms, setRooms] = useState([]);
   const [roomId, setRoomId] = useState("");
   const [roomCharge, setRoomCharge] = useState("");
+  const [rateOverrideReason, setRateOverrideReason] = useState("");
   const [checkinTime, setCheckinTime] = useState(defaults.checkinTime);
   const [checkoutTime, setCheckoutTime] = useState(defaults.checkoutTime);
   const [guest, setGuest] = useState(EMPTY_GUEST);
@@ -236,6 +237,23 @@ export default function CheckIn() {
     () => rooms.find((room) => room.id === roomId) || null,
     [roomId, rooms]
   );
+
+  const standardRoomRate = useMemo(() => {
+    const value = Number(selectedRoom?.room_type?.base_rate);
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  }, [selectedRoom]);
+
+  const agreedRoomRate = Number(roomCharge);
+  const hasRateOverride =
+    standardRoomRate !== null &&
+    Number.isFinite(agreedRoomRate) &&
+    Math.abs(agreedRoomRate - standardRoomRate) >= 0.01;
+  const rateAdjustmentAmount =
+    hasRateOverride ? agreedRoomRate - standardRoomRate : 0;
+  const rateAdjustmentPercent =
+    hasRateOverride && standardRoomRate > 0
+      ? (rateAdjustmentAmount / standardRoomRate) * 100
+      : 0;
 
   const hasCapturedIdentityDocuments = Boolean(
     idCapture?.file || companions.some((item) => item.id_capture?.file)
@@ -503,7 +521,11 @@ export default function CheckIn() {
 
     const numericRoomCharge = Number(roomCharge);
     if (!Number.isFinite(numericRoomCharge) || numericRoomCharge < 0) {
-      return "Enter a valid non-negative room charge.";
+      return "Enter a valid non-negative agreed room rate.";
+    }
+
+    if (hasRateOverride && !rateOverrideReason.trim()) {
+      return "Add a reason for the negotiated / adjusted room rate.";
     }
 
     if (guest.id_number.trim() && !guest.id_type.trim()) {
@@ -536,6 +558,7 @@ export default function CheckIn() {
     setStayDetails(EMPTY_STAY_DETAILS);
     setRoomId("");
     setRoomCharge("");
+    setRateOverrideReason("");
     setCheckinTime(nextDefaults.checkinTime);
     setCheckoutTime(nextDefaults.checkoutTime);
     setNotes("");
@@ -556,6 +579,7 @@ export default function CheckIn() {
 
   const handleRoomChange = (nextRoomId) => {
     setRoomId(nextRoomId);
+    setRateOverrideReason("");
     const nextRoom = rooms.find((room) => room.id === nextRoomId);
     const suggestedRate = Number(nextRoom?.room_type?.base_rate);
     if (Number.isFinite(suggestedRate) && suggestedRate >= 0) {
@@ -878,6 +902,8 @@ export default function CheckIn() {
         checkin_time: new Date(checkinTime).toISOString(),
         checkout_time: new Date(checkoutTime).toISOString(),
         room_charge: Number(roomCharge),
+        standard_room_rate: standardRoomRate,
+        rate_override_reason: hasRateOverride ? rateOverrideReason.trim() : "",
         adults: occupancy.adults,
         children: occupancy.children,
         guest: guestPayload,
@@ -1108,6 +1134,56 @@ export default function CheckIn() {
                 <label><span>Check-in *</span><input type="datetime-local" value={checkinTime} onChange={(event) => setCheckinTime(event.target.value)} /></label>
                 <label><span>Check-out *</span><input type="datetime-local" value={checkoutTime} onChange={(event) => setCheckoutTime(event.target.value)} /></label>
               </div>
+
+              {selectedRoom && standardRoomRate !== null && (
+                <div className={`simple-stay-rate-card${hasRateOverride ? " is-adjusted" : ""}`}>
+                  <div className="simple-stay-rate-grid">
+                    <div className="simple-stay-rate-readonly">
+                      <span>Standard room rate</span>
+                      <strong>₹{standardRoomRate.toLocaleString("en-IN")}</strong>
+                      <small>From hotel room setup</small>
+                    </div>
+
+                    <label className="simple-stay-rate-input">
+                      <span>Agreed room rate *</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={roomCharge}
+                        onChange={(event) => setRoomCharge(event.target.value)}
+                        disabled={loading}
+                      />
+                      <small>Use the rate agreed with this guest for this stay.</small>
+                    </label>
+
+                    <div className={`simple-stay-rate-adjustment${hasRateOverride ? " is-active" : ""}`}>
+                      <span>{hasRateOverride ? (rateAdjustmentAmount < 0 ? "Negotiated discount" : "Rate adjustment") : "Rate status"}</span>
+                      <strong>
+                        {hasRateOverride
+                          ? `${rateAdjustmentAmount < 0 ? "−" : "+"}₹${Math.abs(rateAdjustmentAmount).toLocaleString("en-IN")} · ${Math.abs(rateAdjustmentPercent).toFixed(1)}%`
+                          : "Standard rate"}
+                      </strong>
+                      <small>{hasRateOverride ? "Applies only to this stay" : "No override applied"}</small>
+                    </div>
+                  </div>
+
+                  {hasRateOverride && (
+                    <label className="simple-stay-rate-reason">
+                      <span>Rate adjustment reason *</span>
+                      <input
+                        value={rateOverrideReason}
+                        onChange={(event) => setRateOverrideReason(event.target.value)}
+                        placeholder="e.g. Walk-in negotiation, repeat guest, manager-approved special rate"
+                        maxLength={160}
+                        disabled={loading}
+                      />
+                      <small>Saved to the stay audit trail. The hotel master room price is not changed.</small>
+                    </label>
+                  )}
+                </div>
+              )}
+
               {!rooms.length && <div className="checkin-alert checkin-alert--warning">No available rooms were found for this hotel.</div>}
             </section>
 
@@ -1276,13 +1352,12 @@ export default function CheckIn() {
               <button type="button" className="simple-more-toggle" onClick={() => setShowMoreOptions((current) => !current)}>
                 <span>{showMoreOptions ? "−" : "+"}</span>
                 {showMoreOptions ? "Hide extra check-in options" : "More check-in options"}
-                <small>Charge, language, travel and foreign guest details</small>
+                <small>Language, travel and foreign guest details</small>
               </button>
 
               {showMoreOptions && (
                 <div className="simple-more-panel">
                   <div className="simple-more-grid">
-                    <label><span>Room charge</span><input type="number" min="0" step="0.01" value={roomCharge} onChange={(event) => setRoomCharge(event.target.value)} /></label>
                     <label><span>Preferred language</span><select value={guest.preferred_language} onChange={(event) => updateGuest("preferred_language", event.target.value)}><option value="english">English</option><option value="hindi">Hindi</option><option value="marathi">Marathi</option></select></label>
                     <label><span>Purpose of visit</span><input value={guest.purpose_of_visit} onChange={(event) => updateGuest("purpose_of_visit", event.target.value)} /></label>
                     <label><span>City</span><input value={guest.city} onChange={(event) => updateGuest("city", event.target.value)} /></label>

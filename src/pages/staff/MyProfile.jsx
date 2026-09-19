@@ -413,6 +413,22 @@ export default function MyProfile({ onProfileUpdated }) {
             />
           </label>
 
+          <label>
+            Login email
+
+            <input
+              type="email"
+              value={currentStaff?.email || ''}
+              readOnly
+              aria-readonly="true"
+              autoComplete="username"
+            />
+
+            <small>
+              Used to sign in to StayQR. This email is read-only here.
+            </small>
+          </label>
+
           <label className="staff-phone-field">
             <span className="staff-phone-label">
               Phone number

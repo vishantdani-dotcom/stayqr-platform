@@ -10,6 +10,30 @@ import GuestDirectory from "./GuestDirectory";
 import GuestCommunications from "./GuestCommunications";
 import "./Guests.css";
 
+function getActiveStayTiming(session, nowMs = Date.now()) {
+  const checkoutValue = session?.extended_until || session?.checkout_time || null;
+  const checkoutMs = checkoutValue ? new Date(checkoutValue).getTime() : Number.NaN;
+  const isOverdue = Number.isFinite(checkoutMs) && nowMs > checkoutMs;
+  if (!isOverdue) {
+    return { effectiveCheckout: checkoutValue, isOverdue: false, overdueLabel: "" };
+  }
+
+  const overdueMinutes = Math.max(1, Math.floor((nowMs - checkoutMs) / 60000));
+  const days = Math.floor(overdueMinutes / 1440);
+  const hours = Math.floor((overdueMinutes % 1440) / 60);
+  const minutes = overdueMinutes % 60;
+  const parts = [];
+  if (days) parts.push(`${days}d`);
+  if (hours) parts.push(`${hours}h`);
+  if (!days && minutes) parts.push(`${minutes}m`);
+
+  return {
+    effectiveCheckout: checkoutValue,
+    isOverdue: true,
+    overdueLabel: `Overdue by ${parts.join(" ") || "1m"}`,
+  };
+}
+
 export default function Guests({
   initialGuestSessionId = null,
   navigationRequestId = null,
@@ -24,6 +48,7 @@ export default function Guests({
   const [focusedSessionId, setFocusedSessionId] = useState(null);
   const [checkoutLoadingId, setCheckoutLoadingId] =
     useState(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
 
   const [moveModalOpen, setMoveModalOpen] =
     useState(false);
@@ -110,6 +135,11 @@ export default function Guests({
 
   useEffect(() => {
     initPage();
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowTick(Date.now()), 60000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -1219,8 +1249,8 @@ export default function Guests({
           <>
           <div className="guests-active-mobile" aria-label="Active stays">
             {sessions.map((session) => {
-              const checkoutLoading = checkoutLoadingId === session.id
-              const effectiveCheckout = session.extended_until || session.checkout_time
+              const checkoutLoading = checkoutLoadingId === session.id;
+              const { effectiveCheckout, isOverdue, overdueLabel } = getActiveStayTiming(session, nowTick);
               return (
                 <article
                   className={`guest-active-card ${focusedSessionId === session.id ? "guest-session-focused" : ""}`}
@@ -1232,19 +1262,25 @@ export default function Guests({
                       {String(session.guests?.full_name || "G").trim().charAt(0).toUpperCase() || "G"}
                     </div>
                     <div className="guest-active-title">
-                      <span>ACTIVE STAY</span>
+                      <span>{isOverdue ? "OVERDUE STAY" : "ACTIVE STAY"}</span>
                       <h3>{session.guests?.full_name || "Guest"}</h3>
                       <p>Room {session.rooms?.room_number || "—"} · {session.rooms?.room_type || "Room"}</p>
                     </div>
-                    <span className={`guest-session-status ${session.status || "unknown"}`}>
-                      {String(session.status || "unknown").replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}
+                    <span className={`guest-session-status ${isOverdue ? "overdue" : session.status || "unknown"}`}>
+                      {isOverdue
+                        ? "Overdue"
+                        : String(session.status || "unknown").replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}
                     </span>
                   </div>
 
                   <div className="guest-active-meta">
                     <div><span>Phone</span><strong>{session.guests?.phone || "Not added"}</strong></div>
                     <div><span>Checked in</span><strong>{session.checkin_time ? new Date(session.checkin_time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</strong></div>
-                    <div><span>Checkout</span><strong>{effectiveCheckout ? new Date(effectiveCheckout).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</strong></div>
+                    <div>
+                      <span>Checkout</span>
+                      <strong>{effectiveCheckout ? new Date(effectiveCheckout).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</strong>
+                      {isOverdue && <em className="guest-overdue-copy">{overdueLabel}</em>}
+                    </div>
                   </div>
 
                   <div className="guest-active-actions">
@@ -1325,6 +1361,7 @@ export default function Guests({
                 const checkoutLoading =
                   checkoutLoadingId ===
                   session.id;
+                const { effectiveCheckout, isOverdue, overdueLabel } = getActiveStayTiming(session, nowTick);
 
                 return (
                   <tr
@@ -1369,26 +1406,19 @@ export default function Guests({
                     </td>
 
                     <td>
-                      {session.extended_until
-                        ? new Date(
-                            session.extended_until
-                          ).toLocaleString(
-                            "en-IN"
-                          )
-                        : session.checkout_time
-                          ? new Date(
-                              session.checkout_time
-                            ).toLocaleString(
-                              "en-IN"
-                            )
-                          : "-"}
+                      {effectiveCheckout
+                        ? new Date(effectiveCheckout).toLocaleString("en-IN")
+                        : "-"}
+                      {isOverdue && <small className="guest-overdue-copy guest-overdue-copy--table">{overdueLabel}</small>}
                     </td>
 
                     <td>
-                      <span className={`guest-session-status ${session.status || "unknown"}`}>
-                        {String(session.status || "unknown")
-                          .replace(/_/g, " ")
-                          .replace(/\b\w/g, (character) => character.toUpperCase())}
+                      <span className={`guest-session-status ${isOverdue ? "overdue" : session.status || "unknown"}`}>
+                        {isOverdue
+                          ? "Overdue"
+                          : String(session.status || "unknown")
+                              .replace(/_/g, " ")
+                              .replace(/\b\w/g, (character) => character.toUpperCase())}
                       </span>
                     </td>
 

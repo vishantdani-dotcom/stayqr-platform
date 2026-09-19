@@ -574,3 +574,7 @@
     grid-column: 1;
   }
 }
+
+
+/* StayQR Front Desk REV4 — overdue active-stay state */
+.guest-session-status.overdue{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.26);color:#f8c75e}.guest-overdue-copy{display:block;margin-top:4px;color:#f2bd4d;font-size:9px;font-style:normal;font-weight:800;line-height:1.3}.guest-overdue-copy--table{white-space:nowrap}@media(max-width:700px){.guest-session-status.overdue{padding:6px 10px}.guest-overdue-copy{font-size:10px}}

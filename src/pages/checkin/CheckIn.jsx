@@ -3,7 +3,11 @@ import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
 import { getCurrentStaff } from "../../lib/currentStaff";
 import { navigateToSection } from "../../lib/bookingCalendar";
-import { recordGuestDocumentExtraction } from "../../lib/guestCompliance";
+import {
+  GUEST_CONSENT_PURPOSES,
+  recordGuestDocumentExtraction,
+  setGuestConsent,
+} from "../../lib/guestCompliance";
 import { printCheckInPack, printRegistrationCard } from "../../lib/checkInPrintPack";
 import SimpleGuestIdCapture from "../../components/guests/SimpleGuestIdCapture";
 import "./CheckIn.css";
@@ -211,6 +215,7 @@ export default function CheckIn() {
   const [savedPrintDocuments, setSavedPrintDocuments] = useState([]);
   const [printingPack, setPrintingPack] = useState(false);
   const [printError, setPrintError] = useState("");
+  const [kycCaptureConsentConfirmed, setKycCaptureConsentConfirmed] = useState(false);
 
   const occupancy = useMemo(() => {
     const companionAdults = companions.filter(
@@ -230,6 +235,10 @@ export default function CheckIn() {
   const selectedRoom = useMemo(
     () => rooms.find((room) => room.id === roomId) || null,
     [roomId, rooms]
+  );
+
+  const hasCapturedIdentityDocuments = Boolean(
+    idCapture?.file || companions.some((item) => item.id_capture?.file)
   );
 
   const fetchAvailableRooms = async (hotelId) => {
@@ -511,6 +520,10 @@ export default function CheckIn() {
       return "Every companion needs a name, and an ID type when an ID number is entered.";
     }
 
+    if (hasCapturedIdentityDocuments && !kycCaptureConsentConfirmed) {
+      return "Confirm KYC / identity-document storage consent before completing check-in.";
+    }
+
     return null;
   };
 
@@ -538,6 +551,7 @@ export default function CheckIn() {
     setSavedPrintDocuments([]);
     setPrintingPack(false);
     setPrintError("");
+    setKycCaptureConsentConfirmed(false);
   };
 
   const handleRoomChange = (nextRoomId) => {
@@ -670,11 +684,11 @@ export default function CheckIn() {
     return savedDocumentId;
   };
 
-  const saveCapturedIdsAfterCheckin = async (checkinResult) => {
+  const saveCapturedIdsAfterCheckin = async (checkinResult, consentFailedKeys = new Set()) => {
     const warnings = [];
     const documents = [];
 
-    if (idCapture?.file) {
+    if (idCapture?.file && !consentFailedKeys.has("primary")) {
       try {
         const savedDocumentId = await saveCapturedIdForGuest({
           capture: idCapture,
@@ -708,6 +722,7 @@ export default function CheckIn() {
 
     for (const companion of companions) {
       if (!companion.id_capture?.file) continue;
+      if (consentFailedKeys.has(companion.client_id)) continue;
 
       const resultCompanion = resultCompanions.find(
         (item) => item?.client_id === companion.client_id
@@ -747,6 +762,64 @@ export default function CheckIn() {
     }
 
     return { warnings, documents };
+  };
+
+  const recordKycCaptureConsents = async (checkinResult) => {
+    const warnings = [];
+    const failedKeys = new Set();
+    const resultCompanions = Array.isArray(checkinResult?.companions)
+      ? checkinResult.companions
+      : [];
+
+    const recordConsent = async ({ key, guestId, guestName }) => {
+      if (!guestId) return;
+      try {
+        await setGuestConsent({
+          hotelId: currentHotel.id,
+          guestId,
+          guestSessionId: null,
+          purpose: GUEST_CONSENT_PURPOSES.KYC_CAPTURE,
+          status: "granted",
+          source: "staff_recorded",
+          evidence: {
+            workflow: "front_desk_checkin_identity_capture_rev4",
+            checkin_request_id: requestId,
+            checkin_guest_session_id: checkinResult?.guest_session_id || null,
+            confirmed_before_checkin: true,
+            captured_for_guest: guestName || null,
+          },
+        });
+      } catch (consentError) {
+        console.error("KYC capture consent save error:", consentError);
+        failedKeys.add(key);
+        warnings.push(
+          `${guestName || "Guest"} was checked in, but KYC consent evidence could not be recorded. The captured ID was not stored.`
+        );
+      }
+    };
+
+    if (idCapture?.file) {
+      await recordConsent({
+        key: "primary",
+        guestId: checkinResult?.guest_id,
+        guestName: guest.full_name || "Primary guest",
+      });
+    }
+
+    for (const companion of companions) {
+      if (!companion.id_capture?.file) continue;
+      const mappedCompanion = resultCompanions.find(
+        (item) => item?.client_id === companion.client_id
+      );
+      if (!mappedCompanion?.guest_id) continue;
+      await recordConsent({
+        key: companion.client_id,
+        guestId: mappedCompanion.guest_id,
+        guestName: companion.full_name || "Companion",
+      });
+    }
+
+    return { warnings, failedKeys };
   };
 
   const handleCheckIn = async () => {
@@ -816,9 +889,14 @@ export default function CheckIn() {
 
       if (rpcError) throw rpcError;
 
+      const { warnings: consentWarnings, failedKeys: consentFailedKeys } =
+        hasCapturedIdentityDocuments
+          ? await recordKycCaptureConsents(data)
+          : { warnings: [], failedKeys: new Set() };
+
       const { warnings: documentWarnings, documents: printDocuments } =
-        await saveCapturedIdsAfterCheckin(data);
-      const documentWarning = documentWarnings.join(" ");
+        await saveCapturedIdsAfterCheckin(data, consentFailedKeys);
+      const documentWarning = [...consentWarnings, ...documentWarnings].join(" ");
       setIdSaveWarning(documentWarning);
       setSavedPrintDocuments(printDocuments);
       setPrintError("");
@@ -1162,6 +1240,26 @@ export default function CheckIn() {
                 + Add another guest
               </button>
             </section>
+
+            {hasCapturedIdentityDocuments && (
+              <section className="simple-checkin-card simple-kyc-consent-card">
+                <label className="simple-kyc-consent-control">
+                  <input
+                    type="checkbox"
+                    checked={kycCaptureConsentConfirmed}
+                    onChange={(event) => setKycCaptureConsentConfirmed(event.target.checked)}
+                    disabled={loading}
+                  />
+                  <span>
+                    <strong>KYC / identity-document storage consent</strong>
+                    <small>
+                      I confirm that each guest whose ID is captured has consented to this hotel securely storing the identity-document copy for check-in/compliance according to hotel policy.
+                    </small>
+                  </span>
+                </label>
+                <p>Required only when a captured ID image or PDF will be stored. StayQR keeps the visible ID reference masked.</p>
+              </section>
+            )}
 
             <section className="simple-more-wrap">
               <button type="button" className="simple-more-toggle" onClick={() => setShowMoreOptions((current) => !current)}>

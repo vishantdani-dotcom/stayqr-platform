@@ -31,6 +31,35 @@
 .room-entry-form button:disabled { opacity: .5; cursor: not-allowed; }
 .room-entry-card small { display: block; margin-top: 20px; color: #737373; line-height: 1.5; }
 
+
+.room-entry-support {
+  display: grid;
+  gap: 7px;
+  margin: 14px 0 0;
+  padding: 14px;
+  border: 1px solid rgba(212, 175, 55, .24);
+  border-radius: 12px;
+  background: rgba(212, 175, 55, .07);
+}
+.room-entry-support span { color: #a7b0bf; font-size: 12px; font-weight: 700; }
+.room-entry-support strong { color: #fff; font-size: 18px; line-height: 1.25; overflow-wrap: anywhere; }
+.room-entry-support p { margin: 0; color: #a7b0bf; font-size: 12px; line-height: 1.55; }
+.room-entry-call {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 5px;
+  padding: 0 14px;
+  border: 1px solid rgba(212, 175, 55, .42);
+  border-radius: 10px;
+  background: rgba(212, 175, 55, .12);
+  color: #f3d56f;
+  font-weight: 800;
+  text-decoration: none;
+}
+.room-entry-call:hover { border-color: rgba(212, 175, 55, .72); background: rgba(212, 175, 55, .18); }
+
 @media (max-width: 520px) {
   .room-entry-shell { padding: 14px; }
   .room-entry-card { padding: 22px 18px; border-radius: 18px; }

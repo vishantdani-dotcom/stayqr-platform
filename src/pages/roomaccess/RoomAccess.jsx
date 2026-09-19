@@ -13,6 +13,9 @@ export default function RoomAccess() {
   const [opening, setOpening] = useState(false)
   const [error, setError] = useState('')
 
+  const receptionPhone = String(context?.reception_phone || '').trim()
+  const dialableReceptionPhone = receptionPhone.replace(/[^\d+]/g, '')
+
   const openCurrentStay = useCallback(async () => {
     if (!/^[0-9a-f-]{36}$/i.test(publicCode)) {
       setError('This room QR is invalid. Please contact reception.')
@@ -101,6 +104,24 @@ export default function RoomAccess() {
           <div className="room-entry-error" role="alert">
             <strong>Guest access is not active right now.</strong>
             <span>{error}</span>
+          </div>
+        )}
+
+        {context?.valid && error && (
+          <div className="room-entry-support">
+            <span>Need help or want to extend your stay?</span>
+            {receptionPhone ? (
+              <>
+                <strong>{receptionPhone}</strong>
+                {dialableReceptionPhone && (
+                  <a className="room-entry-call" href={`tel:${dialableReceptionPhone}`}>
+                    Call reception
+                  </a>
+                )}
+              </>
+            ) : (
+              <p>Reception contact is not configured. Please visit the front desk for assistance.</p>
+            )}
           </div>
         )}
 

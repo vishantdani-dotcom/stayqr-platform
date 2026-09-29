@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { getCurrentHotel } from "../../lib/currentHotel";
 import { loadTenantContext } from "../../lib/tenantContext";
 import { printStoredCheckInPaperwork } from "../../lib/checkInPrintPack";
-import { checkoutGuestSession } from "../../lib/day5Reservations";
+import { checkoutGuestSession, reconcileActiveStayRoomCharge } from "../../lib/day5Reservations";
 import { issuedCheckoutTotals } from "../../lib/issuedCheckout";
 import { notifyCalendarInvalidated } from "../../lib/bookingCalendar";
 import GuestDirectory from "./GuestDirectory";
@@ -32,6 +32,26 @@ function getActiveStayTiming(session, nowMs = Date.now()) {
     isOverdue: true,
     overdueLabel: `Overdue by ${parts.join(" ") || "1m"}`,
   };
+}
+
+function createStayExtensionRequestId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `extend-${Date.now()}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
+}
+
+function createRoomMoveRequestId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `move-${Date.now()}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
 }
 
 export default function Guests({
@@ -116,6 +136,10 @@ export default function Guests({
     remainingPaymentCollected,
     setRemainingPaymentCollected,
   ] = useState(false);
+  const [checkoutRoomCharge, setCheckoutRoomCharge] = useState("");
+  const [checkoutRoomChargeReason, setCheckoutRoomChargeReason] = useState("");
+  const [checkoutRoomChargeConfirmed, setCheckoutRoomChargeConfirmed] = useState(false);
+  const [checkoutRoomChargeRequestId, setCheckoutRoomChargeRequestId] = useState("");
 
   const selectedMoveRoom = useMemo(
     () =>
@@ -247,16 +271,6 @@ export default function Guests({
 
     setSessions(visibleSessions);
     setLoading(false);
-  }
-
-  function createStayExtensionRequestId() {
-    if (globalThis.crypto?.randomUUID) {
-      return globalThis.crypto.randomUUID();
-    }
-
-    return `extend-${Date.now()}-${Math.random()
-      .toString(16)
-      .slice(2)}`;
   }
 
   function resetExtendState() {
@@ -562,16 +576,6 @@ export default function Guests({
     }
   }
 
-  function createRoomMoveRequestId() {
-    if (globalThis.crypto?.randomUUID) {
-      return globalThis.crypto.randomUUID();
-    }
-
-    return `move-${Date.now()}-${Math.random()
-      .toString(16)
-      .slice(2)}`;
-  }
-
   function closeMoveModal() {
     if (moveLoading) return;
 
@@ -807,6 +811,10 @@ export default function Guests({
     setSettlementPaymentMethod("cash");
     setSettlementTransactionReference("");
     setRemainingPaymentCollected(false);
+    setCheckoutRoomCharge("");
+    setCheckoutRoomChargeReason("");
+    setCheckoutRoomChargeConfirmed(false);
+    setCheckoutRoomChargeRequestId("");
   }
 
   function closeSettlementModal() {
@@ -857,6 +865,92 @@ export default function Guests({
     } finally {
       setPaperworkLoading({ sessionId: null, mode: null });
     }
+  }
+
+  async function loadCheckoutRoomRateContext(session, currentRoomAmount, stayNights) {
+    let agreedNightlyRate = null;
+    let roomRateSource = "unavailable";
+
+    if (session.reservation_room_id) {
+      const { data: reservationRoom, error: reservationRoomError } = await supabase
+        .from("reservation_rooms")
+        .select("nightly_rate, total_amount")
+        .eq("hotel_id", session.hotel_id)
+        .eq("id", session.reservation_room_id)
+        .maybeSingle();
+
+      if (reservationRoomError) {
+        console.warn("Checkout reservation rate lookup failed:", reservationRoomError);
+      } else {
+        const reservationNightlyRate = Number(reservationRoom?.nightly_rate);
+        if (Number.isFinite(reservationNightlyRate) && reservationNightlyRate >= 0) {
+          agreedNightlyRate = reservationNightlyRate;
+          roomRateSource = "Reservation nightly rate";
+        }
+      }
+    } else {
+      const { data: walkinEvent, error: walkinEventError } = await supabase
+        .from("walkin_checkin_events")
+        .select("result_snapshot, request_snapshot, metadata")
+        .eq("hotel_id", session.hotel_id)
+        .eq("guest_session_id", session.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (walkinEventError) {
+        console.warn("Checkout walk-in rate lookup failed:", walkinEventError);
+      } else {
+        const walkinRate = Number(
+          walkinEvent?.result_snapshot?.agreed_room_rate ??
+            walkinEvent?.metadata?.rate?.agreed_room_rate ??
+            walkinEvent?.request_snapshot?.room_charge
+        );
+
+        if (Number.isFinite(walkinRate) && walkinRate >= 0) {
+          agreedNightlyRate = walkinRate;
+          roomRateSource = "Agreed check-in rate";
+        }
+      }
+    }
+
+    if (agreedNightlyRate === null && session.rooms?.room_type_id) {
+      const { data: roomType, error: roomTypeError } = await supabase
+        .from("room_types")
+        .select("base_rate")
+        .eq("hotel_id", session.hotel_id)
+        .eq("id", session.rooms.room_type_id)
+        .maybeSingle();
+
+      if (roomTypeError) {
+        console.warn("Checkout hotel rate lookup failed:", roomTypeError);
+      } else {
+        const baseRate = Number(roomType?.base_rate);
+        if (Number.isFinite(baseRate) && baseRate >= 0) {
+          agreedNightlyRate = baseRate;
+          roomRateSource = "Hotel room rate";
+        }
+      }
+    }
+
+    const suggestedRoomAmount =
+      agreedNightlyRate === null
+        ? Number(currentRoomAmount || 0)
+        : Math.round(agreedNightlyRate * Math.max(1, stayNights) * 100) / 100;
+
+    // Never silently reduce an already-posted room charge. Staff can still enter
+    // a lower confirmed final amount with an explicit audit reason.
+    const recommendedRoomAmount = Math.max(
+      Number(currentRoomAmount || 0),
+      suggestedRoomAmount
+    );
+
+    return {
+      agreedNightlyRate,
+      roomRateSource,
+      suggestedRoomAmount,
+      recommendedRoomAmount,
+    };
   }
 
   async function openSettlementModal(session) {
@@ -917,6 +1011,11 @@ export default function Guests({
       const serviceAmount = categoryAmount("service");
       const manualAmount = categoryAmount("manual") + categoryAmount("other");
       const subtotalAmount = Number(checkoutFolio.charges_amount || 0);
+      const roomRateContext = await loadCheckoutRoomRateContext(
+        session,
+        roomAmount,
+        stayNights
+      );
 
       const { data: openFoodOrders, error: openFoodError } = await supabase
         .from("food_orders")
@@ -970,6 +1069,10 @@ export default function Guests({
         stayHours,
         stayNights,
         roomAmount,
+        agreedNightlyRate: roomRateContext.agreedNightlyRate,
+        roomRateSource: roomRateContext.roomRateSource,
+        suggestedRoomAmount: roomRateContext.suggestedRoomAmount,
+        recommendedRoomAmount: roomRateContext.recommendedRoomAmount,
         foodAmount,
         manualAmount,
         serviceAmount,
@@ -984,6 +1087,16 @@ export default function Guests({
       setDiscountValue(String(issuedInvoice?.discount_value ?? checkoutFolio.discount_amount ?? 0));
       setInvoiceNotes("Final checkout invoice generated by StayQR.");
       setRemainingPaymentCollected(false);
+      setCheckoutRoomCharge(String(roomRateContext.recommendedRoomAmount));
+      setCheckoutRoomChargeReason(
+        Math.abs(roomRateContext.recommendedRoomAmount - roomAmount) >= 0.01
+          ? getActiveStayTiming(session).isOverdue
+            ? "Overstay room charge reconciliation at checkout"
+            : "Room charge reconciliation at checkout"
+          : ""
+      );
+      setCheckoutRoomChargeConfirmed(false);
+      setCheckoutRoomChargeRequestId(createStayExtensionRequestId());
       setSettlementModalOpen(true);
     } catch (error) {
       console.error("Prepare final bill error:", error);
@@ -994,9 +1107,23 @@ export default function Guests({
   }
 
   const settlementCalculation = useMemo(() => {
-    if (settlementData?.issuedTotals) return settlementData.issuedTotals;
-    const subtotal = Number(
-      settlementData?.subtotalAmount || 0
+    if (settlementData?.issuedTotals) {
+      return {
+        ...settlementData.issuedTotals,
+        roomChargeAmount: Number(settlementData.roomAmount || 0),
+      };
+    }
+    const postedRoomAmount = Number(settlementData?.roomAmount || 0);
+    const requestedRoomAmount = Number(checkoutRoomCharge);
+    const roomChargeAmount =
+      settlementData?.issuedTotals || checkoutRoomCharge === "" || !Number.isFinite(requestedRoomAmount)
+        ? postedRoomAmount
+        : Math.max(0, requestedRoomAmount);
+    const subtotal = Math.max(
+      0,
+      Number(settlementData?.subtotalAmount || 0) -
+        postedRoomAmount +
+        roomChargeAmount
     );
 
     const safeTaxPercent = Math.min(
@@ -1046,6 +1173,7 @@ export default function Guests({
     );
 
     return {
+      roomChargeAmount,
       subtotal,
       taxPercent: safeTaxPercent,
       taxAmount,
@@ -1058,10 +1186,20 @@ export default function Guests({
     };
   }, [
     settlementData,
+    checkoutRoomCharge,
     taxPercent,
     discountType,
     discountValue,
   ]);
+
+  const roomChargeChanged = Boolean(
+    settlementData &&
+      !settlementData.issuedInvoice &&
+      Math.abs(
+        Number(settlementCalculation.roomChargeAmount || 0) -
+          Number(settlementData.roomAmount || 0)
+      ) >= 0.01
+  );
 
   async function completeFinalSettlement() {
     if (!settlementData) return;
@@ -1080,6 +1218,21 @@ export default function Guests({
     }
     if (settlementData.issuedInvoice && amountToCollect > 0) {
       showNotice("error", "Complete the issued bill in Guest Bills, then reopen checkout. This checkout does not record another payment.");
+      return;
+    }
+
+    if (checkoutRoomCharge === "" || !Number.isFinite(Number(checkoutRoomCharge)) || Number(checkoutRoomCharge) < 0) {
+      showNotice("error", "Enter a valid non-negative final room charge.");
+      return;
+    }
+
+    if (roomChargeChanged && checkoutRoomChargeReason.trim().length < 3) {
+      showNotice("error", "Enter the reason for changing the posted room charge.");
+      return;
+    }
+
+    if (roomChargeChanged && !checkoutRoomChargeConfirmed) {
+      showNotice("error", "Confirm the final room charge before checkout.");
       return;
     }
 
@@ -1144,7 +1297,36 @@ export default function Guests({
     setSettlementLoading(true);
     setCheckoutLoadingId(session.id);
 
+    let roomChargeReconciled = false;
+
     try {
+      if (roomChargeChanged) {
+        const reconciliation = await reconcileActiveStayRoomCharge({
+          hotelId: session.hotel_id,
+          guestSessionId: session.id,
+          requestId: checkoutRoomChargeRequestId || createStayExtensionRequestId(),
+          expectedCurrentRoomCharge: settlementData.roomAmount,
+          suggestedRoomCharge: settlementData.suggestedRoomAmount,
+          finalRoomCharge: settlementCalculation.roomChargeAmount,
+          agreedNightlyRate: settlementData.agreedNightlyRate || 0,
+          billableNights: settlementData.stayNights,
+          stayHours: settlementData.stayHours,
+          adjustmentReason: checkoutRoomChargeReason,
+        });
+
+        roomChargeReconciled = true;
+        setSettlementData((current) =>
+          current
+            ? {
+                ...current,
+                roomAmount: Number(reconciliation?.current_room_charge ?? settlementCalculation.roomChargeAmount),
+                subtotalAmount: Number(reconciliation?.folio_charges_amount ?? settlementCalculation.subtotal),
+              }
+            : current
+        );
+        setCheckoutRoomChargeConfirmed(false);
+      }
+
       const result = await checkoutGuestSession({
         hotelId: session.hotel_id,
         guestSessionId: session.id,
@@ -1178,7 +1360,9 @@ export default function Guests({
       console.error("Final settlement error:", error);
       showNotice(
         "error",
-        error.message || "Final checkout failed"
+        roomChargeReconciled
+          ? `Room charge was saved, but checkout did not complete. ${error.message || "Reopen checkout and try again."}`
+          : error.message || "Final checkout failed"
       );
       await fetchGuests(currentHotel?.id);
     } finally {
@@ -2048,7 +2232,7 @@ export default function Guests({
                   <SettlementRow
                     label="Room Charges"
                     value={
-                      settlementData.roomAmount
+                      settlementCalculation.roomChargeAmount
                     }
                   />
 
@@ -2092,13 +2276,90 @@ export default function Guests({
                       {
                         settlementData.stayNights
                       }{" "}
-                      night(s) ·{" "}
+                      billable night(s) ·{" "}
                       {
                         settlementData.stayHours
                       }{" "}
                       hour(s)
                     </strong>
                   </div>
+
+                  {!settlementData.issuedInvoice && (
+                    <div style={{ ...stayInfoBox, marginTop: "12px", display: "grid", gap: "10px" }}>
+                      <div>
+                        <span>Agreed nightly rate</span>
+                        <strong style={{ display: "block", marginTop: "4px" }}>
+                          {settlementData.agreedNightlyRate == null
+                            ? "Rate unavailable"
+                            : `₹${formatMoney(settlementData.agreedNightlyRate)}`}
+                        </strong>
+                        <small>{settlementData.roomRateSource}</small>
+                      </div>
+
+                      <div>
+                        <span>Current posted room charge</span>
+                        <strong style={{ display: "block", marginTop: "4px" }}>
+                          ₹{formatMoney(settlementData.roomAmount)}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span>Calculated for elapsed stay</span>
+                        <strong style={{ display: "block", marginTop: "4px" }}>
+                          ₹{formatMoney(settlementData.suggestedRoomAmount)}
+                        </strong>
+                        <small>
+                          {settlementData.agreedNightlyRate == null
+                            ? "StayQR could not recover the agreed nightly rate. Confirm the final room charge manually."
+                            : `${settlementData.stayNights} night(s) × ₹${formatMoney(settlementData.agreedNightlyRate)}`}
+                        </small>
+                      </div>
+
+                      <label style={label}>
+                        Final room charge
+                      </label>
+                      <input
+                        style={input}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={checkoutRoomCharge}
+                        disabled={settlementLoading}
+                        onChange={(event) => {
+                          setCheckoutRoomCharge(event.target.value);
+                          setCheckoutRoomChargeConfirmed(false);
+                          setRemainingPaymentCollected(false);
+                        }}
+                      />
+
+                      {roomChargeChanged && (
+                        <>
+                          <label style={label}>Room charge adjustment reason</label>
+                          <input
+                            style={input}
+                            type="text"
+                            maxLength="240"
+                            value={checkoutRoomChargeReason}
+                            disabled={settlementLoading}
+                            onChange={(event) => setCheckoutRoomChargeReason(event.target.value)}
+                            placeholder="Example: Overstay charge, approved rate correction, late checkout"
+                          />
+
+                          <label style={confirmationBox}>
+                            <input
+                              type="checkbox"
+                              checked={checkoutRoomChargeConfirmed}
+                              disabled={settlementLoading}
+                              onChange={(event) => setCheckoutRoomChargeConfirmed(event.target.checked)}
+                            />
+                            <span>
+                              I confirm the final room charge of ₹{formatMoney(settlementCalculation.roomChargeAmount)} before checkout.
+                            </span>
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div style={settlementSection}>
@@ -2118,11 +2379,10 @@ export default function Guests({
                     step="0.01"
                     value={taxPercent}
                     disabled={Boolean(settlementData.issuedInvoice) || settlementLoading}
-                    onChange={(event) =>
-                      setTaxPercent(
-                        event.target.value
-                      )
-                    }
+                    onChange={(event) => {
+                      setTaxPercent(event.target.value);
+                      setRemainingPaymentCollected(false);
+                    }}
                     placeholder="Example: 12"
                   />
 
@@ -2134,11 +2394,10 @@ export default function Guests({
                     style={input}
                     value={discountType}
                     disabled={Boolean(settlementData.issuedInvoice) || settlementLoading}
-                    onChange={(event) =>
-                      setDiscountType(
-                        event.target.value
-                      )
-                    }
+                    onChange={(event) => {
+                      setDiscountType(event.target.value);
+                      setRemainingPaymentCollected(false);
+                    }}
                   >
                     <option value="fixed">
                       Fixed Amount
@@ -2169,11 +2428,10 @@ export default function Guests({
                     step="0.01"
                     value={discountValue}
                     disabled={Boolean(settlementData.issuedInvoice) || settlementLoading}
-                    onChange={(event) =>
-                      setDiscountValue(
-                        event.target.value
-                      )
-                    }
+                    onChange={(event) => {
+                      setDiscountValue(event.target.value);
+                      setRemainingPaymentCollected(false);
+                    }}
                     placeholder={
                       discountType ===
                       "percentage"
@@ -2353,7 +2611,11 @@ export default function Guests({
                 <button
                   type="button"
                   style={saveBtn}
-                  disabled={settlementLoading || Boolean(settlementData.issuedInvoice && settlementCalculation.amountToCollect > 0)}
+                  disabled={
+                    settlementLoading ||
+                    Boolean(settlementData.issuedInvoice && settlementCalculation.amountToCollect > 0) ||
+                    Boolean(roomChargeChanged && (!checkoutRoomChargeConfirmed || checkoutRoomChargeReason.trim().length < 3))
+                  }
                   onClick={
                     completeFinalSettlement
                   }

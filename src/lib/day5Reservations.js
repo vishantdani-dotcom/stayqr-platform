@@ -101,6 +101,38 @@ export async function removeReservationRoom({
   return data
 }
 
+export async function reconcileActiveStayRoomCharge({
+  hotelId,
+  guestSessionId,
+  requestId,
+  expectedCurrentRoomCharge,
+  suggestedRoomCharge,
+  finalRoomCharge,
+  agreedNightlyRate,
+  billableNights,
+  stayHours,
+  adjustmentReason = null,
+}) {
+  const { data, error } = await supabase.rpc('reconcile_active_stay_room_charge', {
+    target_hotel_id: hotelId,
+    target_guest_session_id: guestSessionId,
+    payload: {
+      request_id: requestId,
+      expected_current_room_charge: Number(expectedCurrentRoomCharge) || 0,
+      suggested_room_charge: Number(suggestedRoomCharge) || 0,
+      final_room_charge: Number(finalRoomCharge) || 0,
+      agreed_nightly_rate: Number(agreedNightlyRate) || 0,
+      billable_nights: Math.max(1, Number(billableNights) || 1),
+      stay_hours: Math.max(1, Number(stayHours) || 1),
+      adjustment_reason: adjustmentReason?.trim() || null,
+    },
+  })
+
+  throwIfError(error)
+  throwIfRejected(data, 'StayQR could not reconcile the room charge before checkout.')
+  return data
+}
+
 export async function checkoutGuestSession({
   hotelId,
   guestSessionId,

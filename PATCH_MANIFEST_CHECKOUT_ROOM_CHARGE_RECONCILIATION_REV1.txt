@@ -1,0 +1,19 @@
+StayQR Checkout Room-Charge Reconciliation REV1
+Base: 66e9484aa76d062e2c1c0941c7a12ab1fb57b4f2
+Date: 2026-09-29
+
+Changed / added:
+- src/pages/guests/Guests.jsx
+- src/lib/day5Reservations.js
+- supabase/migrations/202609290124_checkout_room_charge_reconciliation_REV1.sql
+- supabase/audit/202609290124_checkout_room_charge_reconciliation_ACCEPTANCE.sql
+- supabase/rollback/202609290124_checkout_room_charge_reconciliation_ROLLBACK_REV1.sql
+- scripts/validate-checkout-room-charge-reconciliation.mjs
+- README_CHECKOUT_ROOM_CHARGE_RECONCILIATION_REV1.md
+
+Validation completed in this patch workspace:
+- TypeScript parser: Guests.jsx PASS
+- TypeScript parser: day5Reservations.js PASS
+- Source/contract validation: 16/16 PASS
+
+Full npm lint/build was not executed in the isolated patch container because project dependencies were not available locally.
